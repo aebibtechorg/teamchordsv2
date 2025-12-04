@@ -1,0 +1,55 @@
+import { StrictMode, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+
+import { router } from "./router.jsx";
+import { RouterProvider } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
+import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
+import { setTokenProvider } from "./utils/api";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+function AuthTokenProviderSetup() {
+  const { getAccessTokenSilently } = useAuth0();
+
+  // Wire the token provider to Auth0. This will make apiFetch call
+  // useAuth0.getAccessTokenSilently() to obtain the access token.
+  // We set it once here; if getAccessTokenSilently changes identity, the provider will update.
+  import.meta.env;
+
+  // run effect to set provider
+  useEffect(() => {
+    setTokenProvider(async () => {
+      try {
+        return await getAccessTokenSilently({ audience: import.meta.env.VITE_AUTH0_AUDIENCE });
+      } catch (e) {
+        return null;
+      }
+    });
+  }, [getAccessTokenSilently]);
+
+  return null;
+}
+
+const domain = import.meta.env.VITE_AUTH0_DOMAIN;
+const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
+const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+      <Auth0Provider
+        domain={domain}
+        clientId={clientId}
+        authorizationParams={{
+          redirect_uri: window.location.origin + "/callback",
+          ...(audience ? { audience } : {}),
+        }}
+        cacheLocation="localstorage"
+      >
+        <AuthTokenProviderSetup />
+        <HelmetProvider>
+          <RouterProvider router={router} />
+        </HelmetProvider>
+      </Auth0Provider>
+  </StrictMode>
+);

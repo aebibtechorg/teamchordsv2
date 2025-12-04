@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    font-family: "Inter", serif;
+}
+
+.paragraph {
+    margin-bottom: 24px;
+}
+
+.chord {
+    font-weight: 600;
+}
+
+td.comment {
+    font-weight: bolder;
+    font-size: 1.2em;
+}
+
+.print-output {
+    display: none;
+}
+
+.sheet h1 {
+    margin-bottom: 1rem;
+}
+
+@media print {
+    pre {
+        column-count: 2;   /* Creates two columns */
+        column-gap: 20px;  /* Adjust gap between columns */
+        column-fill: auto; /* Ensures balanced content */
+        font-family: "Inter", serif;
+        font-size: 12px;
+        white-space: pre-wrap;
+        break-inside: avoid;
+    }
+
+    pre > h1 {
+        font-size: 16px;
+        font-weight: bold;
+    }
+}
