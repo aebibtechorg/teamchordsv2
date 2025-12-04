@@ -7,7 +7,6 @@ import { getSetList } from "../utils/setlists";
 import ChordSheetJS from "chordsheetjs";
 import { Key } from "chordsheetjs";
 import { Guitar, PrinterIcon } from "lucide-react";
-import { supabase } from "../supabaseClient";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
@@ -21,7 +20,7 @@ const SetListView = () => {
     const [ogImage, setOgImage] = useState("");
 
     useEffect(() => {
-        const signalRHub = import.meta.env.VITE_SIGNALR_URL || window.location.origin;
+        const signalRHub = '/hubs';
 
         const fetchSet = async () => {
             const setlistData = await getSetList(id);

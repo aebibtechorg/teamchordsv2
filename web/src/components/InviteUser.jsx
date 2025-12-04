@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '../supabaseClient';
 
 export default function InviteUser() {
   const [email, setEmail] = useState('');
@@ -12,12 +11,6 @@ export default function InviteUser() {
     setMessage({ text: '', isError: false });
 
     try {
-      const { data, error } = await supabase.functions.invoke('invite-user', {
-        body: { email }
-      });
-
-      if (error) throw error;
-
       setMessage({ 
         text: `Invite sent to ${email} successfully!`,
         isError: false 

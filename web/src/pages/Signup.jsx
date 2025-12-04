@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import MainLogo from "../components/MainLogo";
 import { useAuth0 } from "@auth0/auth0-react";
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebookF } from "react-icons/fa";
+// import { FcGoogle } from "react-icons/fc";
+// import { FaFacebookF } from "react-icons/fa";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -13,8 +13,14 @@ const Signup = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const { loginWithRedirect } = useAuth0();
+  const { loginWithRedirect, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/library");
+    }
+  }, [isAuthenticated]);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -134,7 +140,7 @@ const Signup = () => {
         <button type="submit" disabled={loading} className="w-full mt-4 border rounded bg-gray-500 p-2 text-white hover:bg-gray-600 disabled:opacity-50">
           Sign Up
         </button>
-        <div className="flex flex-col gap-2 mt-4">
+        {/*<div className="flex flex-col gap-2 mt-4">
           <button
             type="button"
             className="w-full border rounded flex items-center justify-center gap-2 bg-white p-2 text-gray-700 hover:bg-gray-200 shadow"
@@ -153,7 +159,7 @@ const Signup = () => {
             <FaFacebookF size={20} />
             <span>Sign up with Facebook</span>
           </button>
-        </div>
+        </div>*/}
         {error && <p className="text-red-600 text-center pt-4">{error}</p>}
       </form>
     </div>

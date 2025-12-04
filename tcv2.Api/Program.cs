@@ -3,9 +3,7 @@ using tcv2.Api.Data;
 using tcv2.Api.Hubs;
 using tcv2.Api.Endpoints;
 using Scalar.AspNetCore;
-using System.Security.Claims;
 using tcv2.Api;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using Serilog.Events;
@@ -52,18 +50,20 @@ builder.Services.AddAuthentication(options =>
     options.Audience = auth0Audience;
 });
 
-builder.AddNpgsqlDbContext<AppDbContext>("teamchords");
+builder.AddNpgsqlDbContext<AppDbContext>("TeamChords");
 
 // Configure SignalR: use StackExchange.Redis if configured, otherwise default in-memory.
-var redisConn = builder.Configuration.GetConnectionString("Redis"); // e.g. set via environment or config
-if (!string.IsNullOrWhiteSpace(redisConn))
-{
-    builder.Services.AddSignalR().AddStackExchangeRedis(redisConn);
-}
-else
-{
-    builder.Services.AddSignalR();
-}
+// var redisConn = builder.Configuration.GetConnectionString("Redis"); // e.g. set via environment or config
+// if (!string.IsNullOrWhiteSpace(redisConn))
+// {
+//     builder.Services.AddSignalR().AddStackExchangeRedis(redisConn);
+// }
+// else
+// {
+//     builder.Services.AddSignalR();
+// }
+builder.Services.AddSignalR();
+
 
 var app = builder.Build();
 
@@ -76,7 +76,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 
 app.UseAuthentication();
