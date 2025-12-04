@@ -12,6 +12,7 @@ import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 
+
 const SetListView = () => {
     const { id } = useParams();
     const [setlist, setSetlist] = useState(null);
@@ -63,19 +64,74 @@ const SetListView = () => {
 
         outputsConn.on("OutputCreated", (o) => {
             const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
-            if (setListId && String(setListId) === String(id)) fetchSet();
+            if (setListId && String(setListId) === String(id)) {
+                const newOutput = {
+                    id: o.id ?? o.Id,
+                    setListId: o.setListId ?? o.SetListId,
+                    targetKey: o.targetKey ?? o.TargetKey,
+                    chordSheetId: o.chordSheetId ?? o.ChordSheetId,
+                    capo: o.capo ?? o.Capo,
+                    createdAt: o.createdAt ?? o.CreatedAt,
+                    updatedAt: o.updatedAt ?? o.UpdatedAt,
+                    chordsheets: o.chordsheets ?? o.Chordsheets
+                };
+                setOutputs(prevOutputs => [...prevOutputs, newOutput]);
+            }
         });
         outputsConn.on("OutputUpdated", (o) => {
             const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
-            if (setListId && String(setListId) === String(id)) fetchSet();
+            const outputId = o?.id ?? o?.Id;
+            if (setListId && String(setListId) === String(id)) {
+                const updatedOutput = {
+                    id: o.id ?? o.Id,
+                    setListId: o.setListId ?? o.SetListId,
+                    targetKey: o.targetKey ?? o.TargetKey,
+                    chordSheetId: o.chordSheetId ?? o.ChordSheetId,
+                    capo: o.capo ?? o.Capo,
+                    createdAt: o.createdAt ?? o.CreatedAt,
+                    updatedAt: o.updatedAt ?? o.UpdatedAt,
+                    chordsheets: o.chordsheets ?? o.Chordsheets
+                };
+                setOutputs(prevOutputs => prevOutputs.map(prevOutput => String(prevOutput.id) === String(outputId) ? updatedOutput : prevOutput));
+            }
         });
         outputsConn.on("OutputDeleted", (outputId) => {
-            fetchSet();
+            const oid = outputId?.id ?? outputId?.Id ?? outputId;
+            setOutputs(prevOutputs => prevOutputs.filter(p => String(p.id) !== String(oid)));
         });
 
-        chordsheetsConn.on("ChordSheetCreated", (cs) => fetchSet());
-        chordsheetsConn.on("ChordSheetUpdated", (cs) => fetchSet());
-        chordsheetsConn.on("ChordSheetDeleted", (csId) => fetchSet());
+        chordsheetsConn.on("ChordSheetUpdated", (cs) => {
+            const csId = cs?.id ?? cs?.Id;
+            setOutputs(prevOutputs => {
+                return prevOutputs.map(output => {
+                    if (output.chordSheetId === csId) {
+                        return {
+                            ...output,
+                            chordsheets: {
+                                ...output.chordsheets,
+                                key: cs.key,
+                                content: cs.content
+                            }
+                        };
+                    }
+                    return output;
+                });
+            });
+        });
+        chordsheetsConn.on("ChordSheetDeleted", (csId) => {
+            const deletedCsId = csId?.id ?? csId?.Id ?? csId;
+            setOutputs(prevOutputs => {
+                return prevOutputs.map(output => {
+                    if (output.chordSheetId === deletedCsId) {
+                        return {
+                            ...output,
+                            chordsheets: null
+                        };
+                    }
+                    return output;
+                });
+            });
+        });
 
         // Start connections
         Promise.all([
