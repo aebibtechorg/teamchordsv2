@@ -34,8 +34,6 @@ var webClient = builder.AddViteApp("webclient", "../web")
         c.EnvironmentVariables.Add("VITE_AUTH0_DOMAIN", builder.Configuration["WebAuth0:Domain"] ?? Environment.GetEnvironmentVariable("WebAuth0__Domain"));
         c.EnvironmentVariables.Add("VITE_AUTH0_CLIENT_ID", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId"));
         c.EnvironmentVariables.Add("VITE_AUTH0_AUDIENCE", builder.Configuration["WebAuth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience"));
-        c.EnvironmentVariables.Add("VITE_SUPABASE_URL", "https://jxvplaejgoacipycczsd.supabase.co");
-        c.EnvironmentVariables.Add("VITE_SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dnBsYWVqZ29hY2lweWNjenNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5OTQxODcsImV4cCI6MjA1MzU3MDE4N30.PsOab-iXmivJxdWmZ2SKtTbl8yBkGASoQU9iSpt1xoM");
     })
     .WithReference(api)
     .WaitFor(api)
