@@ -7,7 +7,8 @@ import { RouterProvider } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { setTokenProvider } from "./utils/api";
-import ErrorBoundary from "./components/ErrorBoundary";
+
+import { loadConfig } from "./config.js";
 
 function AuthTokenProviderSetup() {
   const { getAccessTokenSilently } = useAuth0();
@@ -21,7 +22,8 @@ function AuthTokenProviderSetup() {
   useEffect(() => {
     setTokenProvider(async () => {
       try {
-        return await getAccessTokenSilently({ audience: import.meta.env.VITE_AUTH0_AUDIENCE });
+        const config = await loadConfig();
+        return await getAccessTokenSilently({ audience: config.auth0Audience || import.meta.env.VITE_AUTH0_AUDIENCE });
       } catch (e) {
         return null;
       }
@@ -31,25 +33,29 @@ function AuthTokenProviderSetup() {
   return null;
 }
 
-const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
-const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
+async function bootstrap() {
+  const config = await loadConfig()
+  const audience = config.auth0Audience || import.meta.env.VITE_AUTH0_AUDIENCE;
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-      <Auth0Provider
-        domain={domain}
-        clientId={clientId}
-        authorizationParams={{
-          redirect_uri: window.location.origin + "/callback",
-          ...(audience ? { audience } : {}),
-        }}
-        cacheLocation="localstorage"
-      >
-        <AuthTokenProviderSetup />
-        <HelmetProvider>
-          <RouterProvider router={router} />
-        </HelmetProvider>
-      </Auth0Provider>
-  </StrictMode>
-);
+  createRoot(document.getElementById("root")).render(
+    <StrictMode>
+        <Auth0Provider
+          domain={config.auth0Domain || import.meta.env.VITE_AUTH0_DOMAIN}
+          clientId={config.auth0ClientId || import.meta.env.VITE_AUTH0_CLIENT_ID}
+          authorizationParams={{
+            redirect_uri: window.location.origin + "/callback",
+            audience: audience,
+          }}
+          cacheLocation="localstorage"
+        >
+          <AuthTokenProviderSetup />
+          <HelmetProvider>
+            <RouterProvider router={router} />
+          </HelmetProvider>
+        </Auth0Provider>
+    </StrictMode>
+  );
+}
+
+bootstrap();
+

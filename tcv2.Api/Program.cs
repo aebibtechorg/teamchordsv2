@@ -114,6 +114,17 @@ api.MapSetListEndpoints();
 // Users CRUD (moved to Endpoints/UserEndpoints.cs)
 api.MapUserEndpoints();
 
+api.MapGet("/config", () =>
+{
+    var config = new
+    {
+        Auth0Domain = app.Configuration["WebAuth0:Domain"],
+        Auth0ClientId = app.Configuration["WebAuth0:ClientId"],
+        Auth0Audience = app.Configuration["WebAuth0:Audience"]
+    };
+   return Results.Ok(config);
+}).AllowAnonymous();
+
 api.MapGet("/migrate", async (AppDbContext db) => {
     try
     {
