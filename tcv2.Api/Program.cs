@@ -54,15 +54,15 @@ builder.Services.AddAuthentication(options =>
 builder.AddNpgsqlDbContext<AppDbContext>("TeamChords");
 
 // Configure SignalR: use StackExchange.Redis if configured, otherwise default in-memory.
-// var redisConn = builder.Configuration.GetConnectionString("Redis"); // e.g. set via environment or config
-// if (!string.IsNullOrWhiteSpace(redisConn))
-// {
-//     builder.Services.AddSignalR().AddStackExchangeRedis(redisConn);
-// }
-// else
-// {
-//     builder.Services.AddSignalR();
-// }
+var redisConn = builder.Configuration.GetConnectionString("Redis"); // e.g. set via environment or config
+if (!string.IsNullOrWhiteSpace(redisConn))
+{
+    builder.Services.AddSignalR().AddStackExchangeRedis(redisConn);
+}
+else
+{
+    builder.Services.AddSignalR();
+}
 builder.Services.AddSignalR();
 
 
@@ -76,29 +76,6 @@ if (app.Environment.IsDevelopment())
         o.AddPreferredSecuritySchemes("Bearer");
     });
 }
-
-// if (!app.Environment.IsDevelopment())
-// {
-//     app.UseForwardedHeaders(new ForwardedHeadersOptions
-//     {
-//         // Trust headers from all proxies in the internal network
-//         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-//     });
-//     app.Use((context, next) =>
-//     {
-//         var options = new ForwardedHeadersOptions
-//         {
-//             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-//         };
-        
-//         // Use Clear() on the existing read-only collections
-//         options.KnownNetworks.Clear();
-//         options.KnownProxies.Clear();
-        
-//         return next();
-//     });
-// }
-
 
 app.UseAuthentication();
 app.UseAuthorization();

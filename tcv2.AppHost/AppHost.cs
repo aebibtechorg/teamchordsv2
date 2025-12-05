@@ -1,6 +1,5 @@
 #pragma warning disable ASPIREACADOMAINS001,ASPIREDOCKERFILEBUILDER001
 
-using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -23,6 +22,9 @@ var db = postgres.AddDatabase("TeamChords", "teamchords");
 
 db.ExcludeFromManifest();
 
+var redis = builder.AddAzureRedis("aebibtech-teamchords-redis")
+    .RunAsContainer();
+
 
 var api = builder.AddProject<Projects.tcv2_Api>("api")
     .WithEnvironment(c => {
@@ -36,7 +38,9 @@ var api = builder.AddProject<Projects.tcv2_Api>("api")
 
     })
     .WithReference(db)
+    .WithReference(redis)
     .WaitFor(db)
+    .WaitFor(redis)
     .WithExternalHttpEndpoints();
 
 if (builder.ExecutionContext.IsPublishMode)
