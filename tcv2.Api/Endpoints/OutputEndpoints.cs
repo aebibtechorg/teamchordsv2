@@ -29,6 +29,7 @@ internal static class OutputEndpoints
             {
                 "targetKey" => sortDir == "asc" ? q.OrderBy(x => x.TargetKey) : q.OrderByDescending(x => x.TargetKey),
                 "capo" => sortDir == "asc" ? q.OrderBy(x => x.Capo) : q.OrderByDescending(x => x.Capo),
+                "order" => sortDir == "asc" ? q.OrderBy(x => x.Order) : q.OrderByDescending(x => x.Order),
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
@@ -63,6 +64,7 @@ internal static class OutputEndpoints
                 TargetKey = dto.TargetKey,
                 ChordSheetId = dto.ChordSheetId,
                 Capo = dto.Capo,
+                Order = dto.Order,
                 CreatedAt = DateTime.UtcNow
             };
             db.Outputs.Add(o);
@@ -76,6 +78,7 @@ internal static class OutputEndpoints
                 o.TargetKey,
                 o.ChordSheetId,
                 o.Capo,
+                o.Order,
                 o.CreatedAt,
                 o.UpdatedAt,
                 Chordsheets = chordsheet != null ? new { chordsheet.Key, chordsheet.Content } : null
@@ -95,6 +98,7 @@ internal static class OutputEndpoints
             existing.TargetKey = dto.TargetKey;
             existing.ChordSheetId = dto.ChordSheetId;
             existing.Capo = dto.Capo;
+            existing.Order = dto.Order;
             existing.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
 

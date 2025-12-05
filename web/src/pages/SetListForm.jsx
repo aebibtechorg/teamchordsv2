@@ -150,8 +150,9 @@ const SetListForm = () => {
                     song: output.chordSheetId,
                     targetKey: output.targetKey,
                     capo: String(output.capo),
+                    order: output.order,
                     index: uuidv4(),
-                })));
+                })).sort((a, b) => a.order - b.order));
             };
             fetchSetList().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
         }
@@ -166,11 +167,12 @@ const SetListForm = () => {
         if (id === "new") {
             const newSetList = await createSetList(setlist);
             if (newSetList) {
-                await createOutputs(outputs.map(output => ({
+                await createOutputs(outputs.map((output, index) => ({
                     chordSheetId: output.song,
                     targetKey: output.targetKey,
                     capo: output.capo,
                     setListId: newSetList.id,
+                    order: index
                 })));
             } else {
                 // console.error("Failed to create set list");
@@ -180,11 +182,12 @@ const SetListForm = () => {
         } else {
             await updateSetList(id, setlist);
             await deleteOutputs(id);
-            await createOutputs(outputs.map(output => ({
+            await createOutputs(outputs.map((output, index) => ({
                 chordSheetId: output.song,
                 targetKey: output.targetKey,
                 capo: output.capo,
                 setListId: id,
+                order: index
             })));
             // navigate("/setlists");
             toast.success("Set list updated!");

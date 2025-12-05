@@ -20,6 +20,8 @@ namespace tcv2.Api.Data.Entities
 
         public short? Capo { get; set; }
 
+        public short Order { get; set; }
+
         // Navigation
         public SetList? SetList { get; set; }
         public ChordSheet? ChordSheet { get; set; }

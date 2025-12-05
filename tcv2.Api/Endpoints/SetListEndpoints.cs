@@ -57,7 +57,7 @@ internal static class SetListEndpoints
             var outputs = await db.Outputs
                 .Where(o => o.SetListId == id)
                 .OrderBy(o => o.CreatedAt)
-                .Select(o => new { id = o.Id, chordSheetId = o.ChordSheetId, targetKey = o.TargetKey, capo = o.Capo })
+                .Select(o => new { id = o.Id, chordSheetId = o.ChordSheetId, targetKey = o.TargetKey, capo = o.Capo, order = o.Order })
                 .ToListAsync();
 
             var result = new

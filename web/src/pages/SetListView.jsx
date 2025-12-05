@@ -69,11 +69,12 @@ const SetListView = () => {
                     targetKey: o.targetKey ?? o.TargetKey,
                     chordSheetId: o.chordSheetId ?? o.ChordSheetId,
                     capo: o.capo ?? o.Capo,
+                    order: o.order ?? o.Order,
                     createdAt: o.createdAt ?? o.CreatedAt,
                     updatedAt: o.updatedAt ?? o.UpdatedAt,
                     chordsheets: o.chordsheets ?? o.Chordsheets
                 };
-                setOutputs(prevOutputs => [...prevOutputs, newOutput]);
+                setOutputs(prevOutputs => [...prevOutputs, newOutput].sort((a, b) => a.order - b.order));
             }
         });
         setlistConn.on("OutputUpdated", (o) => {
@@ -86,16 +87,17 @@ const SetListView = () => {
                     targetKey: o.targetKey ?? o.TargetKey,
                     chordSheetId: o.chordSheetId ?? o.ChordSheetId,
                     capo: o.capo ?? o.Capo,
+                    order: o.order ?? o.Order,
                     createdAt: o.createdAt ?? o.CreatedAt,
                     updatedAt: o.updatedAt ?? o.UpdatedAt,
                     chordsheets: o.chordsheets ?? o.Chordsheets
                 };
-                setOutputs(prevOutputs => prevOutputs.map(prevOutput => String(prevOutput.id) === String(outputId) ? updatedOutput : prevOutput));
+                setOutputs(prevOutputs => prevOutputs.map(prevOutput => String(prevOutput.id) === String(outputId) ? updatedOutput : prevOutput).sort((a, b) => a.order - b.order));
             }
         });
         setlistConn.on("OutputDeleted", (outputId) => {
             const oid = outputId?.id ?? outputId?.Id ?? outputId;
-            setOutputs(prevOutputs => prevOutputs.filter(p => String(p.id) !== String(oid)));
+            setOutputs(prevOutputs => prevOutputs.filter(p => String(p.id) !== String(oid)).sort((a, b) => a.order - b.order));
         });
 
         setlistConn.on("ChordSheetUpdated", (cs) => {
@@ -113,7 +115,7 @@ const SetListView = () => {
                         };
                     }
                     return output;
-                });
+                }).sort((a, b) => a.order - b.order);
             });
         });
         setlistConn.on("ChordSheetDeleted", (csId) => {
@@ -127,7 +129,7 @@ const SetListView = () => {
                         };
                     }
                     return output;
-                });
+                }).sort((a, b) => a.order - b.order);
             });
         });
 

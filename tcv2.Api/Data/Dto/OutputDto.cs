@@ -14,7 +14,8 @@ namespace tcv2.Api.Data.Dto
 
         public Guid? ChordSheetId { get; set; }
 
-        [Range(0, 24)]
+        [Range(0, 12)]
         public short? Capo { get; set; }
+        public short Order { get; set; }
     }
 }
