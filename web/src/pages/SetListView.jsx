@@ -10,6 +10,7 @@ import { Guitar, PrinterIcon } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
+import { useNavigate } from "react-router-dom";
 
 
 const SetListView = () => {
@@ -18,6 +19,7 @@ const SetListView = () => {
     const [outputs, setOutputs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [ogImage, setOgImage] = useState("");
+    const navigate = useNavigate();
 
     useEffect(() => {
         const signalRHub = '/hubs';
@@ -30,7 +32,10 @@ const SetListView = () => {
             setOutputs(outputData);
             document.title = `Team Chords - ${setlistData.name}`;
         };
-        fetchSet().then(() => setIsLoading(false)).catch((err) => toast.error(`A network error has occured: ${err}`));
+        fetchSet().then(() => setIsLoading(false)).catch((err) => {
+            toast.error(`An error has occured.`)
+            setIsLoading(false);
+        });
         
         // Setup SignalR hub connections for realtime updates
         const setlistConn = new HubConnectionBuilder()
@@ -47,6 +52,16 @@ const SetListView = () => {
             .withUrl(`${signalRHub}/chordsheets`)
             .withAutomaticReconnect()
             .build();
+
+        setlistConn.on("SetListUpdated", (sl) => {
+            if (String(sl.id) === String(id)) {
+                setSetlist(prevSetlist => ({
+                    ...prevSetlist,
+                    name: sl.name ?? sl.Name,
+                    updatedAt: sl.updatedAt ?? sl.UpdatedAt
+                }));
+            }
+        });
 
         setlistConn.on("SetListDeleted", (sid) => {
             if (String(sid) === String(id)) {
@@ -139,7 +154,7 @@ const SetListView = () => {
             try { outputsConn.stop().catch(() => {}); } catch (e) {}
             try { chordsheetsConn.stop().catch(() => {}); } catch (e) {}
         };
-    }, [id]);
+    }, [setlist]);
 
     useEffect(() => {
         if (outputs.length > 0) {
@@ -148,49 +163,6 @@ const SetListView = () => {
                 element.style.textAlign = 'center';
                 element.style.fontSize = '1.5rem';
             });
-    
-            // Check if the ogImage is already stored in localStorage
-            const storedOgImage = localStorage.getItem(`ogImage_${id}`);
-            if (storedOgImage) {
-                setOgImage(storedOgImage);
-            } else {
-                // Generate screenshot for OpenGraph image
-                html2canvas(document.querySelector(".sheet")).then(async (canvas) => {
-                    const imageData = canvas.toDataURL("image/png");
-                    const blob = await (await fetch(imageData)).blob(); // Convert base64 to Blob
-    
-                    // Upload the image to Supabase Storage
-                    const uploadImage = async () => {
-                        try {
-                            const fileName = `og-image-${id}-${Date.now()}.png`; // Unique file name
-                            const { error } = await supabase.storage
-                                .from("og-images") // Replace with your bucket name
-                                .upload(fileName, blob, {
-                                    contentType: "image/png",
-                                });
-    
-                            if (error) {
-                                console.error("Error uploading image:", error);
-                                return;
-                            }
-    
-                            // Get the public URL of the uploaded image
-                            const res = supabase.storage
-                                .from("og-images")
-                                .getPublicUrl(fileName);
-    
-                            setOgImage(res.data.publicUrl); // Set the public URL to state
-    
-                            // Save the public URL to localStorage
-                            localStorage.setItem(`ogImage_${id}`, res.data.publicUrl);
-                        } catch (error) {
-                            console.error("Error uploading image to Supabase Storage:", error);
-                        }
-                    };
-    
-                    uploadImage();
-                });
-            }
         }
     }, [outputs, id]);
 
@@ -222,6 +194,16 @@ const SetListView = () => {
             <div className="w-screen h-screen flex items-center justify-center">
                 <Toaster />
                 <Spinner />
+            </div>
+        );
+    }
+
+    if (!setlist) {
+        return (
+            <div className="w-screen h-screen flex flex-col items-center justify-center gap-4">
+                <Toaster />
+                <h2 className="text-2xl font-bold">Set List Not Found</h2>
+                <p>The set list you are looking for does not exist or has been deleted.</p>
             </div>
         );
     }
