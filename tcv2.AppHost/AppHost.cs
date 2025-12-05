@@ -55,18 +55,6 @@ var webClient = builder.AddViteApp("webclient", "../web")
 
 if (builder.ExecutionContext.IsPublishMode)
 {
-    // builder.AddYarp("webclient-server")
-    //     .WithConfiguration(c =>
-    //     {
-    //         c.AddRoute("api/{**catch-all}", api);
-    //         c.AddRoute("hubs/{**catch-all}", api);
-    //     })
-    //     .WithExternalHttpEndpoints()
-    //     .PublishWithStaticFiles(webClient)
-    //     .PublishAsAzureContainerApp((infra, app) =>
-    //     {
-    //         app.ConfigureCustomDomain(customDomain, certificateName);
-    //     });
     builder.AddNpmApp("webclient-server", "../web")
         .WithReference(api)
         .WithHttpEndpoint(targetPort: 80)

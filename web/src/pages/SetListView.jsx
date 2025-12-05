@@ -48,12 +48,6 @@ const SetListView = () => {
             .withAutomaticReconnect()
             .build();
 
-        // Handlers
-        setlistConn.on("SetListCreated", (s) => fetchSet());
-        setlistConn.on("SetListUpdated", (s) => {
-            const sid = s?.id ?? s?.Id;
-            if (!sid || String(sid) === String(id)) fetchSet();
-        });
         setlistConn.on("SetListDeleted", (sid) => {
             if (String(sid) === String(id)) {
                 setSetlist(null);

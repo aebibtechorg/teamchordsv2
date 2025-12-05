@@ -14,7 +14,6 @@ export async function apiFetch(input, init = {}) {
 
     try {
         const token = await tokenProvider();
-        console.log("apiFetch: obtained token:", token);
         if (token && !headers.has('Authorization')) {
             headers.set('Authorization', `Bearer ${token}`);
         }
