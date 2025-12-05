@@ -1,6 +1,7 @@
 #pragma warning disable ASPIREACADOMAINS001,ASPIREDOCKERFILEBUILDER001
 
 using Microsoft.Extensions.Configuration;
+using Polly.Fallback;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -16,15 +17,12 @@ var postgres = builder.AddPostgres("tcdb")
     .WithPgAdmin(admin =>
     {
        admin.WithHostPort(5050); 
-    });
+    })
+    .ExcludeFromManifest();
 
 var db = postgres.AddDatabase("TeamChords", "teamchords");
 
-db.ExcludeFromManifest();
-
-var redis = builder.AddAzureRedis("aebibtech-teamchords-redis")
-    .RunAsContainer();
-
+var redis = builder.AddRedis("Redis").ExcludeFromManifest();
 
 var api = builder.AddProject<Projects.tcv2_Api>("api")
     .WithEnvironment(c => {
@@ -37,15 +35,18 @@ var api = builder.AddProject<Projects.tcv2_Api>("api")
         c.EnvironmentVariables.Add("WebAuth0__ClientId", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? "");
 
     })
-    .WithReference(db)
-    .WithReference(redis)
-    .WaitFor(db)
-    .WaitFor(redis)
     .WithExternalHttpEndpoints();
+
+if (builder.ExecutionContext.IsRunMode)
+{
+    api.WithReference(db).WaitFor(db);
+    api.WithReference(redis).WaitFor(redis);
+}
 
 if (builder.ExecutionContext.IsPublishMode)
 {
     api.WithEnvironment("ConnectionStrings__TeamChords", builder.Configuration.GetConnectionString("TeamChords"));
+    api.WithEnvironment("ConnectionStrings__Redis", builder.Configuration.GetConnectionString("Redis"));
 }
 
 var webClient = builder.AddViteApp("webclient", "../web")
