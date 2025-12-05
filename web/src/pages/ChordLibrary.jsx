@@ -26,11 +26,9 @@ const ChordLibrary = () => {
 
   // Debounce effect to delay API call
   const fetchData = async () => {
-    setIsLoading(true);
     const { data, count } = await getChordsheets(profile.orgId, pageIndex, pageSize, debouncedSearchTerm);
     setChordsheets(data);
     setTotalCount(count);
-    setIsLoading(false);
   };
 
   const handleUploadComplete = () => {
@@ -53,7 +51,10 @@ const ChordLibrary = () => {
 
   // Fetch data when search term or pagination changes
   useEffect(() => {
-    fetchData().catch((err) => toast.error("A network error has occured."));
+    fetchData().then(() => setIsLoading(false)).catch((err) => {
+      toast.error("A network error has occured.");
+      setIsLoading(false);
+    });
   }, [pageIndex, pageSize, debouncedSearchTerm, profile.orgId]);
 
   // Initialize and manage SignalR connection
