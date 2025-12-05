@@ -7,6 +7,7 @@ using tcv2.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using Serilog.Events;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,7 +77,27 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// app.UseHttpsRedirection();
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseForwardedHeaders(new ForwardedHeadersOptions
+//     {
+//         // Trust headers from all proxies in the internal network
+//         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+//     });
+//     app.Use((context, next) =>
+//     {
+//         var options = new ForwardedHeadersOptions
+//         {
+//             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+//         };
+        
+//         // Use Clear() on the existing read-only collections
+//         options.KnownNetworks.Clear();
+//         options.KnownProxies.Clear();
+        
+//         return next();
+//     });
+// }
 
 
 app.UseAuthentication();

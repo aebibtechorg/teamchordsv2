@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
 import { getProfile } from '../utils/common'
 import { useProfileStore } from '../store/useProfileStore'
+import Spinner from '../components/Spinner'
 
 const AuthCallback = () => {
   const navigate = useNavigate()
@@ -31,7 +32,11 @@ const AuthCallback = () => {
     fetchProfile()
   }, [isAuthenticated, isLoading, user, setUserProfile, navigate])
 
-  return <div>Signing you in...</div>
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Spinner />
+    </div>
+  )
 }
 
 export default AuthCallback

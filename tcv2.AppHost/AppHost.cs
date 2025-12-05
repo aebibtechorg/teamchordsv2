@@ -1,8 +1,16 @@
+#pragma warning disable ASPIREACADOMAINS001,ASPIREDOCKERFILEBUILDER001
+
+using Aspire.Hosting.Yarp;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureContainerAppEnvironment("aebibtech-teamchords");
+
+var customDomain = builder.AddParameter("customDomain");
+var certificateName = builder.AddParameter("certificateName");
+
+
 
 var postgres = builder.AddPostgres("tcdb")
     .WithDataVolume("teamchords-pgdata")
@@ -12,6 +20,8 @@ var postgres = builder.AddPostgres("tcdb")
     });
 
 var db = postgres.AddDatabase("TeamChords", "teamchords");
+
+db.ExcludeFromManifest();
 
 
 var api = builder.AddProject<Projects.tcv2_Api>("api")
@@ -40,18 +50,32 @@ var webClient = builder.AddViteApp("webclient", "../web")
     .WithEndpoint(endpointName: "http", endpoint =>
     {
         endpoint.Port = builder.ExecutionContext.IsRunMode ? 5173 : null;
-    });
+    })
+    .ExcludeFromManifest();
 
 if (builder.ExecutionContext.IsPublishMode)
 {
-    builder.AddYarp("webclient-server")
-        .WithConfiguration(c =>
-        {
-            c.AddRoute("api/{**catch-all}", api);
-            c.AddRoute("hubs/{**catch-all}", api);
-        })
+    // builder.AddYarp("webclient-server")
+    //     .WithConfiguration(c =>
+    //     {
+    //         c.AddRoute("api/{**catch-all}", api);
+    //         c.AddRoute("hubs/{**catch-all}", api);
+    //     })
+    //     .WithExternalHttpEndpoints()
+    //     .PublishWithStaticFiles(webClient)
+    //     .PublishAsAzureContainerApp((infra, app) =>
+    //     {
+    //         app.ConfigureCustomDomain(customDomain, certificateName);
+    //     });
+    builder.AddNpmApp("webclient-server", "../web")
+        .WithReference(api)
+        .WithHttpEndpoint(targetPort: 80)
         .WithExternalHttpEndpoints()
-        .PublishWithStaticFiles(webClient);
+        .PublishAsDockerFile()
+        .PublishAsAzureContainerApp((infra, app) =>
+        {
+            app.ConfigureCustomDomain(customDomain, certificateName);
+        });
 }
 
 builder.Build().Run();

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { loadConfig } from "../config.js";
 
 export default function UpdatePassword({ onSuccess }) {
   const { user } = useAuth0();
@@ -10,8 +11,11 @@ export default function UpdatePassword({ onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-      const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
+      // const domain = import.meta.env.VITE_AUTH0_DOMAIN;
+      // const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
+      const config = await loadConfig();
+      const domain = config.auth0Domain;
+      const clientId = config.auth0ClientId;
       const email = user?.email;
       if (!email) throw new Error('No email available for the current user.');
 

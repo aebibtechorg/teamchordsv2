@@ -36,7 +36,7 @@ const Signup = () => {
         password: password || undefined,
       };
 
-      const resp = await fetch(`${import.meta.env.VITE_API_URL}/users`, {
+      const resp = await fetch(`/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
