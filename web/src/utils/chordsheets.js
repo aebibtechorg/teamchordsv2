@@ -70,10 +70,10 @@ async function createChordsheet(chordsheet) {
 
 async function updateChordsheet(id, chordsheet) {
     try {
-            const res = await apiFetch(`/api/chordsheets/${encodeURIComponent(id)}`, {
-                method: 'PUT',
-                body: JSON.stringify(chordsheet)
-            });
+        const res = await apiFetch(`/api/chordsheets/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(chordsheet)
+        });
         if (!res.ok && res.status !== 204) {
             const text = await res.text();
             console.error('Error updating chordsheet:', res.status, text);
@@ -87,4 +87,17 @@ async function updateChordsheet(id, chordsheet) {
     }
 }
 
-export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet };
+// Add this function to your chordsheets utility file
+const createChordsheetsBulk = async (chordsheets) => {
+  const response = await apiFetch('/api/chordsheets/bulk', {
+    method: 'POST',
+    body: JSON.stringify(chordsheets),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create chordsheets in bulk');
+  }
+  return response.json();
+};
+
+
+export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet, createChordsheetsBulk };

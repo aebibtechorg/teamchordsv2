@@ -5,6 +5,7 @@ import ChordFilesUploadDialog from "../components/chordlibrary/ChordFilesUploadD
 import { Link } from "react-router-dom";
 import { MoreVertical, Plus, Upload, Search } from "lucide-react";
 import { useProfileStore } from "../store/useProfileStore";
+import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 import Modal from "../components/Modal";
@@ -18,11 +19,25 @@ const ChordLibrary = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const { profile } = useProfileStore();
+  const [connection, setConnection] = useState(null);
   const debounceTimeout = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Debounce effect to delay API call
+  const fetchData = async () => {
+    setIsLoading(true);
+    const { data, count } = await getChordsheets(profile.orgId, pageIndex, pageSize, debouncedSearchTerm);
+    setChordsheets(data);
+    setTotalCount(count);
+    setIsLoading(false);
+  };
+
+  const handleUploadComplete = () => {
+    setIsUploadDialogOpen(false);
+    fetchData().catch((err) => toast.error("A network error has occured."));
+  };
+
   useEffect(() => {
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
@@ -38,13 +53,34 @@ const ChordLibrary = () => {
 
   // Fetch data when search term or pagination changes
   useEffect(() => {
-    const fetchData = async () => {
-      const { data, count } = await getChordsheets(profile.orgId, pageIndex, pageSize, debouncedSearchTerm);
-      setChordsheets(data);
-      setTotalCount(count);
-    };
-    fetchData().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
+    fetchData().catch((err) => toast.error("A network error has occured."));
   }, [pageIndex, pageSize, debouncedSearchTerm, profile.orgId]);
+
+  // Initialize and manage SignalR connection
+  useEffect(() => {
+    const newConnection = new HubConnectionBuilder()
+      .withUrl("/hubs/chordsheets")
+      .withAutomaticReconnect()
+      .build();
+
+    setConnection(newConnection);
+
+    return () => {
+      newConnection.stop();
+    };
+  }, []);
+
+  // Listen for SignalR events once connection is established
+  useEffect(() => {
+    if (connection) {
+      connection.start()
+        .then(() => {
+          console.log('SignalR Connected!');
+          connection.on("BulkUploadFinished", handleUploadComplete);
+        })
+        .catch(e => console.error('SignalR Connection failed: ', e));
+    }
+  }, [connection]);
 
   if (isLoading) {
     return (
@@ -138,7 +174,7 @@ const ChordLibrary = () => {
 
       {isUploadDialogOpen && (
         <Modal onClose={() => setIsUploadDialogOpen(false)}>
-          <ChordFilesUploadDialog close={() => setIsUploadDialogOpen(false)} />
+          <ChordFilesUploadDialog connection={connection} close={() => setIsUploadDialogOpen(false)} onUploadComplete={handleUploadComplete} />
         </Modal>
       )}
     </>

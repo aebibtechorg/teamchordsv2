@@ -76,6 +76,48 @@ internal static class ChordSheetEndpoints
             return Results.Created($"/api/chordsheets/{cs.Id}", cs);
         });
 
+        chordSheets.MapPost("/bulk", (BulkChordSheetRequestDto request, IServiceProvider services) =>
+        {
+            if (string.IsNullOrEmpty(request.ConnectionId))
+            {
+                return Results.BadRequest("ConnectionId is required for bulk upload.");
+            }
+
+            Task.Run(async () =>
+            {
+                // Create a new scope to resolve scoped services like DbContext
+                using var scope = services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var hub = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.ChordSheetHub, tcv2.Api.Hubs.IChordSheetClient>>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+                var total = request.Dtos.Length;
+                var processedCount = 0;
+
+                foreach (var dto in request.Dtos)
+                {
+                    processedCount++;
+                    var progressMessage = $"Processing '{dto.Title}'...";
+                    await hub.Clients.Client(request.ConnectionId).BulkUploadProgress(processedCount, total, progressMessage);
+
+                    if (EndpointHelpers.Validate(dto) != null)
+                    {
+                        logger.LogWarning("Validation failed for a chordsheet in bulk upload. Title: {Title}", dto.Title);
+                        continue; // Skip invalid DTOs
+                    }
+
+                    var cs = new ChordSheet { Id = Guid.NewGuid(), OrgId = dto.OrgId, Title = dto.Title, Artist = dto.Artist, Content = dto.Content, Key = dto.Key, CreatedAt = DateTime.UtcNow };
+                    db.ChordSheets.Add(cs);
+                    await db.SaveChangesAsync();
+                    await hub.Clients.All.ChordSheetCreated(cs);
+                }
+
+                await hub.Clients.Client(request.ConnectionId).BulkUploadFinished();
+            });
+
+            return Results.Accepted(value: new { message = "Bulk upload started." });
+        });
+
         chordSheets.MapPut("/{id}", async (Guid id, ChordSheetDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.ChordSheetHub, tcv2.Api.Hubs.IChordSheetClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
