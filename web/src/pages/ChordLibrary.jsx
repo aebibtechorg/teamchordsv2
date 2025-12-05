@@ -60,14 +60,14 @@ const ChordLibrary = () => {
   // Initialize and manage SignalR connection
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
-      .withUrl("/hubs/chordsheets")
+      .withUrl("/hubs/setlists")
       .withAutomaticReconnect()
       .build();
 
     setConnection(newConnection);
 
     return () => {
-      newConnection.stop();
+      newConnection.stop().catch(() => {});
     };
   }, []);
 

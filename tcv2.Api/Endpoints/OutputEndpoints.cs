@@ -52,7 +52,7 @@ internal static class OutputEndpoints
         outputs.MapGet("/{id}", async (Guid id, AppDbContext db) =>
             await db.Outputs.FindAsync(id) is Output o ? Results.Ok(o) : Results.NotFound());
 
-        outputs.MapPost("/", async (OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.OutputHub, tcv2.Api.Hubs.IOutputClient> hub) =>
+        outputs.MapPost("/", async (OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -85,7 +85,7 @@ internal static class OutputEndpoints
             return Results.Created($"/api/outputs/{o.Id}", payload);
         });
 
-        outputs.MapPut("/{id}", async (Guid id, OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.OutputHub, tcv2.Api.Hubs.IOutputClient> hub) =>
+        outputs.MapPut("/{id}", async (Guid id, OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -114,7 +114,7 @@ internal static class OutputEndpoints
             return Results.NoContent();
         });
 
-        outputs.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.OutputHub, tcv2.Api.Hubs.IOutputClient> hub) =>
+        outputs.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
         {
             var existing = await db.Outputs.FindAsync(id);
             if (existing == null) return Results.NotFound();

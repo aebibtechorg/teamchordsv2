@@ -43,16 +43,6 @@ const SetListView = () => {
             .withAutomaticReconnect()
             .build();
 
-        const outputsConn = new HubConnectionBuilder()
-            .withUrl(`${signalRHub}/outputs`)
-            .withAutomaticReconnect()
-            .build();
-
-        const chordsheetsConn = new HubConnectionBuilder()
-            .withUrl(`${signalRHub}/chordsheets`)
-            .withAutomaticReconnect()
-            .build();
-
         setlistConn.on("SetListUpdated", (sl) => {
             if (String(sl.id) === String(id)) {
                 setSetlist(prevSetlist => ({
@@ -70,7 +60,7 @@ const SetListView = () => {
             }
         });
 
-        outputsConn.on("OutputCreated", (o) => {
+        setlistConn.on("OutputCreated", (o) => {
             const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
             if (setListId && String(setListId) === String(id)) {
                 const newOutput = {
@@ -86,7 +76,7 @@ const SetListView = () => {
                 setOutputs(prevOutputs => [...prevOutputs, newOutput]);
             }
         });
-        outputsConn.on("OutputUpdated", (o) => {
+        setlistConn.on("OutputUpdated", (o) => {
             const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
             const outputId = o?.id ?? o?.Id;
             if (setListId && String(setListId) === String(id)) {
@@ -103,12 +93,12 @@ const SetListView = () => {
                 setOutputs(prevOutputs => prevOutputs.map(prevOutput => String(prevOutput.id) === String(outputId) ? updatedOutput : prevOutput));
             }
         });
-        outputsConn.on("OutputDeleted", (outputId) => {
+        setlistConn.on("OutputDeleted", (outputId) => {
             const oid = outputId?.id ?? outputId?.Id ?? outputId;
             setOutputs(prevOutputs => prevOutputs.filter(p => String(p.id) !== String(oid)));
         });
 
-        chordsheetsConn.on("ChordSheetUpdated", (cs) => {
+        setlistConn.on("ChordSheetUpdated", (cs) => {
             const csId = cs?.id ?? cs?.Id;
             setOutputs(prevOutputs => {
                 return prevOutputs.map(output => {
@@ -126,7 +116,7 @@ const SetListView = () => {
                 });
             });
         });
-        chordsheetsConn.on("ChordSheetDeleted", (csId) => {
+        setlistConn.on("ChordSheetDeleted", (csId) => {
             const deletedCsId = csId?.id ?? csId?.Id ?? csId;
             setOutputs(prevOutputs => {
                 return prevOutputs.map(output => {
@@ -142,19 +132,13 @@ const SetListView = () => {
         });
 
         // Start connections
-        Promise.all([
-            setlistConn.start().catch(() => {}),
-            outputsConn.start().catch(() => {}),
-            chordsheetsConn.start().catch(() => {}),
-        ]).catch(() => {});
+        setlistConn.start().catch((err) => console.error("SetList SignalR Connection Error: ", err));
 
         // Cleanup on unmount — stop connections
         return () => {
             try { setlistConn.stop().catch(() => {}); } catch (e) {}
-            try { outputsConn.stop().catch(() => {}); } catch (e) {}
-            try { chordsheetsConn.stop().catch(() => {}); } catch (e) {}
         };
-    }, [setlist]);
+    }, []);
 
     useEffect(() => {
         if (outputs.length > 0) {

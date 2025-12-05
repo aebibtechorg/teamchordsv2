@@ -63,10 +63,14 @@ else
 {
     builder.Services.AddSignalR();
 }
-builder.Services.AddSignalR();
 
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -86,9 +90,9 @@ var api = app.MapGroup("/api");
 api.RequireAuthorization();
 
 // SignalR hubs
-app.MapHub<ChordSheetHub>("/hubs/chordsheets");
+// app.MapHub<ChordSheetHub>("/hubs/chordsheets");
 app.MapHub<SetListHub>("/hubs/setlists");
-app.MapHub<OutputHub>("/hubs/outputs");
+// app.MapHub<OutputHub>("/hubs/outputs");
 
 // ChordSheets CRUD
 // Use modular endpoint mappings
