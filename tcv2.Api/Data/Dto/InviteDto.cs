@@ -18,6 +18,7 @@ namespace tcv2.Api.Data.Dto
 
         public bool Used { get; set; }
 
-        public DateTimeOffset? ExpiresAt { get; set; }
+        public DateTimeOffset ExpiresAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
     }
 }

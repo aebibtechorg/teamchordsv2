@@ -18,5 +18,6 @@ namespace tcv2.Api.Data.Entities
 
         // Navigation
         public Organization? Organization { get; set; }
+        public ICollection<Output> Outputs { get; set; } = new List<Output>();
     }
 }

@@ -6,16 +6,12 @@ namespace tcv2.Api.Data.Dto
     public class OutputDto
     {
         public Guid? Id { get; set; }
-
         public Guid? SetListId { get; set; }
-
-        [StringLength(16)]
-        public string? TargetKey { get; set; }
-
         public Guid? ChordSheetId { get; set; }
-
-        [Range(0, 12)]
+        public string? TargetKey { get; set; }
         public short? Capo { get; set; }
         public short Order { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

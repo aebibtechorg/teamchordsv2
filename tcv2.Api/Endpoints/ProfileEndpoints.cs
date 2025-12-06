@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Data.Mappers;
 
 namespace tcv2.Api.Endpoints;
 
@@ -32,7 +33,7 @@ internal static class ProfileEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -50,22 +51,18 @@ internal static class ProfileEndpoints
         });
 
         profiles.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Profiles.FindAsync(id) is Profile p ? Results.Ok(p) : Results.NotFound());
+            await db.Profiles.FindAsync(id) is Profile p ? Results.Ok(p.ToDto()) : Results.NotFound());
 
         profiles.MapPost("/", async (ProfileDto dto, AppDbContext db) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var p = new Profile
-            {
-                Id = Guid.NewGuid(),
-                UserId = dto.UserId,
-                OrgId = dto.OrgId,
-                CreatedAt = DateTime.UtcNow
-            };
+            var p = dto.ToEntity();
+            p.Id = Guid.NewGuid();
+            
             db.Profiles.Add(p);
             await db.SaveChangesAsync();
-            return Results.Created($"/api/profiles/{p.Id}", p);
+            return Results.Created($"/api/profiles/{p.Id}", p.ToDto());
         });
 
         profiles.MapPut("/{id}", async (Guid id, ProfileDto dto, AppDbContext db) =>
@@ -74,9 +71,7 @@ internal static class ProfileEndpoints
             if (validation != null) return validation;
             var existing = await db.Profiles.FindAsync(id);
             if (existing == null) return Results.NotFound();
-            existing.UserId = dto.UserId;
-            existing.OrgId = dto.OrgId;
-            existing.UpdatedAt = DateTime.UtcNow;
+            existing.UpdateFromDto(dto);
             await db.SaveChangesAsync();
             return Results.NoContent();
         });
@@ -93,3 +88,5 @@ internal static class ProfileEndpoints
         return api;
     }
 }
+
+

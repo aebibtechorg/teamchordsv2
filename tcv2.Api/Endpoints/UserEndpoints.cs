@@ -12,6 +12,7 @@ using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using System.Security.Claims;
+using tcv2.Api.Data.Mappers;
 
 namespace tcv2.Api.Endpoints;
 
@@ -44,7 +45,7 @@ internal static class UserEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -61,7 +62,7 @@ internal static class UserEndpoints
         });
 
         users.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Users.FindAsync(id) is User u ? Results.Ok(u) : Results.NotFound());
+            await db.Users.FindAsync(id) is User u ? Results.Ok(u.ToDto()) : Results.NotFound());
 
         users.MapGet("/me", async (HttpRequest req, AppDbContext db) =>
         {
@@ -70,25 +71,8 @@ internal static class UserEndpoints
 
             var user = await db.Users.Include(x => x.Organizations).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Auth0UserId == userId);
             if (user == null) return Results.NotFound();
-
-            // Project to a minimal DTO to avoid JSON cycles (Organization.Users -> User.Organizations ...)
-            var result = new
-            {
-                Id = user.Id,
-                Email = user.Email,
-                EmailVerified = user.EmailVerified,
-                Auth0UserId = user.Auth0UserId,
-                Name = user.Name,
-                GivenName = user.GivenName,
-                FamilyName = user.FamilyName,
-                Picture = user.Picture,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                Profile = user.Profile == null ? null : new { user.Profile.Id, user.Profile.UserId, user.Profile.OrgId, user.Profile.CreatedAt, user.Profile.UpdatedAt },
-                Organizations = user.Organizations.Select(o => new { o.Id, o.Name, o.CreatedAt, o.UpdatedAt }).ToList()
-            };
-
-            return Results.Ok(result);
+            
+            return Results.Ok(user.ToDetailDto());
         });
 
         users.MapPost("/", async (UserDto dto, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config) =>
@@ -111,17 +95,8 @@ internal static class UserEndpoints
 
                 try
                 {
-                    var u = new User
-                    {
-                        Id = Guid.NewGuid(),
-                        Email = dto.Email,
-                        EmailVerified = dto.EmailVerified,
-                        Name = $"{dto.GivenName} {dto.FamilyName}",
-                        GivenName = dto.GivenName,
-                        FamilyName = dto.FamilyName,
-                        Picture = dto.Picture,
-                        CreatedAt = DateTime.UtcNow
-                    };
+                    var u = dto.ToEntity();
+                    u.Id = Guid.NewGuid();
 
                     db.Users.Add(u);
 
@@ -216,7 +191,7 @@ internal static class UserEndpoints
 
                     await db.SaveChangesAsync();
                     await tx.CommitAsync();
-                    return Results.Created($"/api/users/{u.Id}", u);
+                    return Results.Created($"/api/users/{u.Id}", u.ToDetailDto());
                 }
                 catch (DbUpdateException ex)
                 {

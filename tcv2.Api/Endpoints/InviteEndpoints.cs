@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Data.Mappers;
 
 namespace tcv2.Api.Endpoints;
 
@@ -34,7 +35,7 @@ internal static class InviteEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -51,28 +52,25 @@ internal static class InviteEndpoints
         });
 
         invites.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Invites.FindAsync(id) is Invite i ? Results.Ok(i) : Results.NotFound());
+            await db.Invites.FindAsync(id) is Invite i ? Results.Ok(i.ToDto()) : Results.NotFound());
 
         invites.MapPost("/", async (InviteDto dto, AppDbContext db) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
 
-            var i = new Invite
-            {
-                Id = Guid.NewGuid(),
-                Email = dto.Email,
-                InvitedBy = dto.InvitedBy ?? Guid.Empty,
-                Token = dto.Token,
-                Used = dto.Used,
-                CreatedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = dto.ExpiresAt ?? DateTimeOffset.UtcNow.AddDays(7)
-            };
+            var i = dto.ToEntity();
+            i.Id = Guid.NewGuid();
+            i.InvitedBy = dto.InvitedBy ?? Guid.Empty;
+            i.Token = dto.Token;
+            i.CreatedAt = DateTimeOffset.UtcNow;
+            i.ExpiresAt = dto.ExpiresAt;
+            
             db.Invites.Add(i);
             try
             {
                 await db.SaveChangesAsync();
-                return Results.Created($"/api/invites/{i.Id}", i);
+                return Results.Created($"/api/invites/{i.Id}", i.ToDto());
             }
             catch (DbUpdateException ex)
             {
@@ -86,10 +84,9 @@ internal static class InviteEndpoints
             if (validation != null) return validation;
             var existing = await db.Invites.FindAsync(id);
             if (existing == null) return Results.NotFound();
-            existing.Email = dto.Email;
-            existing.Token = dto.Token;
-            existing.Used = dto.Used;
-            existing.ExpiresAt = dto.ExpiresAt ?? existing.ExpiresAt;
+            
+            existing.UpdateFromDto(dto);
+            
             try
             {
                 await db.SaveChangesAsync();

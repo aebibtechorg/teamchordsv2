@@ -5,6 +5,8 @@ using System.Linq;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Data.Mappers;
+using tcv2.Api.Hubs;
 
 namespace tcv2.Api.Endpoints;
 
@@ -33,7 +35,7 @@ internal static class SetListEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -50,27 +52,10 @@ internal static class SetListEndpoints
 
         setlists.MapGet("/{id}", async (Guid id, AppDbContext db) =>
         {
-            var s = await db.SetLists.FindAsync(id);
+            var s = await db.SetLists.Include(s => s.Outputs).FirstOrDefaultAsync(s => s.Id == id);
             if (s == null) return Results.NotFound();
-
-            // load outputs for the setlist
-            var outputs = await db.Outputs
-                .Where(o => o.SetListId == id)
-                .OrderBy(o => o.CreatedAt)
-                .Select(o => new { id = o.Id, chordSheetId = o.ChordSheetId, targetKey = o.TargetKey, capo = o.Capo, order = o.Order })
-                .ToListAsync();
-
-            var result = new
-            {
-                id = s.Id,
-                orgId = s.OrgId,
-                name = s.Name,
-                createdAt = s.CreatedAt,
-                updatedAt = s.UpdatedAt,
-                outputs
-            };
-
-            return Results.Ok(result);
+            
+            return Results.Ok(s.ToDetailDto());
         }).AllowAnonymous();
 
         setlists.MapPost("/", async (SetListDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
@@ -82,19 +67,15 @@ internal static class SetListEndpoints
                 return Results.Conflict(new { message = "SetList with this name already exists in the organization" });
             }
 
-            var s = new SetList
-            {
-                Id = Guid.NewGuid(),
-                OrgId = dto.OrgId,
-                Name = dto.Name,
-                CreatedAt = DateTime.UtcNow
-            };
+            var s = dto.ToEntity();
+            s.Id = Guid.NewGuid();
+            
             db.SetLists.Add(s);
             try
             {
                 await db.SaveChangesAsync();
                 await hub.Clients.All.SetListCreated(s);
-                return Results.Created($"/api/setlists/{s.Id}", s);
+                return Results.Created($"/api/setlists/{s.Id}", s.ToDto());
             }
             catch (DbUpdateException ex)
             {
@@ -113,9 +94,7 @@ internal static class SetListEndpoints
             {
                 return Results.Conflict(new { message = "SetList with this name already exists in the organization" });
             }
-            existing.OrgId = dto.OrgId;
-            existing.Name = dto.Name;
-            existing.UpdatedAt = DateTime.UtcNow;
+            existing.UpdateFromDto(dto);
             try
             {
                 await db.SaveChangesAsync();

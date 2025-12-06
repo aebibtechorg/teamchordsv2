@@ -5,6 +5,7 @@ using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using System.Security.Claims;
+using tcv2.Api.Data.Mappers;
 
 namespace tcv2.Api.Endpoints;
 
@@ -32,7 +33,7 @@ internal static class OrganizationEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -49,7 +50,7 @@ internal static class OrganizationEndpoints
         });
 
         orgs.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Organizations.FindAsync(id) is Organization o ? Results.Ok(o) : Results.NotFound());
+            await db.Organizations.FindAsync(id) is Organization o ? Results.Ok(o.ToDto()) : Results.NotFound());
 
         orgs.MapPost("/", async (HttpRequest req, OrganizationDto dto, AppDbContext db) =>
         {
@@ -88,9 +89,7 @@ internal static class OrganizationEndpoints
                 }
 
                 await db.SaveChangesAsync();
-                // Return a minimal DTO to avoid serializing navigation properties
-                var result = new { Id = o.Id, Name = o.Name, CreatedAt = o.CreatedAt, UpdatedAt = o.UpdatedAt };
-                return Results.Created($"/api/organizations/{o.Id}", result);
+                return Results.Created($"/api/organizations/{o.Id}", o.ToDto());
             }
             catch (DbUpdateException ex)
             {
@@ -108,7 +107,7 @@ internal static class OrganizationEndpoints
             {
                 return Results.Conflict(new { message = "Organization name already exists" });
             }
-            existing.Name = dto.Name;
+            existing.UpdateFromDto(dto);
             existing.UpdatedAt = DateTime.UtcNow;
             try
             {

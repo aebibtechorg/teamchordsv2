@@ -4,6 +4,8 @@ using Microsoft.OpenApi.Models;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Data.Mappers;
+using tcv2.Api.Hubs;
 
 namespace tcv2.Api.Endpoints;
 
@@ -33,7 +35,7 @@ internal static class OutputEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -51,38 +53,20 @@ internal static class OutputEndpoints
         }).AllowAnonymous();
 
         outputs.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Outputs.FindAsync(id) is Output o ? Results.Ok(o) : Results.NotFound());
+            await db.Outputs.FindAsync(id) is Output o ? Results.Ok(o.ToDto()) : Results.NotFound());
 
         outputs.MapPost("/", async (OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var o = new Output
-            {
-                Id = Guid.NewGuid(),
-                SetListId = dto.SetListId,
-                TargetKey = dto.TargetKey,
-                ChordSheetId = dto.ChordSheetId,
-                Capo = dto.Capo,
-                Order = dto.Order,
-                CreatedAt = DateTime.UtcNow
-            };
+            var o = dto.ToEntity();
+            o.Id = Guid.NewGuid();
+            
             db.Outputs.Add(o);
             await db.SaveChangesAsync();
 
-            var chordsheet = await db.ChordSheets.FindAsync(o.ChordSheetId);
-            var payload = new
-            {
-                o.Id,
-                o.SetListId,
-                o.TargetKey,
-                o.ChordSheetId,
-                o.Capo,
-                o.Order,
-                o.CreatedAt,
-                o.UpdatedAt,
-                Chordsheets = chordsheet != null ? new { chordsheet.Key, chordsheet.Content } : null
-            };
+            o.ChordSheet = await db.ChordSheets.FindAsync(o.ChordSheetId);
+            var payload = o.ToDetailDto();
 
             await hub.Clients.All.OutputCreated(payload);
             return Results.Created($"/api/outputs/{o.Id}", payload);
@@ -94,26 +78,13 @@ internal static class OutputEndpoints
             if (validation != null) return validation;
             var existing = await db.Outputs.FindAsync(id);
             if (existing == null) return Results.NotFound();
-            existing.SetListId = dto.SetListId;
-            existing.TargetKey = dto.TargetKey;
-            existing.ChordSheetId = dto.ChordSheetId;
-            existing.Capo = dto.Capo;
-            existing.Order = dto.Order;
-            existing.UpdatedAt = DateTime.UtcNow;
+            
+            existing.UpdateFromDto(dto);
             await db.SaveChangesAsync();
 
-            var chordsheet = await db.ChordSheets.FindAsync(existing.ChordSheetId);
-            var payload = new
-            {
-                existing.Id,
-                existing.SetListId,
-                existing.TargetKey,
-                existing.ChordSheetId,
-                existing.Capo,
-                existing.CreatedAt,
-                existing.UpdatedAt,
-                Chordsheets = chordsheet != null ? new { chordsheet.Key, chordsheet.Content } : null
-            };
+            existing.ChordSheet = await db.ChordSheets.FindAsync(existing.ChordSheetId);
+            var payload = existing.ToDetailDto();
+            
             await hub.Clients.All.OutputUpdated(payload);
             return Results.NoContent();
         });

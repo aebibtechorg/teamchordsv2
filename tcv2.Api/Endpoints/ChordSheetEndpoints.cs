@@ -4,6 +4,8 @@ using Microsoft.OpenApi.Models;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Data.Mappers;
+using tcv2.Api.Hubs;
 
 namespace tcv2.Api.Endpoints;
 
@@ -37,7 +39,7 @@ internal static class ChordSheetEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -53,27 +55,20 @@ internal static class ChordSheetEndpoints
         });
 
         chordSheets.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.ChordSheets.FindAsync(id) is ChordSheet cs ? Results.Ok(cs) : Results.NotFound())
+            await db.ChordSheets.FindAsync(id) is ChordSheet cs ? Results.Ok(cs.ToDto()) : Results.NotFound())
             .AllowAnonymous();
 
         chordSheets.MapPost("/", async (ChordSheetDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var cs = new ChordSheet
-            {
-                Id = Guid.NewGuid(),
-                OrgId = dto.OrgId,
-                Title = dto.Title,
-                Artist = dto.Artist,
-                Content = dto.Content,
-                Key = dto.Key,
-                CreatedAt = DateTime.UtcNow
-            };
+            var cs = dto.ToEntity();
+            cs.Id = Guid.NewGuid();
+            
             db.ChordSheets.Add(cs);
             await db.SaveChangesAsync();
             await hub.Clients.All.ChordSheetCreated(cs);
-            return Results.Created($"/api/chordsheets/{cs.Id}", cs);
+            return Results.Created($"/api/chordsheets/{cs.Id}", cs.ToDto());
         });
 
         chordSheets.MapPost("/bulk", (BulkChordSheetRequestDto request, IServiceProvider services) =>
@@ -106,7 +101,8 @@ internal static class ChordSheetEndpoints
                         continue; // Skip invalid DTOs
                     }
 
-                    var cs = new ChordSheet { Id = Guid.NewGuid(), OrgId = dto.OrgId, Title = dto.Title, Artist = dto.Artist, Content = dto.Content, Key = dto.Key, CreatedAt = DateTime.UtcNow };
+                    var cs = dto.ToEntity();
+                    cs.Id = Guid.NewGuid();
                     db.ChordSheets.Add(cs);
                     await db.SaveChangesAsync();
                     await hub.Clients.All.ChordSheetCreated(cs);
@@ -124,12 +120,7 @@ internal static class ChordSheetEndpoints
             if (validation != null) return validation;
             var existing = await db.ChordSheets.FindAsync(id);
             if (existing == null) return Results.NotFound();
-            existing.OrgId = dto.OrgId;
-            existing.Title = dto.Title;
-            existing.Artist = dto.Artist;
-            existing.Content = dto.Content;
-            existing.Key = dto.Key;
-            existing.UpdatedAt = DateTime.UtcNow;
+            existing.UpdateFromDto(dto);
             await db.SaveChangesAsync();
             await hub.Clients.All.ChordSheetUpdated(existing);
             return Results.NoContent();

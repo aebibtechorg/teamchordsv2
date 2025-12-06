@@ -20,7 +20,7 @@ async function getOutputs(setListId) {
         }));
         // attach chordsheet subset to each output like supabase did
         const enriched = outputs.map(o => ({ ...o, chordsheets: chordMap.get(o.chordSheetId) ? { key: chordMap.get(o.chordSheetId).key, content: chordMap.get(o.chordSheetId).content } : null }));
-        return enriched;
+        return enriched.sort((a, b) => a.order - b.order);
     } catch (err) {
         console.error("Error getting outputs:", err);
         return null;

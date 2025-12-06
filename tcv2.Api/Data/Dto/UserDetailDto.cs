@@ -1,37 +1,21 @@
 using System;
-using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace tcv2.Api.Data.Dto
 {
-    public class UserDto
+    public class UserDetailDto
     {
-        public Guid? Id { get; set; }
-
-        [EmailAddress]
-        [Required]
+        public Guid Id { get; set; }
         public string? Email { get; set; }
-
         public bool? EmailVerified { get; set; }
         public string? Auth0UserId { get; set; }
-
-        [StringLength(200)]
         public string? Name { get; set; }
-
-        [StringLength(100)]
-        [Required]
         public string? GivenName { get; set; }
-
-        [StringLength(100)]
-        [Required]
         public string? FamilyName { get; set; }
-
-        [Url]
         public string? Picture { get; set; }
-        
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-
-        [StringLength(200, MinimumLength = 6)]
-        public string? Password { get; set; }
+        public ProfileDto? Profile { get; set; }
+        public ICollection<OrganizationDto> Organizations { get; set; } = new List<OrganizationDto>();
     }
 }

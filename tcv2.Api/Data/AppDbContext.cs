@@ -39,7 +39,7 @@ namespace tcv2.Api.Data
             // SetList -> Outputs (one-to-many)
             modelBuilder.Entity<Output>()
                 .HasOne(o => o.SetList)
-                .WithMany()
+                .WithMany(s => s.Outputs)
                 .HasForeignKey(o => o.SetListId)
                 .OnDelete(DeleteBehavior.Cascade);
 

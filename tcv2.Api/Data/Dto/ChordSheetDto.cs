@@ -19,5 +19,8 @@ namespace tcv2.Api.Data.Dto
 
         [StringLength(16)]
         public string? Key { get; set; }
+        
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }
