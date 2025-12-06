@@ -1,7 +1,5 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
-import html2canvas from "html2canvas";
 import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
 import ChordSheetJS from "chordsheetjs";
@@ -196,10 +194,6 @@ const SetListView = () => {
   
     return (
         <div className="bg-gray-100">
-            <Helmet>
-                <title>{setlist ? `Team Chords - ${setlist.name}` : "Team Chords"}</title>
-                <meta property="og:image" content={ogImage} />
-            </Helmet>
             <div className="hidden print:block">
                 {outputs.map((output) => <pre key={output.id} dangerouslySetInnerHTML={{ __html: renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo) }} />)}
             </div>
