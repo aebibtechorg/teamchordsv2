@@ -1,10 +1,12 @@
-import { use } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import Spinner from '../components/Spinner';
 
 function AcceptInvitePage() {
     const { inviteId } = useParams();
-    // const [status, setStatus] = useState('Processing invite...');
+    const [status, setStatus] = useState('Processing invite...');
+    const [navigateUrl, setNavigateUrl] = useState(null);
+
 
     const handleInvite = async () => {
         let status = '';
@@ -34,7 +36,14 @@ function AcceptInvitePage() {
         return { status, navigateUrl };
     }
 
-    const { status, navigateUrl } = use(handleInvite);
+    useEffect(() => {
+        handleInvite().then(({ status, navigateUrl }) => {
+            setStatus(status);
+            setNavigateUrl(navigateUrl);
+        }).catch((error) => {
+            setStatus(`Failed to accept invite: ${error.message}`);
+        });
+    }, []);
 
     if (navigateUrl) {
         return <Navigate to={navigateUrl} />;

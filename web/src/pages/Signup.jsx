@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import MainLogo from "../components/MainLogo";
 import { useAuth0 } from "@auth0/auth0-react";
 // import { FcGoogle } from "react-icons/fc";
 // import { FaFacebookF } from "react-icons/fa";
 
 const Signup = () => {
-  const { e, orgId } = useParams();
-  const [email, setEmail] = useState(e || "");
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState(decodeURIComponent(searchParams.get("e") || ""));
+  const [orgId] = useState(decodeURIComponent(searchParams.get("orgId") || ""));
   const [password, setPassword] = useState("");
   const [givenName, setGivenName] = useState("");
   const [familyName, setFamilyName] = useState("");
@@ -66,17 +67,17 @@ const Signup = () => {
     }
   };
 
-  const handleOAuthSignUp = async (provider) => {
-    setLoading(true);
-    const connection = provider === 'google' ? 'google-oauth2' : provider === 'facebook' ? 'facebook' : undefined;
-    try {
-      await loginWithRedirect({ authorizationParams: connection ? { connection } : { screen_hint: 'signup' } });
-    } catch (err) {
-      setError('Signup failed');
-      setLoading(false);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
+  // const handleOAuthSignUp = async (provider) => {
+  //   setLoading(true);
+  //   const connection = provider === 'google' ? 'google-oauth2' : provider === 'facebook' ? 'facebook' : undefined;
+  //   try {
+  //     await loginWithRedirect({ authorizationParams: connection ? { connection } : { screen_hint: 'signup' } });
+  //   } catch (err) {
+  //     setError('Signup failed');
+  //     setLoading(false);
+  //     setTimeout(() => setError(null), 3000);
+  //   }
+  // };
 
   return (
     <div className="bg-gray-700 w-screen h-screen flex flex-col items-center align-center">
