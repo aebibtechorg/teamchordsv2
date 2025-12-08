@@ -2,44 +2,62 @@
 
 @import "tailwindcss";
 
-* {
-    font-family: "Inter", serif;
-}
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentcolor);
+    }
+    input, select {
+        background-color: white;
+    }
 
-.paragraph {
-    margin-bottom: 24px;
-}
-
-.chord {
-    font-weight: 600;
-}
-
-td.comment {
-    font-weight: bolder;
-    font-size: 1.2em;
-}
-
-.print-output {
-    display: none;
-}
-
-.sheet h1 {
-    margin-bottom: 1rem;
-}
-
-@media print {
-    pre {
-        column-count: 2;   /* Creates two columns */
-        column-gap: 20px;  /* Adjust gap between columns */
-        column-fill: auto; /* Ensures balanced content */
+    * {
         font-family: "Inter", serif;
-        font-size: 12px;
-        white-space: pre-wrap;
-        break-inside: avoid;
     }
 
-    pre > h1 {
-        font-size: 16px;
-        font-weight: bold;
+    .paragraph {
+        margin-bottom: 24px;
+    }
+
+    .chord {
+        font-weight: 600;
+    }
+
+    td.comment {
+        font-weight: bolder;
+        font-size: 1.2em;
+    }
+
+    td.chord, td.lyrics {
+        padding-left: 3px;
+    }
+
+    .print-output {
+        display: none;
+    }
+
+    .sheet h1 {
+        margin-bottom: 1rem;
+    }
+
+    @media print {
+        pre {
+            column-count: 2;   /* Creates two columns */
+            column-gap: 20px;  /* Adjust gap between columns */
+            column-fill: auto; /* Ensures balanced content */
+            font-family: "Inter", serif;
+            font-size: 12px;
+            white-space: pre-wrap;
+            break-inside: avoid;
+        }
+
+        pre > h1 {
+            font-size: 16px;
+            font-weight: bold;
+        }
     }
 }
+

@@ -185,7 +185,7 @@ const ChordProSheet = () => {
             </div>
             <a className="text-blue-500 block mb-2 hover:underline" href={chordProGuideURL} target="_blank">ChordPro Syntax Guide</a>
             <div className="flex flex-col lg:flex-row gap-4 h-auto lg:h-[64vh] mb-20 md:mb-0">
-                <div className="flex-1 min-h-[240px] h-auto lg:h-[64vh] border rounded overflow-hidden">
+                <div className="flex-1 min-h-[240px] h-auto lg:h-[64vh] border border-gray-300 rounded overflow-hidden">
                     <Editor 
                         height="64vh"
                         defaultLanguage="plaintext"

@@ -155,7 +155,7 @@ const ChordLibrary = () => {
           <input
             type="text"
             placeholder="Search by title or artist..."
-            className="w-full border p-2 pl-10 rounded"
+            className="w-full border border-gray-300 bg-white p-2 pl-10 rounded"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

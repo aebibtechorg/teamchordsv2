@@ -16,6 +16,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 import Select from "react-select";
+import Modal from "../components/Modal";
 
 const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
     const songStuff = useSongSelectionStore();
@@ -43,30 +44,32 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
     };
 
     return (
-        <dialog open={isOpen} className="w-full sm:w-3/4 md:w-1/2 lg:w-1/4 border rounded p-4 shadow-md z-10">
-            <h3 className="text-lg font-bold flex justify-between items-center mb-4">
-                <span>{songStuff.isEdit ? "Edit" : "Add"} Song</span>
-                <X size={24} onClick={songStuff.isEdit ? handleEditClose : onClose} className="cursor-pointer text-gray-500 hover:text-gray-600" />
-            </h3>
+        (isOpen && <Modal onClose={onClose}>
+            <div className="p-4">
+                <h3 className="text-lg font-bold flex justify-between items-center mb-4">
+                    <span>{songStuff.isEdit ? "Edit" : "Add"} Song</span>
+                    <X size={24} onClick={songStuff.isEdit ? handleEditClose : onClose} className="cursor-pointer text-gray-500 hover:text-gray-600" />
+                </h3>
 
-            <label htmlFor="song">Song</label>
-            <Select value={songStuff.selectedSong.song !== "" ? selectSongOptions.find((v) => v.value === songStuff.selectedSong.song) : defaultSelectedSongValue} options={selectSongOptions} isSearchable id="song" onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, song: e.value })} />
+                <label htmlFor="song">Song</label>
+                <Select value={songStuff.selectedSong.song !== "" ? selectSongOptions.find((v) => v.value === songStuff.selectedSong.song) : defaultSelectedSongValue} options={selectSongOptions} isSearchable id="song" onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, song: e.value })} />
 
-            <label className="mt-4 block" htmlFor="key">Key</label>
-            <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, targetKey: e.value })} value={songStuff.selectedSong.targetKey !== "" ? selectKeyOptions.find(k => k.value === songStuff.selectedSong.targetKey) : defaultKeyValue} options={selectKeyOptions} isSearchable id="key" />
+                <label className="mt-4 block" htmlFor="key">Key</label>
+                <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, targetKey: e.value })} value={songStuff.selectedSong.targetKey !== "" ? selectKeyOptions.find(k => k.value === songStuff.selectedSong.targetKey) : defaultKeyValue} options={selectKeyOptions} isSearchable id="key" />
 
-            <label className="mt-4 block" htmlFor="capo">Capo</label>
-            <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, capo: Number(e.value) })} value={songStuff.selectedSong.song !== "" ? selectCapoOptions.find(f => f.value === songStuff.selectedSong.capo) : defaultFretValue} options={selectCapoOptions} isSearchable id="capo" />
-            
-            <div className="mt-4 flex justify-end gap-2">
-                <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEdit : handleAdd} disabled={!songStuff.selectedSong.song || !songStuff.selectedSong.targetKey}>
-                    {songStuff.isEdit ? "Update" : "Add"}
-                </button>
-                <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEditClose : onClose}>
-                    Cancel
-                </button>
+                <label className="mt-4 block" htmlFor="capo">Capo</label>
+                <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, capo: Number(e.value) })} value={songStuff.selectedSong.song !== "" ? selectCapoOptions.find(f => f.value === songStuff.selectedSong.capo) : defaultFretValue} options={selectCapoOptions} isSearchable id="capo" />
+                
+                <div className="mt-4 flex justify-end gap-2">
+                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEdit : handleAdd} disabled={!songStuff.selectedSong.song || !songStuff.selectedSong.targetKey}>
+                        {songStuff.isEdit ? "Update" : "Add"}
+                    </button>
+                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEditClose : onClose}>
+                        Cancel
+                    </button>
+                </div>
             </div>
-        </dialog>
+        </Modal>)
     );
 };
 
@@ -88,6 +91,7 @@ const SortableRow = ({ output, index, sheets, handleDeleteSong, openEditDialog }
         >
             <td>{sheets.find(sheet => sheet.id === output.song)?.title || "Unknown"}</td>
             <td>{output.targetKey}</td>
+            <td>{output.capo > 0 ? getCapoText(output.capo) : 'None'}</td>
             <td className="flex gap-2">
                 <button
                     data-no-dnd="true"
@@ -277,7 +281,7 @@ const SetListForm = () => {
                         <table className="w-full border border-gray-300 bg-white rounded-lg">
                             <thead className="bg-gray-200">
                                 <tr>
-                                    {["Song", "Key", "Actions"].map((header, index) => (
+                                    {["Song", "Key", "Capo", "Actions"].map((header, index) => (
                                         <th key={index} className="border-b border-gray-300 text-left text-gray-700 font-medium">{header}</th>
                                     ))}
                                 </tr>
