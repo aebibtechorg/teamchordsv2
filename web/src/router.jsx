@@ -15,6 +15,7 @@ import UpdatePassword from "./pages/UpdatePassword";
 import AuthCallback from "./pages/AuthCallback";
 import Protected from "./components/Protected";
 import Logout from "./pages/Logout";
+import AcceptInvitePage from "./pages/AcceptInvite";
 
 export const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
   {
     path: "/invite",
     element: <Protected><InviteUser /></Protected>,
+  },
+  {
+    path: "/invites/:inviteId",
+    element: <AcceptInvitePage />,
   },
   {
     path: "/update-password",

@@ -81,6 +81,12 @@ namespace tcv2.Api.Data
                 .WithMany()
                 .HasForeignKey(i => i.InvitedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Invite>()
+                .HasOne(i => i.Organization)
+                .WithMany()
+                .HasForeignKey(i => i.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { inviteUser } from '../utils/common';
+import { useProfileStore } from '../store/useProfileStore';
 
 export default function InviteUser() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', isError: false });
+  const { profile } = useProfileStore();
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -11,6 +14,10 @@ export default function InviteUser() {
     setMessage({ text: '', isError: false });
 
     try {
+      const result = await inviteUser(email, profile.orgId);
+      if (!result) {
+        throw new Error('Failed to send invite');
+      }
       setMessage({ 
         text: `Invite sent to ${email} successfully!`,
         isError: false 

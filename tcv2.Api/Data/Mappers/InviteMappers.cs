@@ -15,7 +15,8 @@ public static class InviteMappers
             Token = invite.Token,
             Used = invite.Used,
             ExpiresAt = invite.ExpiresAt,
-            CreatedAt = invite.CreatedAt
+            CreatedAt = invite.CreatedAt,
+            OrganizationId = invite.OrganizationId
         };
     }
 
@@ -27,7 +28,8 @@ public static class InviteMappers
         return new Invite
         {
             Email = dto.Email,
-            Used = dto.Used
+            Used = dto.Used,
+            OrganizationId = dto.OrganizationId
         };
     }
 
@@ -37,5 +39,6 @@ public static class InviteMappers
         invite.Token = dto.Token;
         invite.Used = dto.Used;
         invite.ExpiresAt = dto.ExpiresAt;
+        invite.OrganizationId = dto.OrganizationId;
     }
 }

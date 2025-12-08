@@ -4,7 +4,6 @@ import "./index.css";
 
 import { router } from "./router.jsx";
 import { RouterProvider } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { setTokenProvider } from "./utils/api";
 
@@ -49,9 +48,7 @@ async function bootstrap() {
           cacheLocation="localstorage"
         >
           <AuthTokenProviderSetup />
-          <HelmetProvider>
             <RouterProvider router={router} />
-          </HelmetProvider>
         </Auth0Provider>
     </StrictMode>
   );

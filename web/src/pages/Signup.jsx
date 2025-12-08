@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import MainLogo from "../components/MainLogo";
 import { useAuth0 } from "@auth0/auth0-react";
 // import { FcGoogle } from "react-icons/fc";
 // import { FaFacebookF } from "react-icons/fa";
 
 const Signup = () => {
-  const [email, setEmail] = useState("");
+  const { e, orgId } = useParams();
+  const [email, setEmail] = useState(e || "");
   const [password, setPassword] = useState("");
   const [givenName, setGivenName] = useState("");
   const [familyName, setFamilyName] = useState("");
@@ -34,6 +35,7 @@ const Signup = () => {
         givenName: givenName || undefined,
         familyName: familyName || undefined,
         password: password || undefined,
+        inviteOrganizationId: orgId || undefined
       };
 
       const resp = await fetch(`/api/users`, {

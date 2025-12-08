@@ -22,6 +22,9 @@ namespace tcv2.Api.Data.Entities
 
         public DateTimeOffset ExpiresAt { get; set; }
 
+        public Guid? OrganizationId { get; set; }
+        public Organization? Organization { get; set; }
+
         // Navigation - references auth.users; keep as raw id for now
     }
 }

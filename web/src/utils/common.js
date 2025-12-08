@@ -57,4 +57,22 @@ async function createProfile(profile) {
     }
 }
 
-export { getProfile, createOrganization, createProfile };
+async function inviteUser(email, organizationId) {
+    try {
+        const res = await apiFetch(`/api/invites`, {
+            method: 'POST',
+            body: JSON.stringify({ email, organizationId })
+        });
+        if (!res.ok) {
+            const text = await res.json();
+            console.error('Error inviting user:', res.status, text);
+            return null;
+        }
+        return await res.json();
+    } catch (err) {
+        console.error('Error inviting user:', err);
+        return null;
+    }
+}
+
+export { getProfile, createOrganization, createProfile, inviteUser };

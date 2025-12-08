@@ -100,6 +100,12 @@ internal static class UserEndpoints
 
                     db.Users.Add(u);
 
+                    if (dto.InviteOrganizationId != null)
+                    {
+                        var org = await db.Organizations.FindAsync(dto.InviteOrganizationId);
+                        u.Organizations.Add(org!);
+                    }
+
                     // -------------------------------
                     // AUTH0 CREATION (unchanged)
                     // -------------------------------

@@ -12,13 +12,13 @@ namespace tcv2.Api.Data.Dto
         public string Email { get; set; } = string.Empty;
 
         public Guid? InvitedBy { get; set; }
-
-        [Required]
+        
         public string Token { get; set; } = string.Empty;
 
         public bool Used { get; set; }
 
         public DateTimeOffset ExpiresAt { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
+        public Guid? OrganizationId { get; set; }
     }
 }

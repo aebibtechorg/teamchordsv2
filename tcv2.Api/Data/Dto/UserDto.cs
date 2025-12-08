@@ -33,5 +33,7 @@ namespace tcv2.Api.Data.Dto
 
         [StringLength(200, MinimumLength = 6)]
         public string? Password { get; set; }
+
+        public Guid? InviteOrganizationId { get; set; }
     }
 }
