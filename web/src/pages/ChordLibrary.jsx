@@ -14,7 +14,7 @@ const ChordLibrary = () => {
   const [chordsheets, setChordsheets] = useState([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize] = useState(21);
+  const [pageSize] = useState(12);
   const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
