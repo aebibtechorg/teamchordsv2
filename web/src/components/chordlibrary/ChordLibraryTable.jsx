@@ -75,7 +75,7 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
       )}
       {/* Mobile Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center bg-white border-t sticky bottom-10 md:bottom-0 p-3 mt-8 sm:hidden">
+        <div className="flex justify-center items-center bg-white border sticky bottom-10 md:bottom-0 p-3 mt-8 sm:hidden">
           <button
             className="px-4 py-2 border rounded disabled:opacity-50"
             onClick={() => setPageIndex(pageIndex - 1)}
@@ -97,7 +97,7 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
       )}
       {/* Desktop Pagination */}
       {totalPages > 1 && (
-        <div className="justify-center items-center bg-white border-t sticky bottom-10 md:bottom-0 p-3 mt-8 hidden sm:flex">
+        <div className="justify-center items-center bg-white border sticky bottom-10 md:bottom-0 p-3 mt-8 hidden sm:flex">
           <button
             className="px-4 py-2 border rounded disabled:opacity-50"
             onClick={() => setPageIndex(pageIndex - 1)}

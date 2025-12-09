@@ -29,6 +29,9 @@ const ChordProSheet = () => {
         if (id !== 'new') {
             const fetchChordsheet = async () => {
                 const data = await getChordsheet(id);
+                if (data.orgId != profile.orgId) {
+                    navigate('/library');
+                }
                 setTitle(data.title);
                 setArtist(data.artist);
                 setKey(data.key);
@@ -39,7 +42,7 @@ const ChordProSheet = () => {
         else {
             setIsLoading(false);
         }
-    }, [id]);
+    }, [id, profile.orgId]);
 
     const renderChordPro = (chordProContent) => {
         try {
@@ -133,7 +136,7 @@ const ChordProSheet = () => {
     }
 
     return (
-        <>
+        <div className="p-4">
             <Toaster />
             <div className="mb-4">
                 <label htmlFor="title" className="block font-semibold">Title</label>
@@ -247,7 +250,7 @@ const ChordProSheet = () => {
                     </div>
                 </Modal>
             )}
-        </>
+        </div>
     );
 };
 

@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useProfileStore } from '../store/useProfileStore';
+import Onboarding from '../pages/Onboarding';
+import Modal from './Modal';
 
 const OrgSelector = ({ className = '' }) => {
   const { profile, setActiveOrg } = useProfileStore();
+  const [isOpenCreateOrg, setIsOpenCreateOrg] = useState(() => false);
 
   useEffect(() => {
     // If no active org is set, set it to the first organization
@@ -25,12 +28,18 @@ const OrgSelector = ({ className = '' }) => {
 
   const handleChange = (e) => {
     const id = e.target.value || null;
-    setActiveOrg(id);
+    if (id == 'create-new') {
+      setIsOpenCreateOrg(true);
+      setActiveOrg((previous) => previous);
+    } else {
+      setActiveOrg(id);
+    }
   };
 
   if (!orgs || orgs.length === 0) return null;
 
   return (
+    <>
     <select
       className={`w-full text-sm rounded px-2 py-1 bg-gray-600 text-white ${className}`}
       value={active || ''}
@@ -41,7 +50,14 @@ const OrgSelector = ({ className = '' }) => {
           {o.name || o.Name}
         </option>
       ))}
+      <option value="create-new">Create new</option>
     </select>
+    {isOpenCreateOrg && (<Modal onClose={() => setIsOpenCreateOrg(false)}>
+      <div className="p-4">
+        <Onboarding />
+      </div>
+    </Modal>)}
+    </>
   );
 };
 

@@ -93,7 +93,8 @@ const ChordLibrary = () => {
   }
 
   return (
-    <>
+    <div className="p-4">
+      <div className="sticky top-0 bg-gray-100">
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Library</p>
         <div className="flex gap-2">
@@ -162,6 +163,7 @@ const ChordLibrary = () => {
           <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
         </div>
       </div>
+      </div>
 
       {chordsheets && (
         <ChordLibraryTable
@@ -178,7 +180,7 @@ const ChordLibrary = () => {
           <ChordFilesUploadDialog connection={connection} close={() => setIsUploadDialogOpen(false)} onUploadComplete={handleUploadComplete} />
         </Modal>
       )}
-    </>
+    </div>
   );
 };
 

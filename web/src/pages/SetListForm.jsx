@@ -149,6 +149,9 @@ const SetListForm = () => {
             const fetchSetList = async () => {
                 await fetchSheets();
                 const data = await getSetList(id);
+                if (data.orgId != profile.orgId) {
+                    navigate('/setlists');
+                }
                 setName(data.name);
                 setOutputs(data.outputs.map(output => ({
                     song: output.chordSheetId,
@@ -163,7 +166,7 @@ const SetListForm = () => {
         else {
             fetchSheets().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
         }
-    }, []);
+    }, [profile.orgId]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -239,7 +242,7 @@ const SetListForm = () => {
     }
 
     return (
-        <>
+        <div className="p-4">
             <Toaster />
             <SongSelectionDialog sheets={sheets} onAdd={setOutputs} isOpen={isOpen} onClose={() => setIsOpen(false)} />
             <div className="mb-4">
@@ -295,7 +298,7 @@ const SetListForm = () => {
                     </SortableContext>
                 </DndContext>
             </div>
-        </>
+        </div>
     );
 };
 

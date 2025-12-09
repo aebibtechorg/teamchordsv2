@@ -19,7 +19,7 @@ const SetList = () => {
 
   useEffect(() => {
     fetchData().then(() => setIsLoading(false)).catch((err) => toast.error(`A network error has occured: ${err}.`));
-  }, []);
+  }, [profile.orgId]);
 
   if (isLoading) {
     return (
@@ -31,7 +31,7 @@ const SetList = () => {
   }
 
   return (
-    <>
+    <div className="p-4">
       <Toaster />
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Set Lists</p>
@@ -41,7 +41,7 @@ const SetList = () => {
         </Link>
       </h1>
       {setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} />}
-    </>
+    </div>
   );
 };
 
