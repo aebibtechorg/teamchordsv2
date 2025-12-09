@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="tcv2.Api/tcv2.Api.csproj" />
+  <Project Path="tcv2.AppHost/tcv2.AppHost.csproj" />
+  <Project Path="tcv2.ServiceDefaults/tcv2.ServiceDefaults.csproj" />
+</Solution>
