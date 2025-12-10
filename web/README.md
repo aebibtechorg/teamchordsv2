@@ -3,7 +3,7 @@ Team Chords is a web app for creating and sharing set lists for live music. Uses
 
 ## Dependencies
 - Node.js
-- Supabase
+- Auth0
 - ChordPro
 - ChordSheetJS
 

@@ -90,6 +90,84 @@ function App() {
         </div>
       </motion.section>
 
+      {/* Pricing Section */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={fadeInUp}
+        className="min-h-screen snap-center flex flex-col items-center justify-center bg-gray-100 px-2 sm:px-4"
+      >
+        <div className="container mx-auto px-4 py-16">
+          <h1 className="text-4xl font-bold text-center mb-4">Find the Right Plan for Your Team</h1>
+          <p className="text-xl text-gray-600 text-center mb-12">
+            From solo artists to large organizations, we have a plan that fits your needs.
+          </p>
+
+          {/* Pricing Tiers */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Tier 1: Jam Session */}
+            <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
+              <h2 className="text-2xl font-bold mb-4">Jam Session</h2>
+              <p className="text-4xl font-extrabold mb-4">$0<span className="text-lg font-normal text-gray-500">/ month</span></p>
+              <p className="text-gray-600 mb-6">For solo artists, hobbyists, or users testing the platform.</p>
+              <ul className="space-y-4 text-gray-700 mb-8 flex-grow">
+                <li><span className="font-bold">1 Team</span> allowed</li>
+                <li>Max <span className="font-bold">3 Team Members</span></li>
+                <li><span className="font-bold">50 Songs</span> (ChordPro sheets)</li>
+                <li><span className="font-bold">3 Set Lists</span></li>
+                <li>Basic ChordPro Editor</li>
+                <li>Read-only public sharing</li>
+                <li className="text-gray-400">Real-time live view sync (Live Mode)</li>
+              </ul>
+              <button className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition duration-300">
+                Get Started
+              </button>
+            </div>
+
+            {/* Tier 2: Gigging Band */}
+            <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col border-4 border-blue-500 relative">
+              <div className="absolute top-0 -translate-y-1/2 bg-blue-500 text-white font-bold py-1 px-4 rounded-full">
+                Most Popular
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Gigging Band</h2>
+              <p className="text-4xl font-extrabold mb-4">$5<span className="text-lg font-normal text-gray-500">/ month</span></p>
+              <p className="text-gray-600 mb-6">For local bands, worship teams, and performing groups.</p>
+              <ul className="space-y-4 text-gray-700 mb-8 flex-grow">
+                <li><span className="font-bold">1 Team</span> allowed</li>
+                <li><span className="font-bold">Unlimited</span> Team Members</li>
+                <li><span className="font-bold">Unlimited</span> Songs</li>
+                <li><span className="font-bold">Unlimited</span> Set Lists</li>
+                <li><span className="font-bold text-blue-600">Real-Time "Live Mode"</span></li>
+                <li>Transposition Tools</li>
+                <li>PDF Export/Print</li>
+                <li>Offline Mode</li>
+              </ul>
+              <button className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300">
+                Choose Plan
+              </button>
+            </div>
+
+            {/* Tier 3: Organization */}
+            <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
+              <h2 className="text-2xl font-bold mb-4">Organization</h2>
+              <p className="text-4xl font-extrabold mb-4">$50<span className="text-lg font-normal text-gray-500">/ month</span></p>
+              <p className="text-gray-600 mb-6">For multi-campus churches, music schools, or booking agencies.</p>
+              <ul className="space-y-4 text-gray-700 mb-8 flex-grow">
+                <li><span className="font-bold">Up to 5 Teams</span></li>
+                <li>Everything in Gigging Band</li>
+                <li><span className="font-bold text-blue-600">Centralized Library</span></li>
+                <li>Admin Controls</li>
+                <li>Priority Support</li>
+              </ul>
+              <button className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition duration-300">
+                Choose Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
       {/* Call to Action Section */}
       <motion.section
         initial="hidden"
