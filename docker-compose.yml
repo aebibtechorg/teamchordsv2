@@ -14,5 +14,4 @@ services:
     build:
       context: ./web
       dockerfile: web/Dockerfile
-    environment:
-      - services__api__https_0=tcv2.api:8080
+
