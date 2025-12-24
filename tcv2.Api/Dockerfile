@@ -9,6 +9,7 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG configuration=Release
 WORKDIR /src
 COPY ["tcv2.Api.csproj", "tcv2.Api/"]
+COPY ["../tcv2.ServiceDefaults/tcv2.ServiceDefaults.csproj", "tcv2.ServiceDefaults/"]
 RUN dotnet restore "tcv2.Api/tcv2.Api.csproj"
 COPY . .
 WORKDIR "/src/tcv2.Api"
