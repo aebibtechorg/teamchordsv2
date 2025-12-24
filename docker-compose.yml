@@ -1,0 +1,18 @@
+services:
+  tcv2.api:
+    image: tcv2api
+    build: 
+      context: .
+      dockerfile: tcv2.Api/Dockerfile
+    ports:
+      - "18080:8080"
+    depends_on:
+      - tcv2.web
+
+  tcv2.web:
+    image: tcv2web
+    build:
+      context: ./web
+      dockerfile: web/Dockerfile
+    environment:
+      - services__api__https_0=tcv2.api:8080
