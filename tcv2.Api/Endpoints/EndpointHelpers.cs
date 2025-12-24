@@ -25,7 +25,7 @@ internal static class EndpointHelpers
         var page = 1;
         var pageSize = 20;
         if (req.Query.TryGetValue("page", out var p) && int.TryParse(p, out var pi) && pi > 0) page = pi;
-        if (req.Query.TryGetValue("pageSize", out var ps) && int.TryParse(ps, out var psi) && psi > 0) pageSize = Math.Min(100, psi);
+        if (req.Query.TryGetValue("pageSize", out var ps) && int.TryParse(ps, out var psi) && psi > 0) pageSize = psi;
 
         var total = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
