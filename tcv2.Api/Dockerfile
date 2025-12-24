@@ -8,7 +8,7 @@ USER app
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG configuration=Release
 WORKDIR /src
-COPY ["tcv2.Api/tcv2.Api.csproj", "tcv2.Api/"]
+COPY ["tcv2.Api.csproj", "tcv2.Api/"]
 RUN dotnet restore "tcv2.Api/tcv2.Api.csproj"
 COPY . .
 WORKDIR "/src/tcv2.Api"
