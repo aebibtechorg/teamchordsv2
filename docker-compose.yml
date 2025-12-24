@@ -13,5 +13,5 @@ services:
     image: tcv2web
     build:
       context: ./web
-      dockerfile: web/Dockerfile
+      dockerfile: Dockerfile
 
