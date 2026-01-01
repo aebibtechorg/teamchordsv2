@@ -112,7 +112,8 @@ internal static class UserEndpoints
                         GivenName = dto.GivenName,
                         FamilyName = dto.FamilyName,
                         Picture = dto.Picture,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        Auth0UserId = dto.Auth0UserId
                     };
                     
                     db.Users.Add(u);
