@@ -2,7 +2,7 @@ import React from 'react';
 
 const TermsAndConditions = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 overflow-auto">
 <h2><b>TERMS AND CONDITIONS</b></h2>	 	 
 <p>Last updated: 2026-01-02</p>	 	 
 <p>1. <b>Introduction</b></p>	 	 
