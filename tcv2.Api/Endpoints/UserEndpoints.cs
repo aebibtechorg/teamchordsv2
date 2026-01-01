@@ -75,6 +75,80 @@ internal static class UserEndpoints
             return Results.Ok(user.ToDetailDto());
         });
 
+        users.MapPost("/googlesignin", async (UserDto dto, AppDbContext db) =>
+        {
+            var validation = EndpointHelpers.Validate(dto);
+            if (validation != null) return validation;
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                return Results.BadRequest(new { message = "Email is required." });
+            }
+
+            var existingUser = await db.Users
+                .Include(u => u.Organizations)
+                .Include(u => u.Profile)
+                .FirstOrDefaultAsync(x => x.Email == dto.Email);
+
+            if (existingUser != null)
+            {
+                return Results.Ok(existingUser.ToDetailDto());
+            }
+
+            var strategy = db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await db.Database.BeginTransactionAsync();
+
+                try
+                {
+                    var u = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = dto.Email,
+                        EmailVerified = dto.EmailVerified,
+                        Name = $"{dto.GivenName} {dto.FamilyName}",
+                        GivenName = dto.GivenName,
+                        FamilyName = dto.FamilyName,
+                        Picture = dto.Picture,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    
+                    db.Users.Add(u);
+
+                    if (dto.InviteOrganizationId != null)
+                    {
+                        var org = await db.Organizations.FindAsync(dto.InviteOrganizationId);
+                        if (org != null)
+                        {
+                            u.Organizations.Add(org);
+                        }
+                    }
+
+                    await db.SaveChangesAsync();
+                    await tx.CommitAsync();
+                    
+                    var user = await db.Users
+                        .Include(x => x.Organizations)
+                        .Include(x => x.Profile)
+                        .FirstOrDefaultAsync(x => x.Id == u.Id);
+
+                    return Results.Created($"/api/users/{u.Id}", user.ToDetailDto());
+                }
+                catch (DbUpdateException ex)
+                {
+                    await tx.RollbackAsync();
+                    return EndpointHelpers.HandleDbUpdateException(ex);
+                }
+                catch (Exception ex)
+                {
+                    await tx.RollbackAsync();
+                    return Results.BadRequest(new { message = "Failed to create user", detail = ex.Message });
+                }
+            });
+        }).AllowAnonymous();
+
         users.MapPost("/", async (UserDto dto, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config) =>
         {
             var validation = EndpointHelpers.Validate(dto);
