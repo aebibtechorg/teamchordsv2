@@ -63,7 +63,7 @@ const PrivacyPolicy = () => {
 
 <p>We may also collect information that your browser sends whenever you visit our Service or when you access Service by or through any device (<b>“Usage Data”</b>).</p>
 
-<p>This Usage Data may include information such as your computer’s Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that you visit, the time and date of your visit, the time spent on those pages, unique device identifiers and other diagnostic data.</p>
+<p>This Usage Data may include information such as your computer's Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that you visit, the time and date of your visit, the time spent on those pages, unique device identifiers and other diagnostic data.</p>
 
 <p>When you access Service with a device, this Usage Data may include information such as the type of device you use, your device unique ID, the IP address of your device, your device operating system, the type of Internet browser you use, unique device identifiers and other diagnostic data.</p>
 
@@ -140,7 +140,7 @@ const PrivacyPolicy = () => {
 
 <p>We may disclose personal information that we collect, or you provide:</p>
 
-<p>0.1. <b>Business Transaction.</b></p><p>If we or our subsidiaries are involved in a merger, acquisition or asset sale, your Personal Data may be transferred.</p><p>0.2. <b>Other cases. We may disclose your information also:</b></p><p>0.2.1. to our subsidiaries and affiliates;</p><p>0.2.2. to contractors, service providers, and other third parties we use to support our business;</p><p>0.2.3. to fulfill the purpose for which you provide it;</p><p>0.2.4. for the purpose of including your company’s logo on our website;</p><p>0.2.5. for any other purpose disclosed by us when you provide the information;</p><p>0.2.6. with your consent in any other cases;</p><p>0.2.7. if we believe disclosure is necessary or appropriate to protect the rights, property, or safety of the Company, our customers, or others.</p>
+<p>0.1. <b>Business Transaction.</b></p><p>If we or our subsidiaries are involved in a merger, acquisition or asset sale, your Personal Data may be transferred.</p><p>0.2. <b>Other cases. We may disclose your information also:</b></p><p>0.2.1. to our subsidiaries and affiliates;</p><p>0.2.2. to contractors, service providers, and other third parties we use to support our business;</p><p>0.2.3. to fulfill the purpose for which you provide it;</p><p>0.2.4. for the purpose of including your company's logo on our website;</p><p>0.2.5. for any other purpose disclosed by us when you provide the information;</p><p>0.2.6. with your consent in any other cases;</p><p>0.2.7. if we believe disclosure is necessary or appropriate to protect the rights, property, or safety of the Company, our customers, or others.</p>
 
 <p>9. <b>Security of Data</b></p>
 <p>The security of your data is important to us but remember that no method of transmission over the Internet or method of electronic storage is 100% secure. While we strive to use commercially acceptable means to protect your Personal Data, we cannot guarantee its absolute security.</p>
@@ -163,7 +163,7 @@ const PrivacyPolicy = () => {
 
 <p>11. <b>Your Data Protection Rights under the California Privacy Protection Act (CalOPPA)</b></p>
 
-<p>CalOPPA is the first state law in the nation to require commercial websites and online services to post a privacy policy. The law’s reach stretches well beyond California to require a person or company in the United States (and conceivable the world) that operates websites collecting personally identifiable information from California consumers to post a conspicuous privacy policy on its website stating exactly the information being collected and those individuals with whom it is being shared, and to comply with this policy.</p>
+<p>CalOPPA is the first state law in the nation to require commercial websites and online services to post a privacy policy. The law's reach stretches well beyond California to require a person or company in the United States (and conceivable the world) that operates websites collecting personally identifiable information from California consumers to post a conspicuous privacy policy on its website stating exactly the information being collected and those individuals with whom it is being shared, and to comply with this policy.</p>
 <p>According to CalOPPA we agree to the following:</p>
 <p>0.1. users can visit our site anonymously;</p>
 <p>0.2. our Privacy Policy link includes the word “Privacy”, and can easily be found on the home page of our website;</p>
@@ -186,7 +186,7 @@ const PrivacyPolicy = () => {
 <p>0.0.7. A list of categories of personal information that we have disclosed for a business purpose, along with the category of any other company we shared it with.</p>
 <p>Please note, you are entitled to ask us to provide you with this information up to two times in a rolling twelve-month period. When you make this request, the information provided may be limited to the personal information we collected about you in the previous 12 months.</p>
 <p><b>0.2. To delete your personal information. If you make this request, we will delete the personal information we hold about you as of the date of your request from our records and direct any service providers to do the same. In some cases, deletion may be accomplished through de-identification of the information. If you choose to delete your personal information, you may not be able to use certain functions that require your personal information to operate.</b></p>
-<p><b>0.3. To stop selling your personal information. We don’t sell or rent your personal information to any third parties for any purpose. We do not sell your personal information for monetary consideration. However, under some circumstances, a transfer of personal information to a third party, or within our family of companies, without monetary consideration may be considered a “sale” under California law. You are the only owner of your Personal Data and can request disclosure or deletion at any time.</b></p>
+<p><b>0.3. To stop selling your personal information. We don't sell or rent your personal information to any third parties for any purpose. We do not sell your personal information for monetary consideration. However, under some circumstances, a transfer of personal information to a third party, or within our family of companies, without monetary consideration may be considered a “sale” under California law. You are the only owner of your Personal Data and can request disclosure or deletion at any time.</b></p>
 <p>If you submit a request to stop selling your personal information, we will stop making such transfers.</p>
 <p>Please note, if you ask us to delete or stop selling your data, it may impact your experience with us, and you may not be able to participate in certain programs or membership services which require the usage of your personal information to function. But in no circumstances, we will discriminate against you for exercising your rights.</p>
 <p>To exercise your California data protection rights described above, please send your request(s) by email: <b>paul@aebibtech.com</b>.</p>
@@ -216,13 +216,13 @@ const PrivacyPolicy = () => {
 
 <p>18. <b>Links to Other Sites</b></p>
 
-<p>Our Service may contain links to other sites that are not operated by us. If you click a third party link, you will be directed to that third party’s site. We strongly advise you to review the Privacy Policy of every site you visit.</p>
+<p>Our Service may contain links to other sites that are not operated by us. If you click a third party link, you will be directed to that third party's site. We strongly advise you to review the Privacy Policy of every site you visit.</p>
 
 <p>We have no control over and assume no responsibility for the content, privacy policies or practices of any third party sites or services.</p>
 
-<p>For example, the outlined <a href="https://policymaker.io/privacy-policy/">privacy policy</a> has been made using <a href="https://policymaker.io/">PolicyMaker.io</a>, a free tool that helps create high-quality legal documents. PolicyMaker’s <a href="https://policymaker.io/privacy-policy/">privacy policy generator</a> is an easy-to-use tool for creating a <a href="https://policymaker.io/blog-privacy-policy/">privacy policy for blog</a>, website, e-commerce store or mobile app.</p>
+<p>For example, the outlined <a href="https://policymaker.io/privacy-policy/">privacy policy</a> has been made using <a href="https://policymaker.io/">PolicyMaker.io</a>, a free tool that helps create high-quality legal documents. PolicyMaker's <a href="https://policymaker.io/privacy-policy/">privacy policy generator</a> is an easy-to-use tool for creating a <a href="https://policymaker.io/blog-privacy-policy/">privacy policy for blog</a>, website, e-commerce store or mobile app.</p>
 
-<p>19. <b><b>Children’s Privacy</b></b></p>
+<p>19. <b><b>Children's Privacy</b></b></p>
 
 <p>Our Services are not intended for use by children under the age of 18 (<b>“Child”</b> or <b>“Children”</b>).</p>
 
