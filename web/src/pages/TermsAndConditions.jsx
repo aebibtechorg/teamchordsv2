@@ -91,8 +91,7 @@ const TermsAndConditions = () => {
 <p>26. <b>Acknowledgement</b></p>	 	 
 <p>BY USING SERVICE OR OTHER SERVICES PROVIDED BY US, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS OF SERVICE AND AGREE TO BE BOUND BY THEM.</p>	 	 
 <p>27. <b>Contact Us</b></p>	 	 
-<p>Please send your feedback, comments, requests for technical support by email: <b>paul@aebibtech.com</b>.</p>
-<p style="margin-top: 5em; font-size: 0.7em;">These <a href="https://policymaker.io/terms-and-conditions/">Terms of Service</a> were created for <b>tc2.aebibtech.com</b> by <a href="https://policymaker.io">PolicyMaker.io</a> on 2026-01-02.</p>	 	 
+<p>Please send your feedback, comments, requests for technical support by email: <b>paul@aebibtech.com</b>.</p> 
     </div>
   );
 };
