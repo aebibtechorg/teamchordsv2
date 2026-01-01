@@ -5,7 +5,7 @@ const PrivacyPolicy = () => {
     <div className="container mx-auto px-4 py-8">
 
 
-<h2 style="text-align: center;"><b>PRIVACY POLICY</b></h2>
+<h2><b>PRIVACY POLICY</b></h2>
 
 <p>Effective date: 2026-01-02</p>
 
