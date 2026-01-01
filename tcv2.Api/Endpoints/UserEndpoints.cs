@@ -61,7 +61,7 @@ internal static class UserEndpoints
             return operation;
         });
 
-        users.MapGet("/{id}", async (Guid id, AppDbContext db) =>
+        users.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>
             await db.Users.FindAsync(id) is User u ? Results.Ok(u.ToDto()) : Results.NotFound());
 
         users.MapGet("/me", async (HttpRequest req, AppDbContext db) =>
