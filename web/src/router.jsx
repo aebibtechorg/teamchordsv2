@@ -16,6 +16,8 @@ import AuthCallback from "./pages/AuthCallback";
 import Protected from "./components/Protected";
 import Logout from "./pages/Logout";
 import AcceptInvitePage from "./pages/AcceptInvite";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
 
 export const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -72,5 +74,13 @@ export const router = createBrowserRouter([
   {
     path: "/logout",
     element: <Logout />
+  },
+  {
+    path: "/privacy-policy",
+    element: <NoSidebar><PrivacyPolicy /></NoSidebar>
+  },
+  {
+    path: "/terms-and-conditions",
+    element: <NoSidebar><TermsAndConditions /></NoSidebar>
   }
 ]);

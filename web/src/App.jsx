@@ -207,6 +207,10 @@ function App() {
           <span className="px-2 sm:px-4">Twitter</span>
           <span className="px-2 sm:px-4">Instagram</span>
         </div>
+        <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-gray-500">
+          <button onClick={() => navigate('/privacy')} className="hover:underline">Privacy Policy</button>
+          <button onClick={() => navigate('/terms')} className="hover:underline">Terms & Conditions</button>
+        </div>
         <p className="mt-4 sm:mt-6 text-sm"> {new Date().getFullYear()} Team Chords. All rights reserved.</p>
       </motion.footer>
     </div>
