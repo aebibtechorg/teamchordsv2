@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { getSetList, createSetList, updateSetList } from "../utils/setlists";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { getChordsheets } from "../utils/chordsheets";
 import { Plus, X, Trash, Edit, Link2, Eye } from "lucide-react";
@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useSongSelectionStore } from "../store/useSongSelectionStore";
 import { useProfileStore } from "../store/useProfileStore";
 import { defaultFretValue, defaultKeyValue, defaultOutputValue, defaultSelectedSongValue, frets, keys } from "../constants";
-import { DndContext, closestCenter, useSensors, useSensor, PointerSensor } from "@dnd-kit/core";
+import { DndContext, closestCenter, useSensors, useSensor, PointerSensor, TouchSensor } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Toaster, toast } from 'react-hot-toast';
@@ -80,6 +80,7 @@ const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog }) 
         transform: CSS.Transform.toString(transform),
         transition,
         userSelect: 'none',
+        touchAction: 'manipulation'
     };
 
     const sheet = sheets.find(sheet => sheet.id === output.song);
@@ -147,6 +148,13 @@ const SetListForm = () => {
         useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 8,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                distance: 8,
+                delay: 300,
+                tolerance: 5,
             },
         })
     );
