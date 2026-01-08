@@ -309,7 +309,7 @@ const SetListForm = () => {
                     )}
                 </div>
             </div>
-            <div className="mt-4 min-h-[200px]">
+            <div className="mt-4 md:min-h-[480px] lg:min-h-[640px] overflow-y-auto pb-24">
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
                     <SortableContext items={outputs.map(output => output.index)} strategy={verticalListSortingStrategy}>
                         {outputs.length > 0 ? (
