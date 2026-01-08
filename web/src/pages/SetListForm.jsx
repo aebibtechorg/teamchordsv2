@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useSongSelectionStore } from "../store/useSongSelectionStore";
 import { useProfileStore } from "../store/useProfileStore";
 import { defaultFretValue, defaultKeyValue, defaultOutputValue, defaultSelectedSongValue, frets, keys } from "../constants";
-import { DndContext, closestCenter, useSensors, useSensor, PointerSensor } from "@dnd-kit/core";
+import { DndContext, closestCenter, useSensors, useSensor, PointerSensor, TouchSensor } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Toaster, toast } from 'react-hot-toast';
@@ -129,6 +129,12 @@ const SetListForm = () => {
         useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 5, // Prevent accidental drags
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
             },
         })
     );
