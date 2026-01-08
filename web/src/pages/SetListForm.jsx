@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { getSetList, createSetList, updateSetList } from "../utils/setlists";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { Save } from "lucide-react";
 import { getChordsheets } from "../utils/chordsheets";
 import { Plus, X, Trash, Edit, Link2, Eye } from "lucide-react";
@@ -10,8 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useSongSelectionStore } from "../store/useSongSelectionStore";
 import { useProfileStore } from "../store/useProfileStore";
 import { defaultFretValue, defaultKeyValue, defaultOutputValue, defaultSelectedSongValue, frets, keys } from "../constants";
-import { DndContext, closestCenter, useSensors, useSensor, PointerSensor, TouchSensor } from "@dnd-kit/core";
-import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { DndContext, closestCenter, useSensors, useSensor, PointerSensor } from "@dnd-kit/core";
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
@@ -20,7 +20,7 @@ import Modal from "../components/Modal";
 
 const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
     const songStuff = useSongSelectionStore();
-    const selectSongOptions = [defaultSelectedSongValue].concat(sheets.map((sheet) => ({ value: sheet.id, label: `${sheet.title} - ${sheet.artist} - ${sheet.key}`})));
+    const selectSongOptions = [defaultSelectedSongValue].concat(sheets.map((sheet) => ({ value: sheet.id, label: `${sheet.title} - ${sheet.artist} - ${sheet.key}` })));
     const selectKeyOptions = [defaultKeyValue].concat(keys.map(k => ({ value: k, label: k })));
     const selectCapoOptions = [defaultFretValue].concat(frets.map(f => ({ value: f, label: getCapoText(f) })));
 
@@ -61,10 +61,10 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
                 <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, capo: Number(e.value) })} value={songStuff.selectedSong.song !== "" ? selectCapoOptions.find(f => f.value === songStuff.selectedSong.capo) : defaultFretValue} options={selectCapoOptions} isSearchable id="capo" />
                 
                 <div className="mt-4 flex justify-end gap-2">
-                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEdit : handleAdd} disabled={!songStuff.selectedSong.song || !songStuff.selectedSong.targetKey}>
+                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEdit : handleAdd} disabled={!songStuff.selectedSong.song || !songStuff.selectedSong.targetKey}>
                         {songStuff.isEdit ? "Update" : "Add"}
                     </button>
-                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEditClose : onClose}>
+                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg mt-4 flex items-center gap-2" onClick={songStuff.isEdit ? handleEditClose : onClose}>
                         Cancel
                     </button>
                 </div>
@@ -73,47 +73,63 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
     );
 };
 
-const SortableRow = ({ output, index, sheets, handleDeleteSong, openEditDialog }) => {
+const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: output.index });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        touchAction: 'manipulation',
         userSelect: 'none',
     };
 
+    const sheet = sheets.find(sheet => sheet.id === output.song);
+
     return (
-        <tr
+        <div
             ref={setNodeRef}
             style={style}
-            {...attributes}
-            {...listeners}
-            className={`border-b border-gray-200 ${index % 2 === 0 ? "bg-gray-50" : "bg-white"} hover:bg-gray-100 cursor-grab`}
+            className="bg-white rounded-lg shadow p-4 mb-3 flex items-center"
         >
-            <td className="py-2">{sheets.find(sheet => sheet.id === output.song)?.title || "Unknown"}</td>
-            <td className="py-2">{output.targetKey}</td>
-            <td className="py-2">{output.capo > 0 ? getCapoText(output.capo) : 'None'}</td>
-            <td className="flex gap-2 py-2">
-                <button
-                    data-no-dnd="true"
-                    className="text-gray-500 hover:text-gray-600 flex items-center gap-2 disabled:opacity-50"
-                    onClick={(event) => handleDeleteSong(output.index, event)}
-                >
-                    <Trash size={16} />
-                </button>
+            <div {...attributes} {...listeners} className="cursor-grab p-2 text-gray-400 hover:text-gray-600">
+                <svg viewBox="0 0 20 20" width="20" fill="currentColor"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg>
+            </div>
 
+            <div className="flex-grow ml-4">
+                <p className="font-semibold">{sheet?.title || "Unknown"}</p>
+                <p className="text-sm text-gray-500">{sheet?.artist || 'Unknown Artist'}</p>
+            </div>
+            
+            <div className="flex items-center gap-6 mr-4">
+                <div>
+                    <span className="text-xs text-gray-500">Key</span>
+                    <p className="font-medium">{output.targetKey}</p>
+                </div>
+                <div>
+                    <span className="text-xs text-gray-500">Capo</span>
+                    <p className="font-medium">{output.capo > 0 ? getCapoText(output.capo) : 'None'}</p>
+                </div>
+            </div>
+
+            <div className="flex gap-1">
                 <button
                     data-no-dnd="true"
-                    className="text-gray-500 hover:text-gray-600 flex items-center gap-2 disabled:opacity-50"
+                    className="text-gray-500 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
                     onClick={(event) => openEditDialog(output.index, output, event)}
                 >
-                    <Edit size={16} />
+                    <Edit size={18} />
                 </button>
-            </td>
-        </tr>
+                <button
+                    data-no-dnd="true"
+                    className="text-gray-500 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    onClick={(event) => handleDeleteSong(output.index, event)}
+                >
+                    <Trash size={18} />
+                </button>
+            </div>
+        </div>
     );
 };
+
 
 const SetListForm = () => {
     const { profile } = useProfileStore();
@@ -130,22 +146,10 @@ const SetListForm = () => {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 5, // Prevent accidental drags
-            },
-        }),
-        useSensor(TouchSensor, {
-            activationConstraint: {
-                delay: 250,
-                tolerance: 5,
+                distance: 8,
             },
         })
     );
-
-    const handleDragStart = (event) => {
-        if (event.active.data.current?.type === "button") {
-            return; // Prevent dragging when clicking buttons
-        }
-    };
 
     useEffect(() => {
         const fetchSheets = async () => {
@@ -169,45 +173,54 @@ const SetListForm = () => {
                     index: uuidv4(),
                 })).sort((a, b) => a.order - b.order));
             };
-            fetchSetList().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
+            fetchSetList().then(() => setIsLoading(false)).catch((err) => {
+                toast.error("A network error has occured.");
+                setIsLoading(false);
+            });
         }
         else {
-            fetchSheets().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
+            fetchSheets().then(() => setIsLoading(false)).catch((err) => {
+                toast.error("A network error has occured.");
+                setIsLoading(false);
+            });
         }
-    }, [profile.orgId]);
+    }, [id, profile.orgId, navigate]);
 
     const handleSave = async () => {
         setIsSaving(true);
         const setlist = { name, orgId: profile.orgId };
-        if (id === "new") {
-            const newSetList = await createSetList(setlist);
-            if (newSetList) {
+        try {
+            if (id === "new") {
+                const newSetList = await createSetList(setlist);
+                if (newSetList) {
+                    await createOutputs(outputs.map((output, index) => ({
+                        chordSheetId: output.song,
+                        targetKey: output.targetKey,
+                        capo: output.capo,
+                        setListId: newSetList.id,
+                        order: index
+                    })));
+                } else {
+                    toast.error("Failed to create set list.");
+                }
+                navigate("/setlists");
+            } else {
+                await updateSetList(id, setlist);
+                await deleteOutputs(id);
                 await createOutputs(outputs.map((output, index) => ({
                     chordSheetId: output.song,
                     targetKey: output.targetKey,
                     capo: output.capo,
-                    setListId: newSetList.id,
+                    setListId: id,
                     order: index
                 })));
-            } else {
-                // console.error("Failed to create set list");
-                toast.error("Failed to create set list.");
+                toast.success("Set list updated!");
             }
-            navigate("/setlists");
-        } else {
-            await updateSetList(id, setlist);
-            await deleteOutputs(id);
-            await createOutputs(outputs.map((output, index) => ({
-                chordSheetId: output.song,
-                targetKey: output.targetKey,
-                capo: output.capo,
-                setListId: id,
-                order: index
-            })));
-            // navigate("/setlists");
-            toast.success("Set list updated!");
+        } catch (error) {
+            toast.error("An error occurred while saving.");
+        } finally {
+            setIsSaving(false);
         }
-        setIsSaving(false);
     };
 
     const handleDeleteSong = (index, event) => {
@@ -244,7 +257,9 @@ const SetListForm = () => {
         return (
             <>
                 <Toaster />
-                <Spinner />
+                <div className="flex justify-center items-center h-screen">
+                    <Spinner />
+                </div>
             </>
         );
     }
@@ -267,7 +282,7 @@ const SetListForm = () => {
             <div className="flex flex-col sm:flex-row justify-between">
                 <div className="flex flex-col sm:flex-row sm:gap-1 flex-wrap">
                     <button onClick={handleSave} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex justify-center items-center gap-2 disabled:opacity-50" disabled={!name || isSaving}>
-                        <Save size={16} /> Save
+                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save'}
                     </button>
                     <button onClick={() => setIsOpen(true)} className="border border-gray-500 rounded p-2 text-gray-500 hover:text-gray-600 mt-4 flex justify-center items-center gap-2 disabled:opacity-50" disabled={isSaving}>
                         <Plus size={16} /> Add Song
@@ -286,23 +301,19 @@ const SetListForm = () => {
                     )}
                 </div>
             </div>
-            <div className="mt-4 overflow-y-auto">
-                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors} onDragStart={handleDragStart}>
-                    <SortableContext items={outputs.map(output => output.index)}>
-                        <table className="w-full border border-gray-300 bg-white rounded-lg">
-                            <thead className="bg-gray-200">
-                                <tr>
-                                    {["Song", "Key", "Capo", "Actions"].map((header, index) => (
-                                        <th key={index} className="border-b border-gray-300 text-left text-gray-700 font-medium">{header}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {outputs.map((output, index) => (
-                                    <SortableRow key={output.index} output={output} index={index} sheets={sheets} handleDeleteSong={handleDeleteSong} openEditDialog={openEditDialog} />
-                                ))}
-                            </tbody>
-                        </table>
+            <div className="mt-4 min-h-[200px]">
+                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+                    <SortableContext items={outputs.map(output => output.index)} strategy={verticalListSortingStrategy}>
+                        {outputs.length > 0 ? (
+                            outputs.map((output) => (
+                                <SortableSongItem key={output.index} output={output} sheets={sheets} handleDeleteSong={handleDeleteSong} openEditDialog={openEditDialog} />
+                            ))
+                        ) : (
+                            <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                                <p className="text-gray-500">This set list is empty.</p>
+                                <p className="text-gray-400 text-sm mt-1">Add a song to get started!</p>
+                            </div>
+                        )}
                     </SortableContext>
                 </DndContext>
             </div>
