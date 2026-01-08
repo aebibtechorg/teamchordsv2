@@ -79,6 +79,8 @@ const SortableRow = ({ output, index, sheets, handleDeleteSong, openEditDialog }
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
+        touchAction: 'none',
+        userSelect: 'none',
     };
 
     return (
