@@ -31,7 +31,7 @@ const SetList = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 pb-12">
       <Toaster />
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Set Lists</p>

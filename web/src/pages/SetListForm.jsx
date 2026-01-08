@@ -73,7 +73,7 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
     );
 };
 
-const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog }) => {
+const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, handleDuplicateSong, handleMoveUp, handleMoveDown }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: output.index });
 
     const style = {
@@ -111,7 +111,31 @@ const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog }) 
                 </div>
             </div>
 
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+                <button
+                    data-no-dnd="true"
+                    title="Duplicate"
+                    className="text-gray-500 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    onClick={(event) => handleDuplicateSong(output.index, event)}
+                >
+                    <Plus size={16} />
+                </button>
+                <button
+                    data-no-dnd="true"
+                    title="Move up"
+                    className="text-gray-500 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    onClick={(event) => handleMoveUp(output.index, event)}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V6"/><path d="M5 12l7-7 7 7"/></svg>
+                </button>
+                <button
+                    data-no-dnd="true"
+                    title="Move down"
+                    className="text-gray-500 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    onClick={(event) => handleMoveDown(output.index, event)}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v13"/><path d="M19 12l-7 7-7-7"/></svg>
+                </button>
                 <button
                     data-no-dnd="true"
                     className="text-gray-500 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -237,6 +261,42 @@ const SetListForm = () => {
         setOutputs((prevOutputs) => prevOutputs.filter((output) => output.index !== index));
     };
     
+    const handleDuplicateSong = (index, event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        setOutputs((prevOutputs) => {
+            const idx = prevOutputs.findIndex(o => o.index === index);
+            if (idx === -1) return prevOutputs;
+            const item = prevOutputs[idx];
+            const copy = { ...item, index: uuidv4() };
+            const newOutputs = [...prevOutputs];
+            newOutputs.splice(idx + 1, 0, copy);
+            return newOutputs;
+        });
+    };
+
+    const handleMoveUp = (index, event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        setOutputs((prevOutputs) => {
+            const idx = prevOutputs.findIndex(o => o.index === index);
+            if (idx <= 0) return prevOutputs;
+            const newOutputs = arrayMove(prevOutputs, idx, idx - 1);
+            return newOutputs;
+        });
+    };
+
+    const handleMoveDown = (index, event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        setOutputs((prevOutputs) => {
+            const idx = prevOutputs.findIndex(o => o.index === index);
+            if (idx === -1 || idx >= prevOutputs.length - 1) return prevOutputs;
+            const newOutputs = arrayMove(prevOutputs, idx, idx + 1);
+            return newOutputs;
+        });
+    };
+    
     const openEditDialog = (index, song, event) => {
         event.stopPropagation();
         event.preventDefault();
@@ -314,7 +374,16 @@ const SetListForm = () => {
                     <SortableContext items={outputs.map(output => output.index)} strategy={verticalListSortingStrategy}>
                         {outputs.length > 0 ? (
                             outputs.map((output) => (
-                                <SortableSongItem key={output.index} output={output} sheets={sheets} handleDeleteSong={handleDeleteSong} openEditDialog={openEditDialog} />
+                                <SortableSongItem
+                                    key={output.index}
+                                    output={output}
+                                    sheets={sheets}
+                                    handleDeleteSong={handleDeleteSong}
+                                    openEditDialog={openEditDialog}
+                                    handleDuplicateSong={handleDuplicateSong}
+                                    handleMoveUp={handleMoveUp}
+                                    handleMoveDown={handleMoveDown}
+                                />
                             ))
                         ) : (
                             <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">

@@ -93,7 +93,7 @@ const ChordLibrary = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 pb-12">
       <div className="sticky top-0 bg-gray-100">
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Library</p>

@@ -50,7 +50,7 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 overflow-auto">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {data.map((chord) => (
           <Link
@@ -75,7 +75,7 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
       )}
       {/* Mobile Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center bg-white border sticky bottom-10 md:bottom-0 p-3 mt-8 sm:hidden">
+        <div className="flex justify-center items-center bg-white border sticky bottom-10 md:bottom-0 p-3 mt-8 sm:hidden mt-12">
           <button
             className="px-4 py-2 border rounded disabled:opacity-50"
             onClick={() => setPageIndex(pageIndex - 1)}
