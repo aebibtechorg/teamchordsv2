@@ -89,12 +89,12 @@ const SortableRow = ({ output, index, sheets, handleDeleteSong, openEditDialog }
             style={style}
             {...attributes}
             {...listeners}
-            className={`border-b border-gray-200 ${index % 2 === 0 ? "bg-gray-50" : "bg-white"} hover:bg-gray-100`}
+            className={`border-b border-gray-200 ${index % 2 === 0 ? "bg-gray-50" : "bg-white"} hover:bg-gray-100 cursor-grab`}
         >
-            <td>{sheets.find(sheet => sheet.id === output.song)?.title || "Unknown"}</td>
-            <td>{output.targetKey}</td>
-            <td>{output.capo > 0 ? getCapoText(output.capo) : 'None'}</td>
-            <td className="flex gap-2">
+            <td className="py-2">{sheets.find(sheet => sheet.id === output.song)?.title || "Unknown"}</td>
+            <td className="py-2">{output.targetKey}</td>
+            <td className="py-2">{output.capo > 0 ? getCapoText(output.capo) : 'None'}</td>
+            <td className="flex gap-2 py-2">
                 <button
                     data-no-dnd="true"
                     className="text-gray-500 hover:text-gray-600 flex items-center gap-2 disabled:opacity-50"
