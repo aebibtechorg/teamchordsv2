@@ -1,9 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { getSetList, createSetList, updateSetList } from "../utils/setlists";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Save } from "lucide-react";
 import { getChordsheets } from "../utils/chordsheets";
-import { Plus, X, Trash, Edit, Link2, Eye } from "lucide-react";
+import { Plus, X, Trash, Edit, Link2, Eye, MoreVertical } from "lucide-react";
 import { createOutputs, deleteOutputs, getCapoText } from "../utils/outputs";
 import { handleCopyLink, handlePreview } from "../utils/setlists";
 import { v4 as uuidv4 } from 'uuid';
@@ -75,6 +75,9 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
 
 const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, handleDuplicateSong, handleMoveUp, handleMoveDown }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: output.index });
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+    const toggleRef = useRef(null);
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -84,6 +87,30 @@ const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, ha
     };
 
     const sheet = sheets.find(sheet => sheet.id === output.song);
+
+    const closeMenu = () => setMenuOpen(false);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+
+        const handleDocPointer = (e) => {
+            if (menuRef.current && menuRef.current.contains(e.target)) return;
+            if (toggleRef.current && toggleRef.current.contains(e.target)) return;
+            setMenuOpen(false);
+        };
+
+        const handleKey = (e) => {
+            if (e.key === 'Escape') setMenuOpen(false);
+        };
+
+        document.addEventListener('pointerdown', handleDocPointer);
+        document.addEventListener('keydown', handleKey);
+
+        return () => {
+            document.removeEventListener('pointerdown', handleDocPointer);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, [menuOpen]);
 
     return (
         <div
@@ -111,7 +138,8 @@ const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, ha
                 </div>
             </div>
 
-            <div className="flex gap-1 items-center">
+            {/* Desktop actions (hidden on small screens) */}
+            <div className="hidden sm:flex gap-1 items-center">
                 <button
                     data-no-dnd="true"
                     title="Duplicate"
@@ -150,6 +178,29 @@ const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, ha
                 >
                     <Trash size={18} />
                 </button>
+            </div>
+
+            {/* Mobile kebab menu (visible below sm) */}
+            <div className="flex sm:hidden items-center relative">
+                <button
+                    ref={toggleRef}
+                    data-no-dnd="true"
+                    className="p-2 text-gray-500 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMenuOpen(!menuOpen); }}
+                    title="More"
+                >
+                    <MoreVertical size={18} />
+                </button>
+
+                {menuOpen && (
+                    <div ref={menuRef} className="absolute right-0 top-full mt-2 w-40 bg-white border rounded shadow z-50">
+                        <button className="w-full text-left px-3 py-2 hover:bg-gray-100" onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDuplicateSong(output.index, e); closeMenu(); }}>Duplicate</button>
+                        <button className="w-full text-left px-3 py-2 hover:bg-gray-100" onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleMoveUp(output.index, e); closeMenu(); }}>Move up</button>
+                        <button className="w-full text-left px-3 py-2 hover:bg-gray-100" onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleMoveDown(output.index, e); closeMenu(); }}>Move down</button>
+                        <button className="w-full text-left px-3 py-2 hover:bg-gray-100" onClick={(e) => { e.stopPropagation(); e.preventDefault(); openEditDialog(output.index, output, e); closeMenu(); }}>Edit</button>
+                        <button className="w-full text-left px-3 py-2 text-red-600 hover:bg-gray-100" onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDeleteSong(output.index, e); closeMenu(); }}>Delete</button>
+                    </div>
+                )}
             </div>
         </div>
     );
