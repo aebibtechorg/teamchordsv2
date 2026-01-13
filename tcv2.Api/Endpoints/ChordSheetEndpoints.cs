@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
@@ -71,7 +72,7 @@ internal static class ChordSheetEndpoints
             return Results.Created($"/api/chordsheets/{cs.Id}", cs.ToDto());
         });
 
-        chordSheets.MapPost("/bulk", (BulkChordSheetRequestDto request, IServiceProvider services) =>
+        chordSheets.MapPost("/bulk", ([FromBody] BulkChordSheetRequestDto request, [FromServices] IServiceProvider services) =>
         {
             if (string.IsNullOrEmpty(request.ConnectionId))
             {
