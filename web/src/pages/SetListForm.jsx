@@ -283,10 +283,11 @@ const SetListForm = () => {
                         setListId: newSetList.id,
                         order: index
                     })));
+                    toast.success("Set list created!");
+                    navigate(`/setlists/${newSetList.id}`);
                 } else {
                     toast.error("Failed to create set list.");
                 }
-                navigate("/setlists");
             } else {
                 await updateSetList(id, setlist);
                 await deleteOutputs(id);

@@ -105,8 +105,14 @@ const ChordProSheet = () => {
         setIsSaving(true);
         const chordsheet = { title, artist, key, content, orgId: profile.orgId };
         if (id === 'new') {
-            await createChordsheet(chordsheet);
-            navigate("/library");
+            const response = await createChordsheet(chordsheet);
+            if (response != null) {
+                toast.success("Chordsheet saved!");
+                navigate(`/library/${response.id}`);
+            }
+            else {
+                toast.error("An error has occured.");
+            }
         } else {
             await updateChordsheet(id, chordsheet);
             // navigate("/library");
