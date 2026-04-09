@@ -7,6 +7,7 @@ import { useProfileStore } from "../store/useProfileStore";
 import Editor from "@monaco-editor/react";
 import Modal from "../components/Modal";
 import { defaultContent, defaultKey, chordProGuideURL, keys } from "../constants";
+import SheetRenderer from "../components/SheetRenderer";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 
@@ -17,6 +18,7 @@ const ChordProSheet = () => {
     const [title, setTitle] = useState("");
     const [artist, setArtist] = useState("");
     const [key, setKey] = useState(defaultKey);
+    const [sheetType, setSheetType] = useState('ChordPro');
     const [content, setContent] = useState(defaultContent);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +37,7 @@ const ChordProSheet = () => {
                 setTitle(data.title);
                 setArtist(data.artist);
                 setKey(data.key);
+                    setSheetType(data.sheetType || 'ChordPro');
                 setContent(data.content);
             };
             fetchChordsheet().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
@@ -54,6 +57,46 @@ const ChordProSheet = () => {
                 return formatter.format(song);
             }
             return '';
+        } catch (error) {
+            console.error(error);
+            return '';
+        }
+    };
+
+    const escapeHtml = (unsafe) => {
+        if (!unsafe) return '';
+        return String(unsafe)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    };
+
+    const renderForEditor = (content, sheetType) => {
+        try {
+            if (!content) return '';
+            const formatter = new ChordSheetJS.HtmlTableFormatter();
+            if (sheetType === 'ChordsOverWords') {
+                const parser = new ChordSheetJS.ChordsOverWordsParser();
+                const song = parser.parse(content);
+                return formatter.format(song);
+            }
+            if (sheetType === 'UltimateGuitar') {
+                const parser = new ChordSheetJS.UltimateGuitarParser();
+                const song = parser.parse(content);
+                return formatter.format(song);
+            }
+            if (sheetType === 'ChordPro' || !sheetType) {
+                const parser = new ChordSheetJS.ChordProParser();
+                const song = parser.parse(content.replaceAll('{ci:', '{c:'));
+                return formatter.format(song);
+            }
+            // Notation/tab types - show source for now
+            if (sheetType === 'SheetMusic' || sheetType === 'GuitarTabs') {
+                return `<pre class="whitespace-pre-wrap">${escapeHtml(content)}</pre>`;
+            }
+            return `<pre class="whitespace-pre-wrap">${escapeHtml(content)}</pre>`;
         } catch (error) {
             console.error(error);
             return '';
@@ -104,6 +147,7 @@ const ChordProSheet = () => {
     const handleSave = async () => {
         setIsSaving(true);
         const chordsheet = { title, artist, key, content, orgId: profile.orgId };
+        chordsheet.sheetType = sheetType;
         if (id === 'new') {
             const response = await createChordsheet(chordsheet);
             if (response != null) {
@@ -122,7 +166,7 @@ const ChordProSheet = () => {
     };
 
     // Memoize rendered HTML for main preview to avoid re-parsing on every render
-    const renderedHtml = useMemo(() => renderChordPro(content), [content]);
+    const renderedHtml = useMemo(() => renderForEditor(content, sheetType), [content, sheetType]);
 
     // Debounce modal preview-as-you-type so conversion runs after user pauses typing
     useEffect(() => {
@@ -174,6 +218,19 @@ const ChordProSheet = () => {
                         <option key={note} value={note}>{note}</option>
                     ))}
                 </select>
+                <label htmlFor="sheetType" className="block font-semibold mt-2">Sheet Type</label>
+                <select
+                    id="sheetType"
+                    className="w-full p-2 border rounded text-lg mt-2 mb-4"
+                    value={sheetType}
+                    onChange={(e) => setSheetType(e.target.value)}
+                >
+                    <option value="ChordPro">ChordPro</option>
+                    <option value="ChordsOverWords">Chords over Words</option>
+                    <option value="UltimateGuitar">Ultimate Guitar</option>
+                    <option value="SheetMusic">Sheet Music</option>
+                    <option value="GuitarTabs">Guitar Tabs</option>
+                </select>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-4">
                 <button 
@@ -203,10 +260,9 @@ const ChordProSheet = () => {
                         options={{ minimap: { enabled: false }, wordWrap: "on" }}
                     />
                 </div>
-                <div 
-                    className="flex-1 min-h-[240px] h-auto lg:h-[64vh] p-4 border border-gray-300 rounded overflow-auto bg-gray-50 shadow-inner text-gray-800 text-sm whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{ __html: renderedHtml }}
-                />
+                <div className="flex-1 min-h-[240px] h-auto lg:h-[64vh] p-4 border border-gray-300 rounded overflow-auto bg-gray-50 shadow-inner text-gray-800 text-sm">
+                    <SheetRenderer sheetType={sheetType} content={content} originalKey={key} targetKey={key} capo={0} className="whitespace-pre-wrap" />
+                </div>
             </div>
 
             {isConverterOpen && (

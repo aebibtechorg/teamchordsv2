@@ -67,6 +67,9 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
             {chord.key && (
               <div className="text-gray-400 text-xs mb-2">Key: {chord.key}</div>
             )}
+            {chord.sheetType && (
+              <div className="text-gray-500 text-xs mb-1">Type: {chord.sheetType}</div>
+            )}
           </Link>
         ))}
       </div>

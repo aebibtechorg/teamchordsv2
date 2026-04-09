@@ -13,7 +13,8 @@ public static class ChordSheetMappers
             OrgId = chordSheet.OrgId,
             Title = chordSheet.Title,
             Artist = chordSheet.Artist,
-            Content = chordSheet.Content,
+                Content = chordSheet.Content,
+                SheetType = chordSheet.SheetType,
             Key = chordSheet.Key,
             CreatedAt = chordSheet.CreatedAt,
             UpdatedAt = chordSheet.UpdatedAt
@@ -27,7 +28,8 @@ public static class ChordSheetMappers
             OrgId = dto.OrgId,
             Title = dto.Title,
             Artist = dto.Artist,
-            Content = dto.Content,
+                Content = dto.Content,
+                SheetType = dto.SheetType,
             Key = dto.Key,
             CreatedAt = DateTime.UtcNow
         };
@@ -38,7 +40,8 @@ public static class ChordSheetMappers
         chordSheet.OrgId = dto.OrgId;
         chordSheet.Title = dto.Title;
         chordSheet.Artist = dto.Artist;
-        chordSheet.Content = dto.Content;
+            chordSheet.Content = dto.Content;
+            chordSheet.SheetType = dto.SheetType;
         chordSheet.Key = dto.Key;
         chordSheet.UpdatedAt = DateTime.UtcNow;
     }

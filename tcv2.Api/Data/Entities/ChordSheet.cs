@@ -19,6 +19,9 @@ namespace tcv2.Api.Data.Entities
 
         public string? Key { get; set; }
 
+        // Type of the sheet (e.g. ChordPro, ChordsOverWords, UltimateGuitar, SheetMusic, GuitarTabs)
+        public string? SheetType { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }

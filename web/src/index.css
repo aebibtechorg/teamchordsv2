@@ -2,6 +2,38 @@
 
 @import "tailwindcss";
 
+/* Ensure alphaTab/Bravura SMuFL fonts are registered for rendering */
+@font-face {
+    font-family: 'alphaTab';
+    src: url('/alphatab-font/Bravura.woff2') format('woff2'),
+             url('/alphatab-font/Bravura.woff') format('woff'),
+             url('/alphatab-font/Bravura.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+@font-face {
+    font-family: 'Bravura';
+    src: url('/alphatab-font/Bravura.woff2') format('woff2'),
+             url('/alphatab-font/Bravura.woff') format('woff'),
+             url('/alphatab-font/Bravura.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+/* Apply the music font to alphatab-rendered SVG/canvas/text */
+.alphatab-wrapper svg,
+.alphatab-wrapper text,
+.alphatab-wrapper canvas {
+    font-family: 'alphaTab', 'Bravura', serif !important;
+}
+
+/* Also target alphaTab's internal classes and SVG text nodes directly */
+.at, .at * , .at-surface, .at-surface * , .at-surface text, .at text, svg.at-surface-svg text {
+    font-family: 'alphaTab', 'Bravura', serif !important;
+}
+
 @layer base {
     *,
     ::after,

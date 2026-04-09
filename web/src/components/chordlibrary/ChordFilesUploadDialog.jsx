@@ -38,9 +38,37 @@ const ChordFilesUploadDialog = ({ connection, isOpen, close, onUploadComplete })
                 await createChordsheetsBulk({ dtos, connectionId: connection?.connectionId });
               }
             } else {
-              const parser = new ChordSheetJS.ChordProParser();
-              const chordsheet = parser.parse(reader.result);
-              await createChordsheet({ title: chordsheet.title || 'Untitled', artist: chordsheet.artist || 'Various', key: chordsheet.key || 'C', content: reader.result, orgId: profile.orgId });
+              // Try to detect format by attempting parsers in order
+              let detectedType = 'ChordPro';
+              let parsedSong = null;
+              try {
+                const tryParsers = [
+                  { type: 'ChordPro', parser: new ChordSheetJS.ChordProParser() },
+                  { type: 'UltimateGuitar', parser: new ChordSheetJS.UltimateGuitarParser() },
+                  { type: 'ChordsOverWords', parser: new ChordSheetJS.ChordsOverWordsParser() }
+                ];
+                for (const p of tryParsers) {
+                  try {
+                    const s = p.parser.parse(reader.result);
+                    if (s) {
+                      detectedType = p.type;
+                      parsedSong = s;
+                      break;
+                    }
+                  } catch (e) {
+                    // ignore and try next parser
+                  }
+                }
+              } catch (err) {
+                // fallback to chordpro
+                detectedType = 'ChordPro';
+              }
+
+              const title = parsedSong?.title || 'Untitled';
+              const artist = parsedSong?.artist || 'Various';
+              const key = parsedSong?.key || 'C';
+
+              await createChordsheet({ title, artist, key, content: reader.result, orgId: profile.orgId, sheetType: detectedType });
             }
             resolve();
           } catch (error) {

@@ -35,7 +35,8 @@ public static class OutputMappers
             Chordsheets = output.ChordSheet == null ? null : new ChordSheetDetails
             {
                 Key = output.ChordSheet.Key,
-                Content = output.ChordSheet.Content
+                Content = output.ChordSheet.Content,
+                SheetType = output.ChordSheet.SheetType
             }
         };
     }
