@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
-export default function AlphaTabViewer({ source, format = 'auto', tracks, transpose = 0, capo = 0 }) {
+const AlphaTabViewer = forwardRef(function AlphaTabViewer({ source, format = 'auto', tracks, transpose = 0, capo = 0 }, ref) {
   const containerRef = useRef(null);
   const apiRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -130,6 +130,44 @@ export default function AlphaTabViewer({ source, format = 'auto', tracks, transp
     applySettings();
   }, [transpose, capo, tracks]);
 
+  // Expose an export method for print (returns { kind: 'svg'|'png'|'html', data: string })
+  useImperativeHandle(ref, () => ({
+    exportForPrint: async (timeout = 3000) => {
+      const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      const start = Date.now();
+      while (Date.now() - start < timeout) {
+        try {
+          if (!containerRef.current) {
+            await wait(100);
+            continue;
+          }
+          // Prefer inline SVG if available
+          const svg = containerRef.current.querySelector('svg');
+          if (svg) {
+            // Return serialized SVG
+            return { kind: 'svg', data: svg.outerHTML };
+          }
+
+          // If canvas present, export to PNG data URL
+          const canvas = containerRef.current.querySelector('canvas');
+          if (canvas && canvas.toDataURL) {
+            try {
+              const dataUrl = canvas.toDataURL('image/png');
+              return { kind: 'png', data: dataUrl };
+            } catch (e) {
+              // fall through
+            }
+          }
+        } catch (e) {
+          // ignore and retry
+        }
+        await wait(100);
+      }
+      // Fallback: return innerHTML so caller can choose a fallback representation
+      return { kind: 'html', data: containerRef.current ? containerRef.current.innerHTML : '' };
+    }
+  }));
+
   return (
     <div className="alphatab-wrapper">
       <div ref={containerRef} style={{ width: '100%' }} />
@@ -137,4 +175,6 @@ export default function AlphaTabViewer({ source, format = 'auto', tracks, transp
       {error && <div className="text-xs text-red-600 mt-2">Preview error: {error}</div>}
     </div>
   );
-}
+});
+
+export default AlphaTabViewer;
