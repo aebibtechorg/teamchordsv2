@@ -116,4 +116,14 @@ async function deleteChordsheet(id) {
     }
 }
 
-export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet, createChordsheetsBulk };
+async function backupChordsheets(orgId) {
+    try {
+        const res = await apiFetch(`/api/chordsheets/backup?orgId=${encodeURIComponent(orgId)}`);
+        return res;
+    } catch (err) {
+        console.error("Error backing up chordsheets:", err);
+        throw err;
+    }
+}
+
+export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet, createChordsheetsBulk, backupChordsheets };

@@ -1,15 +1,15 @@
 import { useEffect, useState, useRef } from "react";
-import { getChordsheets, deleteChordsheet } from "../utils/chordsheets";
+import { getChordsheets, deleteChordsheet, backupChordsheets } from "../utils/chordsheets"; // Import backupChordsheets
 import ChordLibraryTable from "../components/chordlibrary/ChordLibraryTable";
 import ChordFilesUploadDialog from "../components/chordlibrary/ChordFilesUploadDialog";
 import { Link } from "react-router-dom";
-import { MoreVertical, Plus, Upload, Search } from "lucide-react";
+import { MoreVertical, Plus, Upload, Search, Download } from "lucide-react"; // Import Download icon
 import { useProfileStore } from "../store/useProfileStore";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 import Modal from "../components/Modal";
-import ConfirmDialog from "../components/ConfirmDialog"; // Import ConfirmDialog
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const ChordLibrary = () => {
   const [chordsheets, setChordsheets] = useState([]);
@@ -61,6 +61,37 @@ const ChordLibrary = () => {
         setChordSheetToDeleteId(null);
         setIsConfirmDialogOpen(false);
       }
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      const response = await backupChordsheets(profile.orgId);
+      if (response.ok) {
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'chordsheets_backup.json';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1];
+          }
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success("Chord sheets backup downloaded!");
+      } else {
+        toast.error("Failed to download backup.");
+      }
+    } catch (error) {
+      console.error("Error backing up chord sheets:", error);
+      toast.error("A network error has occured during backup.");
     }
   };
 
@@ -141,6 +172,12 @@ const ChordLibrary = () => {
             >
               <Upload size={16} /> Upload
             </button>
+            <button
+              onClick={handleBackup}
+              className="border rounded px-2 py-2 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
+            >
+              <Download size={16} /> Backup
+            </button>
           </div>
 
           {/* Ellipsis Menu for Small Screens */}
@@ -171,6 +208,16 @@ const ChordLibrary = () => {
                 >
                   <Upload size={14} className="inline-block mr-2" />
                   Upload
+                </button>
+                <button
+                  onClick={() => {
+                    handleBackup();
+                    setMenuOpen(false);
+                  }}
+                  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"
+                >
+                  <Download size={14} className="inline-block mr-2" />
+                  Backup
                 </button>
               </div>
             )}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
+using System.Text.Json;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
@@ -53,6 +54,24 @@ internal static class ChordSheetEndpoints
                 new OpenApiParameter { Name = "sortDir", In = ParameterLocation.Query, Description = "Sort direction (asc|desc)", Schema = new OpenApiSchema { Type = "string" } }
             };
             return operation;
+        });
+
+        chordSheets.MapGet("/backup", async (HttpRequest req, AppDbContext db) =>
+        {
+            if (!req.Query.TryGetValue("orgId", out var orgId) || !Guid.TryParse(orgId, out var og))
+            {
+                return Results.BadRequest("orgId is required.");
+            }
+
+            var chordsheets = await db.ChordSheets
+                .Where(x => x.OrgId == og)
+                .Select(x => x.ToDto())
+                .ToListAsync();
+
+            var json = JsonSerializer.Serialize(chordsheets, new JsonSerializerOptions { WriteIndented = true });
+            var fileName = $"chordsheets_backup_{DateTime.UtcNow:yyyyMMddHHmmss}.json";
+
+            return Results.File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
         });
 
         chordSheets.MapGet("/{id}", async (Guid id, AppDbContext db) =>
