@@ -16,9 +16,11 @@ if (builder.Configuration["Destination"] == "aca")
 
     var postgres = builder.AddPostgres("tcdb")
         .WithDataVolume("teamchords-pgdata")
+        .WithLifetime(ContainerLifetime.Persistent)
         .WithPgAdmin(admin =>
         {
-        admin.WithHostPort(5050); 
+            admin.WithHostPort(5050);
+            admin.WithLifetime(ContainerLifetime.Persistent);
         })
         .ExcludeFromManifest();
 

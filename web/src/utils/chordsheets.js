@@ -99,5 +99,21 @@ const createChordsheetsBulk = async (chordsheets) => {
   return response.json();
 };
 
+async function deleteChordsheet(id) {
+    try {
+        const res = await apiFetch(`/api/chordsheets/${encodeURIComponent(id)}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok && res.status !== 204) {
+            const text = await res.text();
+            console.error('Error deleting chordsheet:', res.status, text);
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error("Error deleting chordsheet:", err);
+        return false;
+    }
+}
 
-export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet, createChordsheetsBulk };
+export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet, createChordsheetsBulk };
