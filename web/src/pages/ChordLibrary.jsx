@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { getChordsheets } from "../utils/chordsheets";
+import { getChordsheets, deleteChordsheet } from "../utils/chordsheets";
 import ChordLibraryTable from "../components/chordlibrary/ChordLibraryTable";
 import ChordFilesUploadDialog from "../components/chordlibrary/ChordFilesUploadDialog";
 import { Link } from "react-router-dom";
@@ -9,6 +9,7 @@ import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog"; // Import ConfirmDialog
 
 const ChordLibrary = () => {
   const [chordsheets, setChordsheets] = useState([]);
@@ -24,6 +25,10 @@ const ChordLibrary = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // State for ConfirmDialog
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [chordSheetToDeleteId, setChordSheetToDeleteId] = useState(null);
+
   // Debounce effect to delay API call
   const fetchData = async () => {
     const { data, count } = await getChordsheets(profile.orgId, pageIndex, pageSize, debouncedSearchTerm);
@@ -34,6 +39,29 @@ const ChordLibrary = () => {
   const handleUploadComplete = () => {
     setIsUploadDialogOpen(false);
     fetchData().catch((err) => toast.error("A network error has occured."));
+  };
+
+  // Function to open the confirmation dialog
+  const handleDeleteChordSheet = (id) => {
+    setChordSheetToDeleteId(id);
+    setIsConfirmDialogOpen(true);
+  };
+
+  // Function to perform the actual deletion after confirmation
+  const confirmDelete = async () => {
+    if (chordSheetToDeleteId) {
+      try {
+        await deleteChordsheet(chordSheetToDeleteId);
+        toast.success("Chord sheet deleted successfully!");
+        fetchData().catch((err) => toast.error("A network error has occured."));
+      } catch (error) {
+        console.error("Error deleting chord sheet:", error);
+        toast.error("Failed to delete chord sheet.");
+      } finally {
+        setChordSheetToDeleteId(null);
+        setIsConfirmDialogOpen(false);
+      }
+    }
   };
 
   useEffect(() => {
@@ -172,6 +200,7 @@ const ChordLibrary = () => {
           setPageIndex={setPageIndex}
           totalCount={totalCount}
           pageSize={pageSize}
+          onDelete={handleDeleteChordSheet}
         />
       )}
 
@@ -180,6 +209,14 @@ const ChordLibrary = () => {
           <ChordFilesUploadDialog connection={connection} close={() => setIsUploadDialogOpen(false)} onUploadComplete={handleUploadComplete} />
         </Modal>
       )}
+
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Chord Sheet"
+        message="Are you sure you want to delete this chord sheet? This action cannot be undone."
+      />
     </div>
   );
 };

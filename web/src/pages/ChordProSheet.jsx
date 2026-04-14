@@ -1,14 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { getChordsheet, createChordsheet, updateChordsheet } from "../utils/chordsheets";
+import { getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet } from "../utils/chordsheets";
 import { useState, useEffect, useMemo } from "react";
 import ChordSheetJS from "chordsheetjs";
-import { Save } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { useProfileStore } from "../store/useProfileStore";
 import Editor from "@monaco-editor/react";
 import Modal from "../components/Modal";
 import { defaultContent, defaultKey, chordProGuideURL, keys } from "../constants";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
+import ConfirmDialog from "../components/ConfirmDialog"; // Import ConfirmDialog
 
 const ChordProSheet = () => {
     const { profile } = useProfileStore();
@@ -24,6 +25,9 @@ const ChordProSheet = () => {
     const [sourceText, setSourceText] = useState("");
     const [selectedFormat, setSelectedFormat] = useState("ultimate-guitar");
     const [preview, setPreview] = useState("");
+
+    // State for ConfirmDialog
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
     useEffect(() => {
         if (id !== 'new') {
@@ -42,7 +46,7 @@ const ChordProSheet = () => {
         else {
             setIsLoading(false);
         }
-    }, [id, profile.orgId]);
+    }, [id, profile.orgId, navigate]);
 
     const renderChordPro = (chordProContent) => {
         try {
@@ -87,7 +91,8 @@ const ChordProSheet = () => {
             return parser.parse(input);
         } catch (error) {
             console.error(error);
-            parseChordsOverWords(input);
+            // Fallback to ChordsOverWordsParser if UltimateGuitarParser fails
+            return parseChordsOverWords(input);
         }
     };
 
@@ -115,10 +120,32 @@ const ChordProSheet = () => {
             }
         } else {
             await updateChordsheet(id, chordsheet);
-            // navigate("/library");
             toast.success("Changes successfully saved!");
         }
         setIsSaving(false);
+    };
+
+    // Function to open the confirmation dialog
+    const handleDeleteClick = () => {
+        setIsConfirmDialogOpen(true);
+    };
+
+    // Function to perform the actual deletion after confirmation
+    const confirmDelete = async () => {
+        try {
+            const success = await deleteChordsheet(id);
+            if (success) {
+                toast.success("Chord sheet deleted successfully!");
+                navigate('/library'); // Redirect to library after successful deletion
+            } else {
+                toast.error("Failed to delete chord sheet.");
+            }
+        } catch (error) {
+            console.error("Error deleting chord sheet:", error);
+            toast.error("Failed to delete chord sheet.");
+        } finally {
+            setIsConfirmDialogOpen(false);
+        }
     };
 
     // Memoize rendered HTML for main preview to avoid re-parsing on every render
@@ -126,10 +153,10 @@ const ChordProSheet = () => {
 
     // Debounce modal preview-as-you-type so conversion runs after user pauses typing
     useEffect(() => {
-        const id = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             setPreview(convert(selectedFormat, sourceText));
         }, 250);
-        return () => clearTimeout(id);
+        return () => clearTimeout(timeoutId);
     }, [sourceText, selectedFormat]);
 
     if (isLoading) {
@@ -146,28 +173,28 @@ const ChordProSheet = () => {
             <Toaster />
             <div className="mb-4">
                 <label htmlFor="title" className="block font-semibold">Title</label>
-                <input 
+                <input
                     id="title"
-                    type="text" 
-                    className="w-full p-2 border rounded text-lg" 
-                    value={title} 
+                    type="text"
+                    className="w-full p-2 border rounded text-lg"
+                    value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Title"
                 />
                 <label htmlFor="artist" className="block font-semibold mt-2">Artist</label>
-                <input 
+                <input
                     id="artist"
-                    type="text" 
-                    className="w-full p-2 border rounded text-lg mt-2" 
-                    value={artist} 
+                    type="text"
+                    className="w-full p-2 border rounded text-lg mt-2"
+                    value={artist}
                     onChange={(e) => setArtist(e.target.value)}
                     placeholder="Artist"
                 />
                 <label htmlFor="key" className="block font-semibold mt-2">Key</label>
-                <select 
-                    id="key" 
-                    className="w-full p-2 border rounded text-lg mt-2 mb-4" 
-                    value={key} 
+                <select
+                    id="key"
+                    className="w-full p-2 border rounded text-lg mt-2 mb-4"
+                    value={key}
                     onChange={(e) => setKey(e.target.value)}
                 >
                     {keys.map((note) => (
@@ -176,12 +203,12 @@ const ChordProSheet = () => {
                 </select>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-4">
-                <button 
-                    onClick={handleSave} 
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-1/4 md:w-[128px]" 
+                <button
+                    onClick={handleSave}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-1/4 md:w-[128px]"
                     disabled={!title || !artist || !key || !content || isSaving}
                 >
-                    <Save size={16} /> 
+                    <Save size={16} />
                     Save
                 </button>
 
@@ -191,11 +218,21 @@ const ChordProSheet = () => {
                 >
                     Convert format
                 </button>
+
+                {id !== 'new' && (
+                    <button
+                        onClick={handleDeleteClick} // Call handleDeleteClick to open dialog
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[128px]"
+                    >
+                        <Trash2 size={16} />
+                        Delete
+                    </button>
+                )}
             </div>
-            <a className="text-blue-500 block mb-2 hover:underline" href={chordProGuideURL} target="_blank">ChordPro Syntax Guide</a>
+            <a className="text-blue-500 block mb-2 hover:underline" href={chordProGuideURL} target="_blank" rel="noopener noreferrer">ChordPro Syntax Guide</a>
             <div className="flex flex-col lg:flex-row gap-4 h-auto lg:h-[64vh] mb-20 md:mb-0">
                 <div className="flex-1 min-h-[240px] h-auto lg:h-[64vh] border border-gray-300 rounded overflow-hidden">
-                    <Editor 
+                    <Editor
                         height="64vh"
                         defaultLanguage="plaintext"
                         value={content}
@@ -203,7 +240,7 @@ const ChordProSheet = () => {
                         options={{ minimap: { enabled: false }, wordWrap: "on" }}
                     />
                 </div>
-                <div 
+                <div
                     className="flex-1 min-h-[240px] h-auto lg:h-[64vh] p-4 border border-gray-300 rounded overflow-auto bg-gray-50 shadow-inner text-gray-800 text-sm whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ __html: renderedHtml }}
                 />
@@ -256,6 +293,14 @@ const ChordProSheet = () => {
                     </div>
                 </Modal>
             )}
+
+            <ConfirmDialog
+                isOpen={isConfirmDialogOpen}
+                onClose={() => setIsConfirmDialogOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Chord Sheet"
+                message="Are you sure you want to delete this chord sheet? This action cannot be undone."
+            />
         </div>
     );
 };

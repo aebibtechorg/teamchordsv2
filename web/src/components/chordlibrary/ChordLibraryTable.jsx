@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Trash2 } from "lucide-react"; // Import the Trash2 icon
 
-const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize }) => {
+const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize, onDelete }) => {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   // Render page numbers (max 5 at a time)
@@ -53,21 +54,33 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
     <div className="p-4 overflow-auto">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {data.map((chord) => (
-          <Link
+          <div // Changed from Link to div to have more control over the layout
             key={chord.id}
-            to={`/library/${chord.id}`}
-            className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center hover:shadow-xl hover:bg-gray-200 transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-400 relative pb-12"
           >
-            <span className="text-xl font-bold text-gray-700 mb-2 text-center">
-              {chord.title}
-            </span>
-            {chord.artist && (
-              <div className="text-gray-500 text-sm mb-1">{chord.artist}</div>
-            )}
-            {chord.key && (
-              <div className="text-gray-400 text-xs mb-2">Key: {chord.key}</div>
-            )}
-          </Link>
+            <Link to={`/library/${chord.id}`} className="flex flex-col items-center w-full">
+              <span className="text-xl font-bold text-gray-700 mb-2 text-center">
+                {chord.title}
+              </span>
+              {chord.artist && (
+                <div className="text-gray-500 text-sm mb-1">{chord.artist}</div>
+              )}
+              {chord.key && (
+                <div className="text-gray-400 text-xs mb-2">Key: {chord.key}</div>
+              )}
+            </Link>
+            <button
+              onClick={(e) => {
+                e.preventDefault(); // Prevent any default action
+                e.stopPropagation(); // Stop event from bubbling up
+                onDelete(chord.id);
+              }}
+              className="absolute bottom-2 left-1/2 transform -translate-x-1/2 p-2 rounded-full text-gray-400 hover:text-red-500 focus:outline-none"
+              title="Delete Chord Sheet"
+            >
+              <Trash2 size={20} />
+            </button>
+          </div>
         ))}
       </div>
       {data.length === 0 && (
