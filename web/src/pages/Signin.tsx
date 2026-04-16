@@ -65,7 +65,7 @@ const Signin = () => {
   };
 
   return (
-    <div className="bg-gray-700 w-screen h-screen flex flex-col items-center align-center">
+    <div className="bg-primary w-screen h-screen flex flex-col items-center align-center">
       <Spinner />
     </div>
   );

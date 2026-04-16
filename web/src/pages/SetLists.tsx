@@ -6,6 +6,7 @@ import { getSetLists } from "../utils/setlists";
 import SetListTable from "../components/setlist/SetListTable";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
+import { Button } from "../components/ui/button";
 
 const SetList = () => {
   const { profile } = useProfileStore();
@@ -35,9 +36,11 @@ const SetList = () => {
       <Toaster />
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Set Lists</p>
-        <Link to="/setlists/new" className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2">
-          <Plus size={16} />
-          New Set List
+        <Link to="/setlists/new">
+          <Button>
+            <Plus size={16} className="mr-2" />
+            New Set List
+          </Button>
         </Link>
       </h1>
       {setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} />}

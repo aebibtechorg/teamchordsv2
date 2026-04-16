@@ -9,7 +9,18 @@ import Modal from "../components/Modal";
 import { defaultContent, defaultKey, chordProGuideURL, keys } from "../constants";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
-import ConfirmDialog from "../components/ConfirmDialog"; // Import ConfirmDialog
+import ConfirmDialog from "../components/ConfirmDialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {Button} from "@/components/ui/button";
+import {Textarea} from "@/components/ui/textarea";
 
 const ChordProSheet = () => {
     const { profile } = useProfileStore();
@@ -25,6 +36,7 @@ const ChordProSheet = () => {
     const [sourceText, setSourceText] = useState("");
     const [selectedFormat, setSelectedFormat] = useState("ultimate-guitar");
     const [preview, setPreview] = useState("");
+    const [editorTheme, setEditorTheme] = useState<"vs" | "vs-dark">("vs");
 
     // State for ConfirmDialog
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -47,6 +59,23 @@ const ChordProSheet = () => {
             setIsLoading(false);
         }
     }, [id, profile.orgId, navigate]);
+
+    // Monitor theme changes and update editor theme
+    useEffect(() => {
+        const updateEditorTheme = () => {
+            const isDark = document.documentElement.classList.contains("dark");
+            setEditorTheme(isDark ? "vs-dark" : "vs");
+        };
+
+        // Set initial theme
+        updateEditorTheme();
+
+        // Listen for theme changes
+        const observer = new MutationObserver(updateEditorTheme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+        return () => observer.disconnect();
+    }, []);
 
     const renderChordPro = (chordProContent) => {
         try {
@@ -171,77 +200,88 @@ const ChordProSheet = () => {
     return (
         <div className="p-4">
             <Toaster />
-            <div className="mb-4">
-                <label htmlFor="title" className="block font-semibold">Title</label>
-                <input
-                    id="title"
-                    type="text"
-                    className="w-full p-2 border rounded text-lg"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Title"
-                />
-                <label htmlFor="artist" className="block font-semibold mt-2">Artist</label>
-                <input
-                    id="artist"
-                    type="text"
-                    className="w-full p-2 border rounded text-lg mt-2"
-                    value={artist}
-                    onChange={(e) => setArtist(e.target.value)}
-                    placeholder="Artist"
-                />
-                <label htmlFor="key" className="block font-semibold mt-2">Key</label>
-                <select
-                    id="key"
-                    className="w-full p-2 border rounded text-lg mt-2 mb-4"
-                    value={key}
-                    onChange={(e) => setKey(e.target.value)}
-                >
-                    {keys.map((note) => (
-                        <option key={note} value={note}>{note}</option>
-                    ))}
-                </select>
+            <div className="mb-4 space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                        id="title"
+                        type="text"
+                        className="w-full p-2 border rounded text-lg"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Title"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="artist">Artist</Label>
+                    <Input
+                        id="artist"
+                        type="text"
+                        className="w-full p-2 border rounded text-lg"
+                        value={artist}
+                        onChange={(e) => setArtist(e.target.value)}
+                        placeholder="Artist"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="key">Key</Label>
+                    <Select value={key} onValueChange={setKey}>
+                        <SelectTrigger id="key" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {keys.map((note) => (
+                                <SelectItem key={note} value={note}>
+                                    {note}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-4">
-                <button
+                <Button
                     onClick={handleSave}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-1/4 md:w-[128px]"
+                    className="px-4 py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-1/4 md:w-[128px]"
                     disabled={!title || !artist || !key || !content || isSaving}
                 >
                     <Save size={16} />
                     Save
-                </button>
+                </Button>
 
-                <button
+                <Button
                     onClick={() => { setIsConverterOpen(true); setSourceText(content); setPreview(''); }}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[160px]"
+                    className="px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[160px]"
+                    variant="secondary"
                 >
                     Convert format
-                </button>
+                </Button>
 
                 {id !== 'new' && (
-                    <button
+                    <Button
                         onClick={handleDeleteClick} // Call handleDeleteClick to open dialog
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[128px]"
+                        className="px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[128px]"
+                        variant="destructive"
                     >
                         <Trash2 size={16} />
                         Delete
-                    </button>
+                    </Button>
                 )}
             </div>
-            <a className="text-blue-500 block mb-2 hover:underline" href={chordProGuideURL} target="_blank" rel="noopener noreferrer">ChordPro Syntax Guide</a>
+            <a className="text-primary block mb-2 hover:underline" href={chordProGuideURL} target="_blank" rel="noopener noreferrer">ChordPro Syntax Guide</a>
             <div className="flex flex-col lg:flex-row gap-4 h-auto lg:h-[64vh] mb-20 md:mb-0">
-                <div className="flex-1 min-h-[240px] h-auto lg:h-[64vh] border border-gray-300 rounded overflow-hidden">
+                <div className="flex-1 min-h-[240px] h-auto lg:h-[64vh] border border-border rounded overflow-hidden">
                     <Editor
                         height="64vh"
                         defaultLanguage="plaintext"
                         value={content}
                         onChange={(value) => setContent(value)}
+                        theme={editorTheme}
                         options={{ minimap: { enabled: false }, wordWrap: "on" }}
                     />
                 </div>
                 <div
-                    className="flex-1 min-h-[240px] h-auto lg:h-[64vh] p-4 border border-gray-300 rounded overflow-auto bg-gray-50 shadow-inner text-gray-800 text-sm whitespace-pre-wrap"
+                    className="flex-1 min-h-[240px] h-auto lg:h-[64vh] p-4 border border-border rounded overflow-auto bg-muted shadow-inner text-foreground text-sm whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ __html: renderedHtml }}
                 />
             </div>
@@ -250,7 +290,7 @@ const ChordProSheet = () => {
                 <Modal onClose={() => setIsConverterOpen(false)}>
                     <div className="p-4">
                         <h3 className="text-lg font-semibold mb-2">Convert to ChordPro</h3>
-                        <label className="block text-sm font-medium">Source format</label>
+                        <Label className="block text-sm font-medium">Source format</Label>
                         <select
                             value={selectedFormat}
                             onChange={(e) => setSelectedFormat(e.target.value)}
@@ -260,19 +300,19 @@ const ChordProSheet = () => {
                             <option value="chords-over-words">Chords over Words</option>
                         </select>
 
-                        <label className="block text-sm font-medium">Source text</label>
-                        <textarea
-                            className="w-full h-40 p-2 border rounded mb-2 font-mono text-sm"
+                        <Label className="block text-sm font-medium">Source text</Label>
+                        <Textarea
+                            className="w-full h-40 p-2 mb-2 font-mono text-sm"
                             value={sourceText}
                             onChange={(e) => setSourceText(e.target.value)}
                         />
 
                         <div className="flex gap-2 mb-3">
-                            <button
+                            <Button
                                 onClick={() => setPreview(convert(selectedFormat, sourceText))}
-                                className="bg-gray-700 text-white px-3 py-1 rounded"
-                            >Preview</button>
-                            <button
+                                className="px-3 py-1 rounded"
+                            >Preview</Button>
+                            <Button
                                 onClick={() => {
                                     const converted = convert(selectedFormat, sourceText);
                                     setPreview(converted);
@@ -280,16 +320,16 @@ const ChordProSheet = () => {
                                     setIsConverterOpen(false);
                                     toast.success('Converted and applied to editor');
                                 }}
-                                className="bg-blue-600 text-white px-3 py-1 rounded"
-                            >Apply</button>
-                            <button
+                                className="px-3 py-1 rounded"
+                            >Apply</Button>
+                            <Button
                                 onClick={() => { setIsConverterOpen(false); }}
-                                className="ml-auto text-sm text-gray-600 underline"
-                            >Close</button>
+                                className="ml-auto text-sm "
+                            >Close</Button>
                         </div>
 
-                        <label className="block text-sm font-medium">Preview (ChordPro)</label>
-                        <pre className="w-full h-40 p-2 border rounded bg-gray-50 text-sm whitespace-pre-wrap overflow-auto">{preview}</pre>
+                        <Label className="block text-sm font-medium">Preview (ChordPro)</Label>
+                        <pre className="w-full h-40 p-2 text-sm whitespace-pre-wrap overflow-auto">{preview}</pre>
                     </div>
                 </Modal>
             )}

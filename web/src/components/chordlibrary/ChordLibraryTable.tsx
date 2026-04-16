@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Trash2 } from "lucide-react"; // Import the Trash2 icon
+import { Trash2 } from "lucide-react";
+import { Card } from "../ui/card";
+import {Button} from "@/components/ui/button";
 
 const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize, onDelete }) => {
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -20,7 +22,7 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
     }
     if (startPage > 0) {
       pageNumbers.push(
-        <button key="first" className="px-3 py-1 border rounded mx-1" onClick={() => setPageIndex(0)}>1</button>
+        <Button key="first" className="px-3 py-1 mx-1" onClick={() => setPageIndex(0)}>1</Button>
       );
       if (startPage > 1) {
         pageNumbers.push(<span key="dots-start">...</span>);
@@ -28,13 +30,13 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
     }
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(
-        <button
+        <Button
           key={i}
-          className={`px-3 py-1 border rounded mx-1 ${pageIndex === i ? "bg-gray-300" : "bg-white"}`}
+          className={`px-3 py-1 mx-1 ${pageIndex === i ? "bg-muted" : ""}`}
           onClick={() => setPageIndex(i)}
         >
           {i + 1}
-        </button>
+        </Button>
       );
     }
     if (endPage < totalPages - 1) {
@@ -42,9 +44,9 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
         pageNumbers.push(<span key="dots-end">...</span>);
       }
       pageNumbers.push(
-        <button key="last" className="px-3 py-1 border rounded mx-1" onClick={() => setPageIndex(totalPages - 1)}>
+        <Button key="last" className="px-3 py-1 mx-1" onClick={() => setPageIndex(totalPages - 1)}>
           {totalPages}
-        </button>
+        </Button>
       );
     }
     return pageNumbers;
@@ -54,41 +56,41 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
     <div className="p-4 overflow-auto">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {data.map((chord) => (
-          <div // Changed from Link to div to have more control over the layout
+          <Card
             key={chord.id}
-            className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-400 relative pb-12"
+            className="flex flex-col items-center hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-ring relative p-6"
           >
             <Link to={`/library/${chord.id}`} className="flex flex-col items-center w-full">
-              <span className="text-xl font-bold text-gray-700 mb-2 text-center">
+              <span className="text-xl font-bold mb-2 text-center">
                 {chord.title}
               </span>
               {chord.artist && (
-                <div className="text-gray-500 text-sm mb-1">{chord.artist}</div>
+                <div className="text-sm mb-1">{chord.artist}</div>
               )}
               {chord.key && (
-                <div className="text-gray-400 text-xs mb-2">Key: {chord.key}</div>
+                <div className="text-xs mb-2 text-muted-foreground">Key: {chord.key}</div>
               )}
             </Link>
-            <button
+            <Button
               onClick={(e) => {
-                e.preventDefault(); // Prevent any default action
-                e.stopPropagation(); // Stop event from bubbling up
+                e.preventDefault();
+                e.stopPropagation();
                 onDelete(chord.id);
               }}
-              className="absolute bottom-2 left-1/2 transform -translate-x-1/2 p-2 rounded-full text-gray-400 hover:text-red-500 focus:outline-none"
+              className="absolute bottom-2 left-1/2 transform -translate-x-1/2 p-2 rounded-full text-muted-foreground hover:text-destructive focus:outline-none transition-colors"
               title="Delete Chord Sheet"
             >
               <Trash2 size={20} />
-            </button>
-          </div>
+            </Button>
+          </Card>
         ))}
       </div>
       {data.length === 0 && (
-        <div className="text-center text-gray-500 mt-8">No chords found.</div>
+        <div className="text-center text-muted-foreground mt-8">No chords found.</div>
       )}
       {/* Mobile Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center bg-white border sticky bottom-10 md:bottom-0 p-3 mt-8 sm:hidden mt-12">
+        <div className="flex justify-center items-center border sticky bottom-10 md:bottom-0 p-3 mt-8 sm:hidden mt-12">
           <button
             className="px-4 py-2 border rounded disabled:opacity-50"
             onClick={() => setPageIndex(pageIndex - 1)}
@@ -96,7 +98,7 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
           >
             Prev
           </button>
-          <span className="mx-4 text-gray-600 text-sm">
+          <span className="mx-4 text-muted-foreground text-sm">
             Page {pageIndex + 1} of {totalPages}
           </span>
           <button
@@ -110,22 +112,22 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
       )}
       {/* Desktop Pagination */}
       {totalPages > 1 && (
-        <div className="justify-center items-center bg-white border sticky bottom-10 md:bottom-0 p-3 mt-8 hidden sm:flex">
-          <button
-            className="px-4 py-2 border rounded disabled:opacity-50"
+        <div className="justify-center items-center sticky bottom-10 md:bottom-0 p-3 mt-8 hidden sm:flex">
+          <Button
+            className="px-4 py-2 disabled:opacity-50"
             onClick={() => setPageIndex(pageIndex - 1)}
             disabled={pageIndex === 0}
           >
             Prev
-          </button>
+          </Button>
           <div className="flex mx-2">{renderPageNumbers()}</div>
-          <button
-            className="px-4 py-2 border rounded disabled:opacity-50"
+          <Button
+            className="px-4 py-2 disabled:opacity-50"
             onClick={() => setPageIndex(pageIndex + 1)}
             disabled={pageIndex >= totalPages - 1}
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
     </div>

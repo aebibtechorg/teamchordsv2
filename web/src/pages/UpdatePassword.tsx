@@ -41,14 +41,14 @@ export default function UpdatePassword({ onSuccess }) {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-md mx-auto p-6 bg-card rounded-lg shadow-md">
       <h2 className="text-xl font-semibold mb-4">Reset Password</h2>
       <p className="mb-4">A password reset email will be sent to your account email.</p>
       <form onSubmit={handleSendReset} className="space-y-4">
         <button
           type="submit"
           disabled={loading}
-          className={`bg-gray-500 hover:bg-gray-600 disabled:opacity-50 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white`}
+          className={`bg-primary hover:opacity-90 disabled:opacity-50 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground`}
         >
           {loading ? 'Sending...' : 'Send Reset Email'}
         </button>

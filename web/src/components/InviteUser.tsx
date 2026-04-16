@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { inviteUser } from '../utils/common';
 import { useProfileStore } from '../store/useProfileStore';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Button } from './ui/button';
+import { Alert, AlertDescription } from './ui/alert';
 
 export default function InviteUser() {
   const [email, setEmail] = useState('');
@@ -34,35 +39,32 @@ export default function InviteUser() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-semibold mb-4">Invite User</h2>
-      <form onSubmit={handleInvite}>
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
-        >
-          {loading ? 'Sending...' : 'Send Invite'}
-        </button>
-      </form>
-      {message.text && (
-        <div className={`mt-4 p-3 rounded-md ${message.isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-          {message.text}
-        </div>
-      )}
-    </div>
+    <Card className="max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Invite User</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleInvite} className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Sending...' : 'Send Invite'}
+          </Button>
+        </form>
+        {message.text && (
+          <Alert variant={message.isError ? 'destructive' : 'default'} className="mt-4">
+            <AlertDescription>{message.text}</AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   );
 }

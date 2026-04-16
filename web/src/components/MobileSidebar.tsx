@@ -18,8 +18,8 @@ const MobileSidebar = () => {
   };
 
   return (
-    <nav className={`md:hidden bg-gray-700 text-white w-screen fixed bottom-0 flex flex-col items-center p-2 transition-all duration-300 ease-in-out z-50`}>
-      <div className="w-full flex items-center justify-center mb-2">
+    <nav className={`md:hidden w-screen fixed bottom-0 flex flex-col items-center p-2 transition-all duration-300 ease-in-out z-50 border-t bg:white dark:bg:black`}>
+      <div className="w-full flex items-center justify-center mb-4">
         <OrgSelector />
       </div>
       <div className="w-full flex justify-between">
@@ -37,7 +37,7 @@ function MobileNavItem({ to, icon, label, onClick }) {
     return (
       <Link
         to={to}
-        className="flex flex-col w-full justify-center items-center space-y-2 rounded-md cursor-pointer hover:bg-gray-500"
+        className="flex flex-col w-full justify-center items-center space-y-2 rounded-md cursor-pointer hover:bg-muted transition-colors"
         title={label}
       >
         {icon}
@@ -49,7 +49,7 @@ function MobileNavItem({ to, icon, label, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col w-full justify-center items-center space-y-2 rounded-md cursor-pointer hover:bg-gray-500"
+      className="flex flex-col w-full justify-center items-center space-y-2 rounded-md cursor-pointer hover:bg-muted transition-colors"
       title={label}
     >
       {icon}

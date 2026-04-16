@@ -50,9 +50,9 @@ function AcceptInvitePage() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <div className="flex flex-col items-center justify-center h-screen bg-background">
             <Spinner />
-            <p className="mt-4 text-lg text-gray-600">{status}</p>
+            <p className="mt-4 text-lg text-muted-foreground">{status}</p>
         </div>
     );
 }

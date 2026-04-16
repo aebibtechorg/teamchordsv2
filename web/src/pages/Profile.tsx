@@ -17,17 +17,17 @@ const Profile = () => {
 
     return (
         <>
-            <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+            <div className="max-w-md mx-auto mt-10 p-6 bg-card rounded-lg shadow-md">
                 <h1 className="text-2xl font-bold mb-4">Profile</h1>
                 <div className="flex flex-col gap-2 mb-4">
-                    <label className="text-sm font-bold text-gray-700">Email</label>
-                    <p className="text-sm text-gray-500">{user?.email}</p>
-                    <label className="text-sm font-bold text-gray-700">Organization</label>
-                    <p className="text-sm text-gray-500">{activeOrgName ?? 'No organization'}</p>
+                    <label className="text-sm font-bold text-foreground">Email</label>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <label className="text-sm font-bold text-foreground">Organization</label>
+                    <p className="text-sm text-muted-foreground">{activeOrgName ?? 'No organization'}</p>
                 </div>
                 <button 
                     onClick={() =>setShowModal(true)}
-                    className="bg-gray-500 hover:bg-gray-600 disabled:opacity-50 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white"
+                    className="bg-primary hover:opacity-90 disabled:opacity-50 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground"
                 >
                     Update Password
                 </button>
@@ -38,11 +38,11 @@ const Profile = () => {
                     </Modal>
                 )}
             </div>
-            <div className="max-w-md mx-auto mt-5 p-6 bg-white rounded-lg shadow-md">
+            <div className="max-w-md mx-auto mt-5 p-6 bg-card rounded-lg shadow-md">
                 <h1 className="text-2xl font-bold mb-4">Actions</h1>
                 <button 
                     onClick={() => setIsInviteDialogOpen(true)}
-                    className="bg-gray-500 hover:bg-gray-600 disabled:opacity-50 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white"
+                    className="bg-primary hover:opacity-90 disabled:opacity-50 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground"
                 >
                     Invite User
                 </button>

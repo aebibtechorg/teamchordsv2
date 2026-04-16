@@ -1,37 +1,21 @@
-import { createPortal } from 'react-dom';
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { Dialog, DialogContent } from './ui/dialog';
 
 export default function Modal({ children, onClose }) {
-  const dialogRef = useRef();
+  const [open, setOpen] = useState(true);
 
-  useEffect(() => {
-    if (!dialogRef.current) return;
-    
-    // Using native dialog API for accessibility
-    dialogRef.current.showModal();
-    
-    return () => {
-      if (dialogRef.current) {
-        dialogRef.current.close();
-      }
-    };
-  }, []);
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      onClose();
+    }
+  };
 
-  return createPortal(
-    <dialog 
-      ref={dialogRef}
-      className="fixed inset-0 w-full max-w-md mx-auto my-20 rounded-lg shadow-lg bg-white backdrop:bg-black/50"
-      onClick={(e) => {
-        // Close modal when clicking outside
-        if (e.target === dialogRef.current) {
-          onClose();
-        }
-      }}
-    >
-      <div className="relative">
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
         {children}
-      </div>
-    </dialog>,
-    document.getElementById('modal-root')
+      </DialogContent>
+    </Dialog>
   );
 }

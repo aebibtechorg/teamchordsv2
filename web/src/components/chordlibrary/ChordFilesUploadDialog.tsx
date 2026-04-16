@@ -3,6 +3,8 @@ import { X } from "lucide-react";
 import ChordSheetJS from "chordsheetjs";
 import { createChordsheet, createChordsheetsBulk } from "../../utils/chordsheets";
 import { useProfileStore } from "../../store/useProfileStore";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
 
 const ChordFilesUploadDialog = ({ connection, isOpen, close, onUploadComplete }) => {
   const [files, setFiles] = useState([]);
@@ -72,7 +74,7 @@ const ChordFilesUploadDialog = ({ connection, isOpen, close, onUploadComplete })
     <div className="p-4">
       <h3 className="text-lg font-bold flex justify-between items-center"><span>Upload Chordsheets</span><X size={24} onClick={close} className="cursor-pointer text-gray-500 hover:text-gray-600" /></h3>
       <h4 className="text-sm text-gray-500 mb-4">Select files to upload (.chordpro, .cho, .crd, .json)</h4>
-      <input id="files" ref={inputRef} className="w-full p-2 border rounded text-lg mb-4" type="file" multiple onChange={handleFileChange} accept=".chordpro,.cho,.crd,.json" disabled={isUploading} />
+      <Input id="files" ref={inputRef} className="w-full p-2 border rounded text-lg mb-4" type="file" multiple onChange={handleFileChange} accept=".chordpro,.cho,.crd,.json" disabled={isUploading} />
       {isUploading && (
         <div className="mb-4">
           <progress className="w-full [&::-webkit-progress-value]:bg-gray-500 [&::-webkit-progress-bar]:bg-gray-100" value={uploadProgress.processed} max={uploadProgress.total}></progress>
@@ -80,8 +82,8 @@ const ChordFilesUploadDialog = ({ connection, isOpen, close, onUploadComplete })
         </div>
       )}
       <div className="flex justify-end gap-2">
-        <button onClick={handleUpload} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded disabled:opacity-50" disabled={isUploading || files.length === 0}>Upload</button>
-        <button onClick={close} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Close</button>
+        <Button onClick={handleUpload} className="px-4 py-2 rounded disabled:opacity-50" disabled={isUploading || files.length === 0}>Upload</Button>
+        <Button onClick={close} className="px-4 py-2 rounded">Close</Button>
       </div>
     </div>
   )

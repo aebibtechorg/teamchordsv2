@@ -2,7 +2,7 @@ import Sidebar from "./Sidebar";
 
 export default function SidebarLayout({ children }) {
   return (
-      <div className="flex w-full h-screen bg-gray-100">
+      <div className="flex w-full h-screen">
         {/* Sidebar */}
         <Sidebar />
 

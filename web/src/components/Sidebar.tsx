@@ -6,6 +6,7 @@ import MainLogo from "./MainLogo";
 import { useAuth0 } from '@auth0/auth0-react';
 import { useProfileStore } from "../store/useProfileStore";
 import OrgSelector from "./OrgSelector";
+import { Button } from "./ui/button";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,7 +35,7 @@ const Sidebar = () => {
 
   return (
     <>
-      <div className={`${ isOpen ? "w-64" : "w-20" } hidden md:flex bg-gray-700 text-white h-screen flex-col p-4 transition-all duration-500 ease-in-out`}>
+      <div className={`${ isOpen ? "w-64" : "w-20" } hidden md:flex h-screen flex-col p-4 transition-all duration-500 ease-in-out`}>
         <NavItem onClick={handleSidebarToggle} label={<span className="font-bold">Team Chords</span>} icon={<MainLogo size={32} />} isOpen={isOpen} />
         <hr className="my-4" />
         <nav className="flex flex-col justify-between h-full">
@@ -64,7 +65,7 @@ function NavItem({ to, icon, label, isOpen, onClick }) {
       return (
         <Link
           to={to}
-          className="flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-gray-500"
+          className="flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors"
           title={label}
         >
           {icon}
@@ -76,7 +77,7 @@ function NavItem({ to, icon, label, isOpen, onClick }) {
     return (
       <button
         onClick={onClick}
-        className="flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-gray-500"
+        className="flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors text-left"
         title={label}
       >
         {icon}

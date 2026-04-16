@@ -9,6 +9,28 @@ import { setTokenProvider } from "./utils/api";
 
 import { loadConfig } from "./config";
 
+// Initialize theme early (reads localStorage or system preference)
+// function initTheme() {
+//   try {
+//     const saved = localStorage.getItem('theme');
+//     if (saved === 'dark') {
+//       document.documentElement.classList.add('dark');
+//       document.documentElement.classList.remove('light');
+//     } else if (saved === 'light') {
+//       document.documentElement.classList.add('light');
+//       document.documentElement.classList.remove('dark');
+//     } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+//       document.documentElement.classList.add('dark');
+//       document.documentElement.classList.remove('light');
+//     } else {
+//       document.documentElement.classList.add('light');
+//       document.documentElement.classList.remove('dark');
+//     }
+//   } catch (e) {
+//     // ignore
+//   }
+// }
+
 function AuthTokenProviderSetup() {
   const { getAccessTokenSilently } = useAuth0();
 
@@ -22,7 +44,12 @@ function AuthTokenProviderSetup() {
     setTokenProvider(async () => {
       try {
         const config = await loadConfig();
-        return await getAccessTokenSilently({ audience: config.auth0Audience || import.meta.env.VITE_AUTH0_AUDIENCE });
+        const aud = config.auth0Audience || import.meta.env.VITE_AUTH0_AUDIENCE;
+        // Auth0 types may not include `audience` in some overloads — cast to any to satisfy TS.
+        // This call is the same runtime behavior as before.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        return await getAccessTokenSilently({ audience: aud } as any);
       } catch (e) {
         return null;
       }
@@ -35,6 +62,9 @@ function AuthTokenProviderSetup() {
 async function bootstrap() {
   const config = await loadConfig()
   const audience = config.auth0Audience || import.meta.env.VITE_AUTH0_AUDIENCE;
+
+  // apply theme before React mounts to avoid flash
+  // initTheme();
 
   createRoot(document.getElementById("root")).render(
     <StrictMode>
@@ -55,4 +85,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

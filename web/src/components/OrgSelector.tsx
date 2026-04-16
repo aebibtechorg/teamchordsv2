@@ -41,7 +41,7 @@ const OrgSelector = ({ className = '' }) => {
   return (
     <>
     <select
-      className={`w-full text-sm rounded px-2 py-1 bg-gray-600 text-white ${className}`}
+      className={`w-full text-sm rounded px-2 py-1${className}`}
       value={active || ''}
       onChange={handleChange}
     >

@@ -80,12 +80,12 @@ const Signup = () => {
   // };
 
   return (
-    <div className="bg-gray-700 w-screen h-screen flex flex-col items-center align-center">
-      <form onSubmit={handleSignUp} className="m-auto p-12 border rounded bg-gray-100">
+    <div className="bg-primary w-screen h-screen flex flex-col items-center align-center">
+      <form onSubmit={handleSignUp} className="m-auto p-12 border rounded bg-card">
         <h1 className="text-2xl mb-12 font-bold text-center flex justify-center"><Link to="/"><MainLogo size={96} /></Link></h1>
         <h2 className="font-bold pb-2">Sign up today!</h2>
         <p>
-          Already have an account? <Link className="text-blue-500" to="/signin">Sign in</Link>
+          Already have an account? <Link className="text-primary" to="/signin">Sign in</Link>
         </p>
 
         <div className="flex flex-col py-2">
@@ -140,7 +140,7 @@ const Signup = () => {
           />
         </div>
 
-        <button type="submit" disabled={loading} className="w-full mt-4 border rounded bg-gray-500 p-2 text-white hover:bg-gray-600 disabled:opacity-50">
+        <button type="submit" disabled={loading} className="w-full mt-4 border rounded bg-primary text-primary-foreground p-2 hover:opacity-90 disabled:opacity-50">
           Sign Up
         </button>
         {/*<div className="flex flex-col gap-2 mt-4">
