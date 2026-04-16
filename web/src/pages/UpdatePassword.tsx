@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { loadConfig } from "../config.js";
+import { loadConfig } from "../config";
 
 export default function UpdatePassword({ onSuccess }) {
   const { user } = useAuth0();

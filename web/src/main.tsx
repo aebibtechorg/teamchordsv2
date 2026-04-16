@@ -2,12 +2,12 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 
-import { router } from "./router.jsx";
+import { router } from "./router";
 import { RouterProvider } from "react-router-dom";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { setTokenProvider } from "./utils/api";
 
-import { loadConfig } from "./config.js";
+import { loadConfig } from "./config";
 
 function AuthTokenProviderSetup() {
   const { getAccessTokenSilently } = useAuth0();
