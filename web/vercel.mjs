@@ -1,15 +1,12 @@
-import { deploymentEnv } from '@vercel/config/v1'; 
+import { deploymentEnv, routes } from '@vercel/config/v1'; 
 
 const API_HOST = deploymentEnv('services__api__https__0');
 const backend = API_HOST.replace(/\/$/, '');
 
-export default {
-    framework: "vite",
-    buildCommand: "npm run build",
-    outputDirectory: "dist",
+export const config = {
     rewrites: [
-        { source: '/api/:path*', destination: `${backend}/api/:path*` },
-        { source: '/hubs/:path*', destination: `${backend}/hubs/:path*` },
-        { source: '/(.*)', destination: '/index.html' }
+        routes.rewrite('/api/:path*', `${backend}/api/:path*`),
+        routes.rewrite('/hubs/:path*', `${backend}/hubs/:path*`),
+        routes.rewrite('/(.*)', '/index.html')
     ]
-};
+}
