@@ -4,6 +4,8 @@ const API_HOST = deploymentEnv('services__api__https__0');
 // Ensure backend is defined; if API_HOST is missing, rewrites will fail
 const backend = (API_HOST || '').replace(/\/$/, '');
 
+console.log('Backend:', backend);
+
 export const config = {
     rewrites: [
         // 1. Proxy API requests
