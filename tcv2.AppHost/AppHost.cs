@@ -62,7 +62,16 @@ if (builder.Configuration["Destination"] == "aca")
         .WaitFor(api)
         .WithEndpoint(endpointName: "http", endpoint =>
         {
-            endpoint.Port = builder.ExecutionContext.IsRunMode ? 5173 : null;
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 5174 : null;
+        })
+        .ExcludeFromManifest();
+    
+    var webClientV2 = builder.AddViteApp("webclientv2", "../web-v2")
+        .WithReference(api)
+        .WaitFor(api)
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 3000 : null;
         })
         .ExcludeFromManifest();
 
@@ -122,6 +131,13 @@ if (builder.Configuration["Destination"] == "compose")
         .PublishAsDockerComposeService((resource, service) =>
         {
             service.Name = "frontend";
+        });
+    
+    builder.AddNpmApp("webclient-server-v2", "../web-v2")
+        .WithReference(api)
+        .PublishAsDockerComposeService((resource, service) =>
+        {
+            service.Name = "frontendv2";
         });
 }
 
