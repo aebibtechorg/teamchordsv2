@@ -1,4 +1,6 @@
-const API_HOST = process.env['services__api__https__0'];
+import { deploymentEnv } from '@vercel/config/v1'; 
+
+const API_HOST = deploymentEnv('services__api__https__0');
 const backend = API_HOST.replace(/\/$/, '');
 
 export default {
