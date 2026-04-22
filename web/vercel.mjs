@@ -1,12 +1,18 @@
-import { deploymentEnv, routes } from '@vercel/config/v1'; 
+import { deploymentEnv, routes } from '@vercel/config/v1';
 
 const API_HOST = deploymentEnv('services__api__https__0');
-const backend = API_HOST.replace(/\/$/, '');
+// Ensure backend is defined; if API_HOST is missing, rewrites will fail
+const backend = (API_HOST || '').replace(/\/$/, '');
 
 export const config = {
     rewrites: [
+        // 1. Proxy API requests
         routes.rewrite('/api/:path*', `${backend}/api/:path*`),
+
+        // 2. Proxy Hubs requests
         routes.rewrite('/hubs/:path*', `${backend}/hubs/:path*`),
-        routes.rewrite('/(.*)', '/index.html')
+
+        // 3. SPA Catch-all: Matches everything EXCEPT paths starting with /api or /hubs
+        routes.rewrite('/:path((?!api|hubs).*)', '/index.html')
     ]
 }
