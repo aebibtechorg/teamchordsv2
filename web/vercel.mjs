@@ -2,7 +2,7 @@ import { deploymentEnv, routes } from '@vercel/config/v1';
 
 const API_HOST = deploymentEnv('services__api__https__0');
 // Ensure backend is defined; if API_HOST is missing, rewrites will fail
-const backend = (API_HOST || '').replace(/\/$/, '');
+const backend = (API_HOST || 'https://api-tc2.aebibtech.com').replace(/\/$/, '');
 
 console.log('Backend:', backend);
 
