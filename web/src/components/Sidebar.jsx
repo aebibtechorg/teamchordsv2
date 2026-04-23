@@ -39,7 +39,7 @@ const Sidebar = () => {
         <hr className="my-4" />
         <nav className="flex flex-col justify-between h-full">
             <div className="flex flex-col space-y-4">
-                <NavItem to="/library" icon={<Library size={24} />} label="Chord Library" isOpen={isOpen} />
+                <NavItem to="/library" icon={<Library size={24} />} label="Library" isOpen={isOpen} />
                 <NavItem to="/setlists" icon={<BookAudio size={24} />} label="Set Lists" isOpen={isOpen} />
                 <NavItem to="/team" icon={<Users size={24} />} label="Team" isOpen={isOpen} />
             </div>

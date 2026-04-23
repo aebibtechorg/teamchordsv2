@@ -23,7 +23,7 @@ const MobileSidebar = () => {
         <OrgSelector />
       </div>
       <div className="w-full flex justify-between">
-        <MobileNavItem to="/library" icon={<Library size={16} />} label="Chord Library" />
+        <MobileNavItem to="/library" icon={<Library size={16} />} label="Library" />
         <MobileNavItem to="/setlists" icon={<BookAudio size={16} />} label="Set Lists" />
         <MobileNavItem to="/team" icon={<Users size={16} />} label="Team" />
         <MobileNavItem to="/profile" icon={<User size={16} />} label="Profile" />
