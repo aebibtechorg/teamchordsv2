@@ -5,7 +5,6 @@ import { Plus, Search } from 'lucide-react'
 import { getSetLists } from "../utils/setlists";
 import SetListTable from "../components/setlist/SetListTable";
 import { Toaster, toast } from 'react-hot-toast';
-import Spinner from "../components/Spinner";
 
 const SetList = () => {
   const { profile } = useProfileStore();
@@ -44,14 +43,7 @@ const SetList = () => {
     };
   }, [searchTerm]);
 
-  if (isLoading) {
-    return (
-      <>
-        <Toaster />
-        <Spinner />
-      </>
-    );
-  }
+  // Do not short-circuit render for loading; show inline loading text instead
 
   return (
     <div className="p-4">
@@ -76,16 +68,20 @@ const SetList = () => {
           <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
         </div>
       </div>
-      {setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} hasPrev={cursorStack.length > 0} hasNext={!!nextCursor} onPrev={() => {
-        const stack = [...cursorStack];
-        const prev = stack.pop() || null;
-        setCursorStack(stack);
-        setCurrentCursor(prev);
-      }} onNext={() => {
-        if (!nextCursor) return;
-        setCursorStack((s) => [...s, currentCursor]);
-        setCurrentCursor(nextCursor);
-      }} />}
+      {isLoading ? (
+        <div className="text-center py-8">Loading...</div>
+      ) : (
+        setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} hasPrev={cursorStack.length > 0} hasNext={!!nextCursor} onPrev={() => {
+          const stack = [...cursorStack];
+          const prev = stack.pop() || null;
+          setCursorStack(stack);
+          setCurrentCursor(prev);
+        }} onNext={() => {
+          if (!nextCursor) return;
+          setCursorStack((s) => [...s, currentCursor]);
+          setCurrentCursor(nextCursor);
+        }} />
+      )}
     </div>
   );
 };
