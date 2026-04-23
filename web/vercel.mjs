@@ -7,6 +7,8 @@ export const config = {
     rewrites: [
         { source: '/api/:path*', destination: `${backend}/api/:path*` },
         { source: '/hubs/:path*', destination: `${backend}/hubs/:path*` },
-        { source: '^/(?!api|hubs).*', destination: '/index.html' }
+        { source: '^/((?!api|hubs).*)', destination: '/index.html' }
     ]
 };
+
+export default config;
