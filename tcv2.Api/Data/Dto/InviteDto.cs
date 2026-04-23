@@ -21,5 +21,6 @@ namespace tcv2.Api.Data.Dto
         public DateTimeOffset CreatedAt { get; set; }
         public Guid? OrganizationId { get; set; }
         public string Role { get; set; } = "member";
+        public string? BaseUrl { get; set; }
     }
 }

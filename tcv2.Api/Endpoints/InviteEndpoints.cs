@@ -92,7 +92,7 @@ internal static class InviteEndpoints
                         var apiKey = config["ZeptoMail:ApiKey"];
                         var templateKey = config["ZeptoMail:TemplateKey"];
                         var fromEmail = config["ZeptoMail:FromEmailAddress"];
-                        var frontendUrl = config["ZeptoMail:BaseUrl"];
+                        var frontendUrl = dto.BaseUrl ?? config["ZeptoMail:BaseUrl"];
                         var fromName = config["ZeptoMail:FromName"] ?? "noreply";
 
                         if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(templateKey) || string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(frontendUrl))
