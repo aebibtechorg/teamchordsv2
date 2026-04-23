@@ -16,5 +16,6 @@ namespace tcv2.Api.Data.Entities
         
         // Many-to-many: organization can have many users
         public ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
     }
 }

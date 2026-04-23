@@ -18,6 +18,7 @@ import Logout from "./pages/Logout";
 import AcceptInvitePage from "./pages/AcceptInvite";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import TeamManagement from "./pages/TeamManagement";
 
 export const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -82,5 +83,9 @@ export const router = createBrowserRouter([
   {
     path: "/terms-and-conditions",
     element: <NoSidebar><TermsAndConditions /></NoSidebar>
+  },
+  {
+    path: "/team",
+    element: <Protected><TeamManagement /></Protected>,
   }
 ]);

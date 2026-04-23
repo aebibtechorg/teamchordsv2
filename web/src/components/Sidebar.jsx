@@ -1,4 +1,4 @@
-import { User, Power, Library, BookAudio } from "lucide-react";
+import { User, Power, Library, BookAudio, Users } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MobileSidebar from "./MobileSidebar";
@@ -41,6 +41,7 @@ const Sidebar = () => {
             <div className="flex flex-col space-y-4">
                 <NavItem to="/library" icon={<Library size={24} />} label="Chord Library" isOpen={isOpen} />
                 <NavItem to="/setlists" icon={<BookAudio size={24} />} label="Set Lists" isOpen={isOpen} />
+                <NavItem to="/team" icon={<Users size={24} />} label="Team" isOpen={isOpen} />
             </div>
             <div className="flex flex-col space-y-4">
                 <hr />

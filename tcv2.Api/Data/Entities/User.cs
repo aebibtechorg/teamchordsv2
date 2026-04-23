@@ -32,5 +32,6 @@ namespace tcv2.Api.Data.Entities
         public Profile? Profile { get; set; }
         // Many-to-many: a user can belong to multiple organizations
         public ICollection<Organization> Organizations { get; set; } = new List<Organization>();
+        public ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
     }
 }

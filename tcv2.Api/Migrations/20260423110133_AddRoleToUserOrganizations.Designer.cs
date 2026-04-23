@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using tcv2.Api.Data;
@@ -11,9 +12,11 @@ using tcv2.Api.Data;
 namespace tcv2.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423110133_AddRoleToUserOrganizations")]
+    partial class AddRoleToUserOrganizations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -324,13 +327,13 @@ namespace tcv2.Api.Migrations
             modelBuilder.Entity("tcv2.Api.Data.Entities.UserOrganization", b =>
                 {
                     b.HasOne("tcv2.Api.Data.Entities.Organization", "Organization")
-                        .WithMany("UserOrganizations")
+                        .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("tcv2.Api.Data.Entities.User", "User")
-                        .WithMany("UserOrganizations")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -338,11 +341,6 @@ namespace tcv2.Api.Migrations
                     b.Navigation("Organization");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("tcv2.Api.Data.Entities.Organization", b =>
-                {
-                    b.Navigation("UserOrganizations");
                 });
 
             modelBuilder.Entity("tcv2.Api.Data.Entities.SetList", b =>
@@ -353,8 +351,6 @@ namespace tcv2.Api.Migrations
             modelBuilder.Entity("tcv2.Api.Data.Entities.User", b =>
                 {
                     b.Navigation("Profile");
-
-                    b.Navigation("UserOrganizations");
                 });
 #pragma warning restore 612, 618
         }

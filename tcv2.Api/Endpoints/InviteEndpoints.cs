@@ -157,8 +157,14 @@ internal static class InviteEndpoints
             {
                 if (isExistingUser)
                 {
-                    var org = await db.Organizations.FirstOrDefaultAsync(x => x.Id == invite.OrganizationId);
-                    existingUser!.Organizations.Add(org!);
+                    var userOrg = new UserOrganization
+                    {
+                        UserId = existingUser.Id,
+                        OrganizationId = invite.OrganizationId.Value,
+                        Role = OrgRole.Member,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    db.UserOrganizations.Add(userOrg);
                 }
                 await db.SaveChangesAsync();
                 return Results.Ok(new { isExistingUser, email = invite.Email, organizationId = invite.OrganizationId, used = oldUsed });

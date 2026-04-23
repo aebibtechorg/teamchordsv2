@@ -17,6 +17,7 @@ namespace tcv2.Api.Data
         public DbSet<Profile> Profiles { get; set; } = null!;
         public DbSet<SetList> SetLists { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
+        public DbSet<UserOrganization> UserOrganizations { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,14 +57,13 @@ namespace tcv2.Api.Data
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Organizations)
                 .WithMany(o => o.Users)
-                .UsingEntity<Dictionary<string, object>>(
-                    "UserOrganization",
-                    j => j.HasOne<Organization>().WithMany().HasForeignKey("OrganizationId").OnDelete(DeleteBehavior.Cascade),
-                    j => j.HasOne<User>().WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade),
+                .UsingEntity<UserOrganization>(
+                    j => j.HasOne(uo => uo.Organization).WithMany(o => o.UserOrganizations).HasForeignKey(uo => uo.OrganizationId).OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne(uo => uo.User).WithMany(u => u.UserOrganizations).HasForeignKey(uo => uo.UserId).OnDelete(DeleteBehavior.Cascade),
                     j =>
                     {
-                        j.HasKey("UserId", "OrganizationId");
-                        j.HasIndex("OrganizationId");
+                        j.HasKey(uo => new { uo.UserId, uo.OrganizationId });
+                        j.HasIndex(uo => uo.OrganizationId);
                         j.ToTable("UserOrganizations");
                     }
                 );

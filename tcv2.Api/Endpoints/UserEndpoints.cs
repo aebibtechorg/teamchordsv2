@@ -69,7 +69,7 @@ internal static class UserEndpoints
             // For simplicity, assume the user's Auth0 id is in the JWT "sub" claim
             var userId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-            var user = await db.Users.Include(x => x.Organizations).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Auth0UserId == userId);
+            var user = await db.Users.Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Auth0UserId == userId);
             if (user == null) return Results.NotFound();
             
             return Results.Ok(user.ToDetailDto());
@@ -120,11 +120,14 @@ internal static class UserEndpoints
 
                     if (dto.InviteOrganizationId != null)
                     {
-                        var org = await db.Organizations.FindAsync(dto.InviteOrganizationId);
-                        if (org != null)
+                        var userOrg = new UserOrganization
                         {
-                            u.Organizations.Add(org);
-                        }
+                            UserId = u.Id,
+                            OrganizationId = dto.InviteOrganizationId.Value,
+                            Role = OrgRole.Member,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.UserOrganizations.Add(userOrg);
                     }
 
                     await db.SaveChangesAsync();
@@ -177,8 +180,14 @@ internal static class UserEndpoints
 
                     if (dto.InviteOrganizationId != null)
                     {
-                        var org = await db.Organizations.FindAsync(dto.InviteOrganizationId);
-                        u.Organizations.Add(org!);
+                        var userOrg = new UserOrganization
+                        {
+                            UserId = u.Id,
+                            OrganizationId = dto.InviteOrganizationId.Value,
+                            Role = OrgRole.Member,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.UserOrganizations.Add(userOrg);
                     }
 
                     // -------------------------------
