@@ -97,7 +97,7 @@ export default function TeamManagement() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {currentUserRole === 'admin' && member.userId !== profile.id && (
                     <button
-                      onClick={() => { setConfirmRemove(member); console.log('Remove button clicked.', member); }}
+                      onClick={() => { setConfirmRemove(member) }}
                       className="text-red-600 hover:text-red-900"
                     >
                       Remove
