@@ -73,38 +73,60 @@ const SetListTable = ({ data, onRefresh }) => {
   return (
     <div className="p-4">
       {DeleteModal}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-20 md:mb-0">
-        {data.map((setlist) => (
-          <div
-            key={setlist.id}
-            className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center hover:shadow-xl hover:bg-gray-200 transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onClick={() => navigate(`/setlists/${setlist.id}`)}
-            tabIndex={0}
-            role="button"
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/setlists/${setlist.id}`); }}
-          >
-            <span className="text-xl font-bold text-gray-700 mb-2 text-center">
-              {setlist.name}
-            </span>
-            <div className="text-gray-500 text-sm mb-2">
-              Created: {new Date(setlist.createdAt).toLocaleDateString()}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="divide-y divide-gray-200">
+          {data.map((setlist) => (
+            <div
+              key={setlist.id}
+              className="flex flex-col gap-4 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+              onClick={() => navigate(`/setlists/${setlist.id}`)}
+              tabIndex={0}
+              role="button"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/setlists/${setlist.id}`); }}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-col gap-1">
+                  <span className="truncate text-base font-semibold text-gray-900 sm:text-lg">
+                    {setlist.name}
+                  </span>
+                  <div className="text-sm text-gray-500">
+                    Created: {new Date(setlist.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 sm:ml-4 sm:justify-end">
+                <button
+                  title="Preview"
+                  onClick={(e) => handlePreviewWrapper(setlist.id, e)}
+                  className="inline-flex items-center gap-2 rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                >
+                  <Eye size={18} />
+                  <span className="sr-only">Preview set list</span>
+                </button>
+                <button
+                  title="Copy Link"
+                  onClick={(e) => handleCopyLinkWrapper(setlist.id, e)}
+                  className="inline-flex items-center gap-2 rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                >
+                  <Link2 size={18} />
+                  <span className="sr-only">Copy set list link</span>
+                </button>
+                <button
+                  title="Delete"
+                  onClick={(e) => openDeleteDialog(setlist.id, setlist.name, e)}
+                  className="inline-flex items-center gap-2 rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                >
+                  <Trash size={18} />
+                  <span className="sr-only">Delete set list</span>
+                </button>
+              </div>
             </div>
-            <div className="flex gap-4 mt-2">
-              <button title="Preview" onClick={(e) => handlePreviewWrapper(setlist.id, e)}>
-                <Eye size={18} />
-              </button>
-              <button title="Copy Link" onClick={(e) => handleCopyLinkWrapper(setlist.id, e)}>
-                <Link2 size={18} />
-              </button>
-              <button title="Delete" onClick={(e) => openDeleteDialog(setlist.id, setlist.name, e)}>
-                <Trash size={18} className="text-red-500" />
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       {data.length === 0 && (
-        <div className="text-center text-gray-500 mt-8">No set lists found.</div>
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-gray-500">No set lists found.</div>
       )}
     </div>
   );
