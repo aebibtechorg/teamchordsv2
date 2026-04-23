@@ -1,4 +1,4 @@
-import { User, Power, Library, BookAudio } from "lucide-react";
+import {User, Power, Library, BookAudio, Users} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from '@auth0/auth0-react';
 import OrgSelector from './OrgSelector';
@@ -25,6 +25,7 @@ const MobileSidebar = () => {
       <div className="w-full flex justify-between">
         <MobileNavItem to="/library" icon={<Library size={16} />} label="Chord Library" />
         <MobileNavItem to="/setlists" icon={<BookAudio size={16} />} label="Set Lists" />
+        <MobileNavItem to="/team" icon={<Users size={16} />} label="Team" />
         <MobileNavItem to="/profile" icon={<User size={16} />} label="Profile" />
         <MobileNavItem onClick={handleSignOut} icon={<Power size={16} />} label="Sign out" />
       </div>

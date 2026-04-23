@@ -47,7 +47,7 @@ export default function TeamManagement() {
   if (!orgId) return <div>No organization selected</div>;
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Team Management</h1>
         <button 
