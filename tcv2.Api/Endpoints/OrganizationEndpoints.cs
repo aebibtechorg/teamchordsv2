@@ -169,6 +169,30 @@ internal static class OrganizationEndpoints
             return Results.NoContent();
         });
 
+        orgs.MapPatch("/{id}/members/{userId}/role", async (Guid id, Guid userId, RoleDto dto, HttpRequest req, AppDbContext db) =>
+        {
+            var validation = EndpointHelpers.Validate(dto);
+            if (validation != null) return validation;
+
+            var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            if (caller == null) return Results.Unauthorized();
+
+            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == caller.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
+            if (callerRole != OrgRole.Admin) return Results.Forbid();
+
+            var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin);
+            var targetRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == userId).Select(uo => uo.Role).FirstOrDefaultAsync();
+            if (targetRole == OrgRole.Admin && adminCount == 1 && dto.Role != "Admin") return Results.Conflict(new { message = "Cannot demote the last admin from the organization" });
+
+            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId);
+            if (userOrg == null) return Results.NotFound();
+
+            userOrg.Role = Enum.Parse<OrgRole>(dto.Role);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
+
         return api;
     }
 }

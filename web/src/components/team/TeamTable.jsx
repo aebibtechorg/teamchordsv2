@@ -1,7 +1,9 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
 
-const TeamTable = ({ data, onRemove, currentUserRole, profileId }) => {
+const TeamTable = ({ data, onRemove, currentUserRole, profileId, onRoleChange }) => {
+  const adminCount = data.filter(m => m.role.toLowerCase() === 'admin').length;
+
   return (
     <div>
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -18,11 +20,25 @@ const TeamTable = ({ data, onRemove, currentUserRole, profileId }) => {
                     <div className="text-sm font-medium text-gray-900">{member.name}</div>
                     <div className="text-sm text-gray-500">{member.email}</div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        member.role.toLowerCase() === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {member.role}
-                      </span>
+                      {currentUserRole === 'admin' && member.userId !== profileId ? (
+                        <select
+                          value={member.role}
+                          onChange={(e) => onRoleChange(member, e.target.value)}
+                          disabled={adminCount === 1 && member.role.toLowerCase() === 'admin'}
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border-0 bg-transparent ${
+                            member.role.toLowerCase() === 'admin' ? 'text-green-800' : 'text-gray-800'
+                          }`}
+                        >
+                          <option value="Admin">Admin</option>
+                          <option value="Member">Member</option>
+                        </select>
+                      ) : (
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          member.role.toLowerCase() === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {member.role}
+                        </span>
+                      )}
                       <div className="text-sm text-gray-500">
                         Joined: {new Date(member.joinedAt).toLocaleDateString()}
                       </div>

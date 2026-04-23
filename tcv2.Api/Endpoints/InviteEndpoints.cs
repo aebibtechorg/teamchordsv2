@@ -147,7 +147,7 @@ internal static class InviteEndpoints
             var invite = await db.Invites.FindAsync(id);
             if (invite == null) return Results.NotFound(new { message = "Invite not found" });
             if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
-            if (invite.ExpiresAt < DateTimeOffset.UtcNow) return Results.BadRequest(new { message = "Invite has expired" });
+            if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
 
             var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower());
             var isExistingUser = existingUser != null;

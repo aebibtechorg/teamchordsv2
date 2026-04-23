@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useProfileStore } from '../store/useProfileStore';
-import { getOrgMembers, removeOrgMember } from '../utils/organizations';
+import { getOrgMembers, removeOrgMember, updateMemberRole } from '../utils/organizations';
 import InviteUser from '../components/InviteUser';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Modal from '../components/Modal';
 import TeamTable from '../components/team/TeamTable';
+import { Toaster, toast } from 'react-hot-toast';
 
 export default function TeamManagement() {
   const { profile } = useProfileStore();
@@ -45,10 +46,25 @@ export default function TeamManagement() {
     }
   };
 
+  const handleRoleChange = async (member, newRole) => {
+    const originalRole = member.role;
+    // Optimistic update
+    setMembers(members.map(m => m.userId === member.userId ? { ...m, role: newRole } : m));
+    try {
+      await updateMemberRole(orgId, member.userId, newRole);
+      toast.success(`Role updated to ${newRole}`);
+    } catch (err) {
+      // Revert
+      setMembers(members.map(m => m.userId === member.userId ? { ...m, role: originalRole } : m));
+      toast.error(err.message || 'Failed to update role');
+    }
+  };
+
   if (!orgId) return <div>No organization selected</div>;
 
   return (
     <div className="p-4">
+      <Toaster />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Team Management</h1>
         <button 
@@ -62,7 +78,7 @@ export default function TeamManagement() {
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}
 
-      <TeamTable data={members} onRemove={setConfirmRemove} currentUserRole={currentUserRole} profileId={profile.id} />
+      <TeamTable data={members} onRemove={setConfirmRemove} currentUserRole={currentUserRole} profileId={profile.id} onRoleChange={handleRoleChange} />
 
       {confirmRemove != null && (
         <ConfirmDialog

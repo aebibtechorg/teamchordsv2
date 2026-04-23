@@ -190,6 +190,7 @@ internal static class UserEndpoints
             {
                 await using var tx = await db.Database.BeginTransactionAsync();
                 string? createdAuth0UserId = null;
+                string? createdAuth0Picture = null;
 
                 try
                 {
@@ -294,10 +295,18 @@ internal static class UserEndpoints
                         {
                             createdAuth0UserId = uid.GetString();
                         }
+
+                        if (createJson.TryGetProperty("picture", out var pic))
+                        {
+                            createdAuth0Picture = pic.GetString();
+                        }
                     }
 
                     if (!string.IsNullOrWhiteSpace(createdAuth0UserId))
                         u.Auth0UserId = createdAuth0UserId;
+                    
+                    if (!string.IsNullOrWhiteSpace(createdAuth0Picture))
+                        u.Picture = createdAuth0Picture;
 
                     await db.SaveChangesAsync();
                     await tx.CommitAsync();
