@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useProfileStore } from "../store/useProfileStore";
 import { Link } from "react-router-dom";
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { getSetLists } from "../utils/setlists";
 import SetListTable from "../components/setlist/SetListTable";
 import { Toaster, toast } from 'react-hot-toast';
@@ -14,16 +14,35 @@ const SetList = () => {
   const [currentCursor, setCurrentCursor] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const debounceTimeout = useRef(null);
 
   const fetchData = async () => {
-    const { data, nextCursor } = await getSetLists(profile.orgId, { afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 12 });
+    const { data, nextCursor } = await getSetLists(profile.orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 12 });
     setSetLists(data || []);
     setNextCursor(nextCursor);
   };
 
+  // Fetch data when org, cursor or debounced search changes
   useEffect(() => {
+    setIsLoading(true);
     fetchData().then(() => setIsLoading(false)).catch((err) => toast.error(`A network error has occured: ${err}.`));
-  }, [profile.orgId, currentCursor]);
+  }, [profile.orgId, currentCursor, debouncedSearchTerm]);
+
+  // Debounce searchTerm -> debouncedSearchTerm and reset pagination when search changes
+  useEffect(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      // reset cursor stack so search starts from first page
+      setCursorStack([]);
+      setCurrentCursor(null);
+    }, 300);
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, [searchTerm]);
 
   if (isLoading) {
     return (
@@ -44,6 +63,19 @@ const SetList = () => {
           New Set List
         </Link>
       </h1>
+      {/* Search Bar */}
+      <div className="flex mb-4">
+        <div className="relative w-full">
+          <input
+            type="text"
+            placeholder="Search by name..."
+            className="w-full border border-gray-300 bg-white p-2 pl-10 rounded"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
+        </div>
+      </div>
       {setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} hasPrev={cursorStack.length > 0} hasNext={!!nextCursor} onPrev={() => {
         const stack = [...cursorStack];
         const prev = stack.pop() || null;
