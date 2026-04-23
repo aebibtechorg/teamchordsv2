@@ -38,7 +38,14 @@ public static class UserMappers
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             Profile = user.Profile?.ToDto(),
-            Organizations = user.Organizations.Select(o => o.ToDto()).ToList()
+            Organizations = user.UserOrganizations.Select(uo => new OrganizationWithRoleDto
+            {
+                Id = uo.Organization.Id,
+                Name = uo.Organization.Name,
+                CreatedAt = uo.Organization.CreatedAt,
+                UpdatedAt = uo.Organization.UpdatedAt,
+                Role = uo.Role.ToString()
+            }).ToList()
         };
     }
 

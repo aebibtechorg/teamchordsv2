@@ -78,10 +78,14 @@ internal static class OrganizationEndpoints
                     if (user != null)
                     {
                         // Add the new organization to the user's organizations (many-to-many)
-                        if (!user.Organizations.Any(org => org.Id == o.Id))
+                        var userOrg = new UserOrganization
                         {
-                            user.Organizations.Add(o);
-                        }
+                            UserId = user.Id,
+                            OrganizationId = o.Id,
+                            Role = OrgRole.Admin,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.UserOrganizations.Add(userOrg);
 
                         user.UpdatedAt = DateTime.UtcNow;
                         // user is tracked by EF; changes will be persisted below when we save
@@ -125,6 +129,42 @@ internal static class OrganizationEndpoints
             var existing = await db.Organizations.FindAsync(id);
             if (existing == null) return Results.NotFound();
             db.Organizations.Remove(existing);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
+
+        orgs.MapGet("/{id}/members", async (Guid id, HttpRequest req, AppDbContext db) =>
+        {
+            var q = db.UserOrganizations.Where(uo => uo.OrganizationId == id).Include(uo => uo.User);
+            var members = q.Select(uo => new OrgMemberDto
+            {
+                UserId = uo.UserId,
+                Name = uo.User.Name,
+                Email = uo.User.Email,
+                Picture = uo.User.Picture,
+                Role = uo.Role.ToString(),
+                JoinedAt = uo.CreatedAt
+            });
+            return await EndpointHelpers.ApplyPagingAndFilter(members, req);
+        });
+
+        orgs.MapDelete("/{id}/members/{userId}", async (Guid id, Guid userId, HttpRequest req, AppDbContext db) =>
+        {
+            var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            if (caller == null) return Results.Unauthorized();
+
+            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == caller.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
+            if (callerRole != OrgRole.Admin) return Results.Forbid();
+
+            var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin);
+            var targetRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == userId).Select(uo => uo.Role).FirstOrDefaultAsync();
+            if (adminCount == 1 && targetRole == OrgRole.Admin) return Results.Conflict(new { message = "Cannot remove the last admin from the organization" });
+
+            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId);
+            if (userOrg == null) return Results.NotFound();
+
+            db.UserOrganizations.Remove(userOrg);
             await db.SaveChangesAsync();
             return Results.NoContent();
         });

@@ -16,6 +16,6 @@ namespace tcv2.Api.Data.Dto
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public ProfileDto? Profile { get; set; }
-        public ICollection<OrganizationDto> Organizations { get; set; } = new List<OrganizationDto>();
+        public ICollection<OrganizationWithRoleDto> Organizations { get; set; } = new List<OrganizationWithRoleDto>();
     }
 }
