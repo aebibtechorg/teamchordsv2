@@ -51,7 +51,7 @@ internal static class ProfileEndpoints
         });
 
         profiles.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Profiles.FindAsync(id) is Profile p ? Results.Ok(p.ToDto()) : Results.NotFound());
+            await db.Profiles.FindAsync(id) is { } p ? Results.Ok(p.ToDto()) : Results.NotFound());
 
         profiles.MapPost("/", async (ProfileDto dto, AppDbContext db) =>
         {

@@ -75,6 +75,26 @@ internal static class UserEndpoints
             return Results.Ok(user.ToDetailDto());
         });
 
+        users.MapPut("/me", async (UpdateMeDto dto, HttpRequest req, AppDbContext db) =>
+        {
+            var validation = EndpointHelpers.Validate(dto);
+            if (validation != null) return validation;
+
+            var userId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var user = await db.Users.FirstOrDefaultAsync(x => x.Auth0UserId == userId);
+            if (user == null) return Results.NotFound();
+
+            user.GivenName = dto.GivenName;
+            user.FamilyName = dto.FamilyName;
+            user.Name = $"{dto.GivenName} {dto.FamilyName}";
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await db.SaveChangesAsync();
+
+            var updatedUser = await db.Users.Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Id == user.Id);
+            return Results.Ok(updatedUser.ToDetailDto());
+        });
+
         users.MapPost("/googlesignin", async (UserDto dto, AppDbContext db) =>
         {
             var validation = EndpointHelpers.Validate(dto);

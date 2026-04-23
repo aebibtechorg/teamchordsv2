@@ -75,4 +75,72 @@ async function inviteUser(email, organizationId) {
     }
 }
 
-export { getProfile, createOrganization, createProfile, inviteUser };
+async function updateMe(dto) {
+    try {
+        const res = await apiFetch(`/api/users/me`, {
+            method: 'PUT',
+            body: JSON.stringify(dto)
+        });
+        if (!res.ok) {
+            const text = await res.json();
+            console.error('Error updating user:', res.status, text);
+            return null;
+        }
+        return await res.json();
+    } catch (err) {
+        console.error('Error updating user:', err);
+        return null;
+    }
+}
+
+async function updateProfile(id, dto) {
+    try {
+        const payload = { ...dto };
+        if (payload.instruments && Array.isArray(payload.instruments)) {
+            payload.instruments = JSON.stringify(payload.instruments);
+        }
+        const res = await apiFetch(`/api/profiles/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const text = await res.json();
+            console.error('Error updating profile:', res.status, text);
+            return null;
+        }
+        return await res.json();
+    } catch (err) {
+        console.error('Error updating profile:', err);
+        return null;
+    }
+}
+
+async function upsertProfile(profileId, userId, orgId, dto) {
+    try {
+        const payload = { ...dto, userId, orgId };
+        if (payload.instruments && Array.isArray(payload.instruments)) {
+            payload.instruments = JSON.stringify(payload.instruments);
+        }
+
+        const url = profileId ? `/api/profiles/${profileId}` : `/api/profiles/`;
+        const method = profileId ? 'PUT' : 'POST';
+
+        const res = await apiFetch(url, {
+            method,
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const text = await res.json();
+            console.error('Error upserting profile:', res.status, text);
+            return null;
+        }
+        // PUT returns 204 No Content, POST returns 201 with body
+        if (method === 'PUT') return true;
+        return await res.json();
+    } catch (err) {
+        console.error('Error upserting profile:', err);
+        return null;
+    }
+}
+
+export { getProfile, createOrganization, createProfile, inviteUser, updateMe, updateProfile, upsertProfile };
