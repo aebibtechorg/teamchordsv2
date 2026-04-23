@@ -1,42 +1,29 @@
 import { apiFetch } from "./api";
 
-async function getChordsheets(orgId, pageIndex = 0, pageSize = 10, searchTerm = "") {
+// Cursor-based fetch for chordsheets. Options: { search, afterCreatedAt, afterId, pageSize }
+async function getChordsheetsCursor(orgId, { search = "", afterCreatedAt = null, afterId = null, pageSize = 12 } = {}) {
     try {
-        // If there's a search term we want to match title OR artist.
-        if (searchTerm) {
-            // Fetch title matches and artist matches then merge client-side.
-            const pageSizeForSearch = 10000;
-                const [titleRes, artistRes] = await Promise.all([
-                    apiFetch(`/api/chordsheets?orgId=${encodeURIComponent(orgId)}&title=${encodeURIComponent(searchTerm)}&page=1&pageSize=${pageSizeForSearch}`),
-                    apiFetch(`/api/chordsheets?orgId=${encodeURIComponent(orgId)}&artist=${encodeURIComponent(searchTerm)}&page=1&pageSize=${pageSizeForSearch}`)
-                ]);
-            const titleJson = await titleRes.json();
-            const artistJson = await artistRes.json();
-            const all = (titleJson.items || []).concat(artistJson.items || []);
-            // dedupe by id
-            const map = new Map();
-            all.forEach(i => map.set(i.id, i));
-            const combined = Array.from(map.values()).sort((a, b) => (a.artist || '').localeCompare(b.artist || '') || (a.title || '').localeCompare(b.title || ''));
+        const parts = [`orgId=${encodeURIComponent(orgId)}`];
+        if (search) parts.push(`search=${encodeURIComponent(search)}`);
+        if (afterCreatedAt) parts.push(`afterCreatedAt=${encodeURIComponent(afterCreatedAt)}`);
+        if (afterId) parts.push(`afterId=${encodeURIComponent(afterId)}`);
+        if (pageSize) parts.push(`pageSize=${encodeURIComponent(pageSize)}`);
 
-            if (pageSize === -1) {
-                return { data: combined, count: combined.length };
-            }
-
-            const start = pageIndex * pageSize;
-            const paged = combined.slice(start, start + pageSize);
-            return { data: paged, count: combined.length };
-        }
-
-        // Normal (no search) - use server paging
-        const page = (pageIndex || 0) + 1;
-        const ps = pageSize === -1 ? 10000 : pageSize;
-            const res = await apiFetch(`/api/chordsheets?orgId=${encodeURIComponent(orgId)}&page=${page}&pageSize=${ps}`);
+        const url = `/api/chordsheets?${parts.join('&')}`;
+        const res = await apiFetch(url);
+        if (!res.ok) return { data: [], nextCursor: null };
         const json = await res.json();
-        return { data: json.items || [], count: json.total || 0 };
+        return { data: json.items || [], nextCursor: json.nextCursor || null };
     } catch (err) {
         console.error("Error fetching chordsheets:", err);
-        return { data: [], count: 0 };
+        return { data: [], nextCursor: null };
     }
+}
+
+// Helper used by async select in SetListForm
+async function searchChordsheets(orgId, inputValue, pageSize = 20) {
+    const { data } = await getChordsheetsCursor(orgId, { search: inputValue, pageSize });
+    return data || [];
 }
 
 async function getChordsheet(id) {
@@ -126,4 +113,4 @@ async function backupChordsheets(orgId) {
     }
 }
 
-export { getChordsheets, getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet, createChordsheetsBulk, backupChordsheets };
+export { getChordsheetsCursor, searchChordsheets, getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet, createChordsheetsBulk, backupChordsheets };

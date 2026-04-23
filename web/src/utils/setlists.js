@@ -1,14 +1,21 @@
 import { apiFetch } from './api';
 
-async function getSetLists(orgId) {
+// Cursor-based fetch for setlists. Options: { search, afterCreatedAt, afterId, pageSize }
+async function getSetLists(orgId, { search = "", afterCreatedAt = null, afterId = null, pageSize = 50 } = {}) {
     try {
-        const res = await apiFetch(`/api/setlists?orgId=${encodeURIComponent(orgId)}&page=1&pageSize=100`);
-        if (!res.ok) return null;
+        const parts = [`orgId=${encodeURIComponent(orgId)}`];
+        if (search) parts.push(`search=${encodeURIComponent(search)}`);
+        if (afterCreatedAt) parts.push(`afterCreatedAt=${encodeURIComponent(afterCreatedAt)}`);
+        if (afterId) parts.push(`afterId=${encodeURIComponent(afterId)}`);
+        if (pageSize) parts.push(`pageSize=${encodeURIComponent(pageSize)}`);
+
+        const res = await apiFetch(`/api/setlists?${parts.join('&')}`);
+        if (!res.ok) return { data: [], nextCursor: null };
         const json = await res.json();
-        return json.items || [];
+        return { data: json.items || [], nextCursor: json.nextCursor || null };
     } catch (err) {
         console.error("Error fetching set lists:", err);
-        return null;
+        return { data: [], nextCursor: null };
     }
 }
 

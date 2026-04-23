@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSetList, createSetList, updateSetList } from "../utils/setlists";
 import { useState, useEffect, useRef } from "react";
 import { Save } from "lucide-react";
-import { getChordsheets } from "../utils/chordsheets";
+import { searchChordsheets, getChordsheet } from "../utils/chordsheets";
 import { Plus, X, Trash, Edit, Link2, Eye, MoreVertical } from "lucide-react";
 import { createOutputs, deleteOutputs, getCapoText } from "../utils/outputs";
 import { handleCopyLink, handlePreview } from "../utils/setlists";
@@ -16,13 +16,21 @@ import { CSS } from "@dnd-kit/utilities";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 import Select from "react-select";
+import AsyncSelect from "react-select/async";
 import Modal from "../components/Modal";
 
-const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
+const SongSelectionDialog = ({ onAdd, isOpen, onClose }) => {
     const songStuff = useSongSelectionStore();
-    const selectSongOptions = [defaultSelectedSongValue].concat(sheets.map((sheet) => ({ value: sheet.id, label: `${sheet.title} - ${sheet.artist} - ${sheet.key}` })));
+    const { profile } = useProfileStore();
     const selectKeyOptions = [defaultKeyValue].concat(keys.map(k => ({ value: k, label: k })));
     const selectCapoOptions = [defaultFretValue].concat(frets.map(f => ({ value: f, label: getCapoText(f) })));
+
+    const loadSongOptions = async (inputValue) => {
+        const results = await searchChordsheets(profile.orgId, inputValue || "");
+        // map to react-select options
+        const opts = results.map((sheet) => ({ value: sheet.id, label: `${sheet.title} - ${sheet.artist} - ${sheet.key}` }));
+        return [defaultSelectedSongValue].concat(opts);
+    };
 
     const handleAdd = () => {
         onAdd((prevOutputs) => [...prevOutputs, { song: songStuff.selectedSong.song, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: uuidv4() }]);
@@ -52,7 +60,7 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
                 </h3>
 
                 <label htmlFor="song">Song</label>
-                <Select value={songStuff.selectedSong.song !== "" ? selectSongOptions.find((v) => v.value === songStuff.selectedSong.song) : defaultSelectedSongValue} options={selectSongOptions} isSearchable id="song" onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, song: e.value })} />
+                <AsyncSelect cacheOptions defaultOptions loadOptions={loadSongOptions} onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, song: e.value })} id="song" />
 
                 <label className="mt-4 block" htmlFor="key">Key</label>
                 <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, targetKey: e.value })} value={songStuff.selectedSong.targetKey !== "" ? selectKeyOptions.find(k => k.value === songStuff.selectedSong.targetKey) : defaultKeyValue} options={selectKeyOptions} isSearchable id="key" />
@@ -73,7 +81,7 @@ const SongSelectionDialog = ({ sheets, onAdd, isOpen, onClose }) => {
     );
 };
 
-const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, handleDuplicateSong, handleMoveUp, handleMoveDown }) => {
+const SortableSongItem = ({ output, sheet, handleDeleteSong, openEditDialog, handleDuplicateSong, handleMoveUp, handleMoveDown }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: output.index });
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
@@ -86,7 +94,7 @@ const SortableSongItem = ({ output, sheets, handleDeleteSong, openEditDialog, ha
         touchAction: 'manipulation'
     };
 
-    const sheet = sheets.find(sheet => sheet.id === output.song);
+    // `sheet` prop may be undefined if not yet loaded
 
     const closeMenu = () => setMenuOpen(false);
 
@@ -212,9 +220,10 @@ const SetListForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [name, setName] = useState("");
-    const [sheets, setSheets] = useState([]);
+    // sheets removed: switched to lazy search via AsyncSelect
     const [isOpen, setIsOpen] = useState(false);
     const [outputs, setOutputs] = useState([]);
+    const [sheetMap, setSheetMap] = useState({}); // id -> chord sheet
     const songStuff = useSongSelectionStore();
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -235,14 +244,8 @@ const SetListForm = () => {
     );
 
     useEffect(() => {
-        const fetchSheets = async () => {
-            const { data } = await getChordsheets(profile.orgId, 0, -1, "");
-            setSheets(data);
-        };
-
         if (id !== "new") {
             const fetchSetList = async () => {
-                await fetchSheets();
                 const data = await getSetList(id);
                 if (data.orgId != profile.orgId) {
                     navigate('/setlists');
@@ -262,12 +265,29 @@ const SetListForm = () => {
             });
         }
         else {
-            fetchSheets().then(() => setIsLoading(false)).catch((err) => {
-                toast.error("A network error has occured.");
-                setIsLoading(false);
-            });
+            setIsLoading(false);
         }
     }, [id, profile.orgId, navigate]);
+
+    // Ensure we have sheet details for outputs (lazy fetch)
+    useEffect(() => {
+        const missing = outputs.map(o => o.song).filter(id => id && !sheetMap[id]);
+        if (!missing.length) return;
+        let mounted = true;
+        (async () => {
+            const mapUpdate = {};
+            await Promise.all(missing.map(async (sid) => {
+                try {
+                    const sheet = await getChordsheet(sid);
+                    if (sheet && mounted) mapUpdate[sid] = sheet;
+                } catch {
+                    // ignore
+                }
+            }));
+            if (mounted) setSheetMap(prev => ({ ...prev, ...mapUpdate }));
+        })();
+        return () => { mounted = false; };
+    }, [outputs, sheetMap]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -387,7 +407,7 @@ const SetListForm = () => {
     return (
         <div className="p-4">
             <Toaster />
-            <SongSelectionDialog sheets={sheets} onAdd={setOutputs} isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            <SongSelectionDialog onAdd={setOutputs} isOpen={isOpen} onClose={() => setIsOpen(false)} />
             <div className="mb-4">
                 <label htmlFor="name">Set List Name</label>
                 <input
@@ -429,7 +449,7 @@ const SetListForm = () => {
                                 <SortableSongItem
                                     key={output.index}
                                     output={output}
-                                    sheets={sheets}
+                                    sheet={sheetMap[output.song]}
                                     handleDeleteSong={handleDeleteSong}
                                     openEditDialog={openEditDialog}
                                     handleDuplicateSong={handleDuplicateSong}

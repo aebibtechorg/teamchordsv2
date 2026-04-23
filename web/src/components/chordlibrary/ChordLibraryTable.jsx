@@ -2,60 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 
-const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize, onDelete }) => {
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  // Render page numbers (max 5 at a time)
-  const renderPageNumbers = () => {
-    const pageNumbers = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(0, pageIndex - 2);
-    let endPage = Math.min(totalPages - 1, pageIndex + 2);
-
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      if (startPage === 0) {
-        endPage = Math.min(totalPages - 1, startPage + maxPagesToShow - 1);
-      } else if (endPage === totalPages - 1) {
-        startPage = Math.max(0, endPage - maxPagesToShow + 1);
-      }
-    }
-
-    if (startPage > 0) {
-      pageNumbers.push(
-        <button key="first" className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50" onClick={() => setPageIndex(0)}>
-          1
-        </button>
-      );
-      if (startPage > 1) {
-        pageNumbers.push(<span key="dots-start" className="px-1 text-gray-400">...</span>);
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(
-        <button
-          key={i}
-          className={`px-3 py-1.5 rounded-md border text-sm ${pageIndex === i ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
-          onClick={() => setPageIndex(i)}
-        >
-          {i + 1}
-        </button>
-      );
-    }
-
-    if (endPage < totalPages - 1) {
-      if (endPage < totalPages - 2) {
-        pageNumbers.push(<span key="dots-end" className="px-1 text-gray-400">...</span>);
-      }
-      pageNumbers.push(
-        <button key="last" className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50" onClick={() => setPageIndex(totalPages - 1)}>
-          {totalPages}
-        </button>
-      );
-    }
-
-    return pageNumbers;
-  };
+const ChordLibraryTable = ({ data, pageSize, hasPrev, hasNext, onPrev, onNext, onDelete }) => {
 
   return (
     <div className="p-4 overflow-auto">
@@ -103,27 +50,23 @@ const ChordLibraryTable = ({ data, pageIndex, setPageIndex, totalCount, pageSize
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row">
-          <button
-            className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            onClick={() => setPageIndex(pageIndex - 1)}
-            disabled={pageIndex === 0}
-          >
-            Prev
-          </button>
+      <div className="mt-6 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <button
+          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={onPrev}
+          disabled={!hasPrev}
+        >
+          Prev
+        </button>
 
-          <div className="flex flex-wrap items-center justify-center gap-2">{renderPageNumbers()}</div>
-
-          <button
-            className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            onClick={() => setPageIndex(pageIndex + 1)}
-            disabled={pageIndex >= totalPages - 1}
-          >
-            Next
-          </button>
-        </div>
-      )}
+        <button
+          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={onNext}
+          disabled={!hasNext}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

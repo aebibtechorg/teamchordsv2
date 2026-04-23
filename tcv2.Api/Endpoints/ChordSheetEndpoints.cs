@@ -31,27 +31,26 @@ internal static class ChordSheetEndpoints
             if (req.Query.TryGetValue("updatedFrom", out var uf) && DateTime.TryParse(uf, out var ufrom)) q = q.Where(x => x.UpdatedAt != null && x.UpdatedAt >= ufrom);
             if (req.Query.TryGetValue("updatedTo", out var ut) && DateTime.TryParse(ut, out var uto)) q = q.Where(x => x.UpdatedAt != null && x.UpdatedAt <= uto);
 
-            var sortBy = req.Query.TryGetValue("sortBy", out var sb) ? sb.ToString() : "createdAt";
-            var sortDir = req.Query.TryGetValue("sortDir", out var sd) ? sd.ToString().ToLowerInvariant() : "desc";
-            q = sortBy switch
+            // Use unified `search` param (matches title OR artist)
+            if (req.Query.TryGetValue("search", out var s) && !string.IsNullOrWhiteSpace(s))
             {
-                "title" => sortDir == "asc" ? q.OrderBy(x => x.Title) : q.OrderByDescending(x => x.Title),
-                "artist" => sortDir == "asc" ? q.OrderBy(x => x.Artist) : q.OrderByDescending(x => x.Artist),
-                "updatedAt" => sortDir == "asc" ? q.OrderBy(x => x.UpdatedAt) : q.OrderByDescending(x => x.UpdatedAt),
-                _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
-            };
+                var sv = s.ToString();
+                q = q.Where(x => EF.Functions.ILike(x.Title!, $"%{sv}%") || EF.Functions.ILike(x.Artist!, $"%{sv}%"));
+            }
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
+            // Keyset ordering: newest first
+            q = q.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id);
+
+            // Use cursor-based paging helper and project to DTOs
+            return await EndpointHelpers.ApplyCursorPaging(q, req, x => x.ToDto());
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
             {
-                new OpenApiParameter { Name = "page", In = ParameterLocation.Query, Description = "Page number (1-based)", Schema = new OpenApiSchema { Type = "integer", Default = new OpenApiInteger(1) } },
                 new OpenApiParameter { Name = "pageSize", In = ParameterLocation.Query, Description = "Page size (max 100)", Schema = new OpenApiSchema { Type = "integer", Default = new OpenApiInteger(20) } },
-                new OpenApiParameter { Name = "title", In = ParameterLocation.Query, Description = "Filter by title (case-insensitive, contains)", Schema = new OpenApiSchema { Type = "string" } },
-                new OpenApiParameter { Name = "artist", In = ParameterLocation.Query, Description = "Filter by artist (case-insensitive, contains)", Schema = new OpenApiSchema { Type = "string" } },
-                new OpenApiParameter { Name = "sortBy", In = ParameterLocation.Query, Description = "Sort field (createdAt,title,artist,updatedAt)", Schema = new OpenApiSchema { Type = "string" } },
-                new OpenApiParameter { Name = "sortDir", In = ParameterLocation.Query, Description = "Sort direction (asc|desc)", Schema = new OpenApiSchema { Type = "string" } }
+                new OpenApiParameter { Name = "search", In = ParameterLocation.Query, Description = "Search title or artist (contains, case-insensitive)", Schema = new OpenApiSchema { Type = "string" } },
+                new OpenApiParameter { Name = "afterCreatedAt", In = ParameterLocation.Query, Description = "Cursor: createdAt of last item (ISO date-time)", Schema = new OpenApiSchema { Type = "string", Format = "date-time" } },
+                new OpenApiParameter { Name = "afterId", In = ParameterLocation.Query, Description = "Cursor: id of last item (guid)", Schema = new OpenApiSchema { Type = "string", Format = "uuid" } }
             };
             return operation;
         });

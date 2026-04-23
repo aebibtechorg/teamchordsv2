@@ -10,16 +10,20 @@ import Spinner from "../components/Spinner";
 const SetList = () => {
   const { profile } = useProfileStore();
   const [setLists, setSetLists] = useState([]);
+  const [cursorStack, setCursorStack] = useState([]);
+  const [currentCursor, setCurrentCursor] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
-    const setLists = await getSetLists(profile.orgId);
-    setSetLists(setLists);
+    const { data, nextCursor } = await getSetLists(profile.orgId, { afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 50 });
+    setSetLists(data || []);
+    setNextCursor(nextCursor);
   };
 
   useEffect(() => {
     fetchData().then(() => setIsLoading(false)).catch((err) => toast.error(`A network error has occured: ${err}.`));
-  }, [profile.orgId]);
+  }, [profile.orgId, currentCursor]);
 
   if (isLoading) {
     return (
@@ -40,7 +44,16 @@ const SetList = () => {
           New Set List
         </Link>
       </h1>
-      {setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} />}
+      {setLists && <SetListTable data={setLists} onRefresh={async () => await fetchData()} hasPrev={cursorStack.length > 0} hasNext={!!nextCursor} onPrev={() => {
+        const stack = [...cursorStack];
+        const prev = stack.pop() || null;
+        setCursorStack(stack);
+        setCurrentCursor(prev);
+      }} onNext={() => {
+        if (!nextCursor) return;
+        setCursorStack((s) => [...s, currentCursor]);
+        setCurrentCursor(nextCursor);
+      }} />}
     </div>
   );
 };

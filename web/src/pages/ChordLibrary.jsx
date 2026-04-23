@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { getChordsheets, deleteChordsheet, backupChordsheets } from "../utils/chordsheets"; // Import backupChordsheets
+import { getChordsheetsCursor, deleteChordsheet, backupChordsheets } from "../utils/chordsheets"; // Import backupChordsheets
 import ChordLibraryTable from "../components/chordlibrary/ChordLibraryTable";
 import ChordFilesUploadDialog from "../components/chordlibrary/ChordFilesUploadDialog";
 import { Link } from "react-router-dom";
@@ -14,9 +14,11 @@ import ConfirmDialog from "../components/ConfirmDialog";
 const ChordLibrary = () => {
   const [chordSheets, setChordSheets] = useState([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [pageIndex, setPageIndex] = useState(0);
+  // Cursor stack for back navigation. Each cursor is { createdAt, id }
+  const [cursorStack, setCursorStack] = useState([]);
+  const [currentCursor, setCurrentCursor] = useState(null);
   const [pageSize] = useState(12);
-  const [totalCount, setTotalCount] = useState(0);
+  const [nextCursor, setNextCursor] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const { profile } = useProfileStore();
@@ -31,9 +33,9 @@ const ChordLibrary = () => {
 
   // Debounce effect to delay API call
   const fetchData = async () => {
-    const { data, count } = await getChordsheets(profile.orgId, pageIndex, pageSize, debouncedSearchTerm);
+    const { data, nextCursor } = await getChordsheetsCursor(profile.orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize });
     setChordSheets(data);
-    setTotalCount(count);
+    setNextCursor(nextCursor);
   };
 
   const handleUploadComplete = () => {
@@ -102,7 +104,9 @@ const ChordLibrary = () => {
 
     debounceTimeout.current = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      setPageIndex(0);
+      // reset cursor stack & cursor on new search
+      setCursorStack([]);
+      setCurrentCursor(null);
     }, 500); // 500ms delay
 
     return () => clearTimeout(debounceTimeout.current);
@@ -114,7 +118,7 @@ const ChordLibrary = () => {
       toast.error("A network error has occured.");
       setIsLoading(false);
     });
-  }, [pageIndex, pageSize, debouncedSearchTerm, profile.orgId]);
+  }, [currentCursor, pageSize, debouncedSearchTerm, profile.orgId]);
 
   // Initialize and manage SignalR connection
   useEffect(() => {
@@ -243,10 +247,22 @@ const ChordLibrary = () => {
       {chordSheets && (
         <ChordLibraryTable
           data={chordSheets}
-          pageIndex={pageIndex}
-          setPageIndex={setPageIndex}
-          totalCount={totalCount}
           pageSize={pageSize}
+          hasPrev={cursorStack.length > 0}
+          hasNext={!!nextCursor}
+          onPrev={() => {
+            // pop last cursor
+            const stack = [...cursorStack];
+            const prev = stack.pop() || null;
+            setCursorStack(stack);
+            setCurrentCursor(prev);
+          }}
+          onNext={() => {
+            if (!nextCursor) return;
+            // push current cursor and advance
+            setCursorStack((s) => [...s, currentCursor]);
+            setCurrentCursor(nextCursor);
+          }}
           onDelete={handleDeleteChordSheet}
         />
       )}
