@@ -78,11 +78,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/privacy-policy",
-    element: <NoSidebar><PrivacyPolicy /></NoSidebar>
+    element: <PrivacyPolicy />
   },
   {
     path: "/terms-and-conditions",
-    element: <NoSidebar><TermsAndConditions /></NoSidebar>
+    element: <TermsAndConditions />
   },
   {
     path: "/team",

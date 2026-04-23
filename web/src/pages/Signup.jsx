@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import MainLogo from "../components/MainLogo";
 import { useAuth0 } from "@auth0/auth0-react";
+import PublicLayout from "../components/PublicLayout.jsx";
 // import { FcGoogle } from "react-icons/fc";
 // import { FaFacebookF } from "react-icons/fa";
 
@@ -80,8 +81,8 @@ const Signup = () => {
   // };
 
   return (
-    <div className="bg-gray-700 w-screen h-screen flex flex-col items-center align-center">
-      <form onSubmit={handleSignUp} className="m-auto p-12 border rounded bg-gray-100">
+    <PublicLayout>
+      <form onSubmit={handleSignUp} className="m-auto p-12 bg-gray-100 max-w-full md:max-w-1/2">
         <h1 className="text-2xl mb-12 font-bold text-center flex justify-center"><Link to="/"><MainLogo size={96} /></Link></h1>
         <h2 className="font-bold pb-2">Sign up today!</h2>
         <p>
@@ -100,7 +101,7 @@ const Signup = () => {
             required
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col lg:flex-row lg:gap-2">
           <div className="flex-1 flex flex-col py-2">
             <input
               onChange={(e) => setGivenName(e.target.value)}
@@ -165,7 +166,7 @@ const Signup = () => {
         </div>*/}
         {error && <p className="text-red-600 text-center pt-4">{error}</p>}
       </form>
-    </div>
+    </PublicLayout>
   );
 };
 
