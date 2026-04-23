@@ -23,7 +23,8 @@ const Protected = ({ children }) => {
       try {
         await getAccessTokenSilently();
       } catch (e) {
-        // ignore token errors for now
+        await loginWithRedirect();
+        return;
       }
 
       // ensure profile is loaded from backend (supabase DB)

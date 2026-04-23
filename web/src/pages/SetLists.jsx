@@ -16,7 +16,7 @@ const SetList = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
-    const { data, nextCursor } = await getSetLists(profile.orgId, { afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 50 });
+    const { data, nextCursor } = await getSetLists(profile.orgId, { afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 12 });
     setSetLists(data || []);
     setNextCursor(nextCursor);
   };
@@ -35,7 +35,7 @@ const SetList = () => {
   }
 
   return (
-    <div className="p-4 pb-12">
+    <div className="p-4">
       <Toaster />
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Set Lists</p>

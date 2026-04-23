@@ -71,7 +71,7 @@ const SetListTable = ({ data, onRefresh, hasPrev, hasNext, onPrev, onNext }) => 
   ) : null;
 
   return (
-    <div className="p-4">
+    <div>
       {DeleteModal}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="divide-y divide-gray-200">

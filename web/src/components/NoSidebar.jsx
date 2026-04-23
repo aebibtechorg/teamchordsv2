@@ -19,7 +19,7 @@ const NoSidebar = ({ children }) => {
         };
 
     return (
-        <div className="w-screen h-screen flex justify-center align-center bg-gray-700">
+        <div className="fixed inset-0 w-screen h-screen flex justify-center align-center bg-gray-700">
             <div className="w-full md:w-1/2 lg:w-1/4 m-auto border rounded bg-gray-100 p-6 flex flex-col">
                 {children}
                 <button className="w-full mt-4 border border-gray-500 rounded bg-white p-2 text-gray-500 hover:bg-gray-600 hover:text-white disabled:opacity-50" onClick={handleSignOut}>Sign out</button>

@@ -34,7 +34,7 @@ const Sidebar = () => {
 
   return (
     <>
-      <div className={`${ isOpen ? "w-64" : "w-20" } hidden md:flex bg-gray-700 text-white h-screen flex-col p-4 transition-all duration-500 ease-in-out`}>
+      <div className={`${ isOpen ? "w-64" : "w-20" } hidden md:flex bg-gray-700 text-white flex-col p-4 transition-all duration-500 ease-in-out`}>
         <NavItem onClick={handleSidebarToggle} label={<span className="font-bold">Team Chords</span>} icon={<MainLogo size={32} />} isOpen={isOpen} />
         <hr className="my-4" />
         <nav className="flex flex-col justify-between h-full">

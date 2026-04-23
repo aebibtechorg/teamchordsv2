@@ -156,92 +156,92 @@ const ChordLibrary = () => {
   }
 
   return (
-    <div className="p-4 pb-12">
-      <div className="sticky top-0 bg-gray-100 z-50">
-      <h1 className="w-full flex justify-between mb-4">
-        <p className="text-2xl font-bold">Library</p>
-        <div className="flex gap-2">
-          {/* Full Buttons for Larger Screens */}
-          <div className="hidden sm:flex gap-2">
-            <Link
-              to="/library/new"
-              className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
-            >
-              <Plus size={16} />
-              New Song
-            </Link>
-            <button
-              onClick={() => setIsUploadDialogOpen(true)}
-              className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
-            >
-              <Upload size={16} /> Upload
-            </button>
-            {/*<button*/}
-            {/*  onClick={handleBackup}*/}
-            {/*  className="border rounded px-2 py-2 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"*/}
-            {/*>*/}
-            {/*  <Download size={16} /> Backup*/}
-            {/*</button>*/}
+    <div className="p-4">
+      <div className="bg-gray-100">
+        <h1 className="w-full flex justify-between mb-4">
+          <p className="text-2xl font-bold">Library</p>
+          <div className="flex gap-2">
+            {/* Full Buttons for Larger Screens */}
+            <div className="hidden sm:flex gap-2">
+              <Link
+                to="/library/new"
+                className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
+              >
+                <Plus size={16} />
+                New Song
+              </Link>
+              <button
+                onClick={() => setIsUploadDialogOpen(true)}
+                className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
+              >
+                <Upload size={16} /> Upload
+              </button>
+              {/*<button*/}
+              {/*  onClick={handleBackup}*/}
+              {/*  className="border rounded px-2 py-2 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"*/}
+              {/*>*/}
+              {/*  <Download size={16} /> Backup*/}
+              {/*</button>*/}
+            </div>
+  
+            {/* Ellipsis Menu for Small Screens */}
+            <div className="sm:hidden relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="border rounded px-2 py-2 text-gray-500 flex items-center"
+              >
+                <MoreVertical size={20} />
+              </button>
+  
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 bg-white border rounded shadow-md w-32 z-10">
+                  <Link
+                    to="/library/new"
+                    className="block px-4 py-2 hover:bg-gray-200 text-black text-sm"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Plus size={14} className="inline-block mr-2" />
+                    New Song
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsUploadDialogOpen(true);
+                      setMenuOpen(false);
+                    }}
+                    className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"
+                  >
+                    <Upload size={14} className="inline-block mr-2" />
+                    Upload
+                  </button>
+                  {/*<button*/}
+                  {/*  onClick={() => {*/}
+                  {/*    handleBackup();*/}
+                  {/*    setMenuOpen(false);*/}
+                  {/*  }}*/}
+                  {/*  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"*/}
+                  {/*>*/}
+                  {/*  <Download size={14} className="inline-block mr-2" />*/}
+                  {/*  Backup*/}
+                  {/*</button>*/}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Ellipsis Menu for Small Screens */}
-          <div className="sm:hidden relative">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="border rounded px-2 py-2 text-gray-500 flex items-center"
-            >
-              <MoreVertical size={20} />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 bg-white border rounded shadow-md w-32 z-10">
-                <Link
-                  to="/library/new"
-                  className="block px-4 py-2 hover:bg-gray-200 text-black text-sm"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Plus size={14} className="inline-block mr-2" />
-                  New Song
-                </Link>
-                <button
-                  onClick={() => {
-                    setIsUploadDialogOpen(true);
-                    setMenuOpen(false);
-                  }}
-                  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"
-                >
-                  <Upload size={14} className="inline-block mr-2" />
-                  Upload
-                </button>
-                {/*<button*/}
-                {/*  onClick={() => {*/}
-                {/*    handleBackup();*/}
-                {/*    setMenuOpen(false);*/}
-                {/*  }}*/}
-                {/*  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"*/}
-                {/*>*/}
-                {/*  <Download size={14} className="inline-block mr-2" />*/}
-                {/*  Backup*/}
-                {/*</button>*/}
-              </div>
-            )}
+        </h1>
+  
+        {/* Search Bar */}
+        <div className="flex mb-4">
+          <div className="relative w-full">
+            <input
+              type="text"
+              placeholder="Search by title or artist..."
+              className="w-full border border-gray-300 bg-white p-2 pl-10 rounded"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
           </div>
         </div>
-      </h1>
-
-      {/* Search Bar */}
-      <div className="flex mb-4">
-        <div className="relative w-full">
-          <input
-            type="text"
-            placeholder="Search by title or artist..."
-            className="w-full border border-gray-300 bg-white p-2 pl-10 rounded"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
-        </div>
-      </div>
       </div>
 
       {chordSheets && (

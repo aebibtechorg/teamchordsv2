@@ -5,8 +5,8 @@ import { Trash2 } from "lucide-react";
 const ChordLibraryTable = ({ data, pageSize, hasPrev, hasNext, onPrev, onNext, onDelete }) => {
 
   return (
-    <div className="p-4 overflow-auto">
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div>
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="divide-y divide-gray-200">
           {data.map((chord) => (
             <div
