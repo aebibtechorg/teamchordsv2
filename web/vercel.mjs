@@ -5,13 +5,11 @@ const backend = API_HOST.replace(/\/$/, '');
 
 
 export const config = {
+    trailingSlash: false,
     rewrites: [
         routes.rewrite('/api/:path*', backend + '/api/:path*'),
         routes.rewrite('/hubs/:path*', backend + '/hubs/:path*'),
         routes.rewrite('/(.*)', '/index.html')
-        // { source: '/api/:path*', destination: backend + '/api/:path*' },
-        // { source: '/hubs/:path*', destination: backend + '/hubs/:path*' },
-        // { source: '/(.*)', destination: '/index.html' }
     ]
 };
 
