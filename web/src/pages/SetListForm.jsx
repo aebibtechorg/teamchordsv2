@@ -19,11 +19,11 @@ import Select from "react-select";
 import AsyncSelect from "react-select/async";
 import Modal from "../components/Modal";
 
-const SongSelectionDialog = ({ onAdd, isOpen, onClose }) => {
+const SongSelectionDialog = ({ onAdd, isOpen, onClose, sheetMap }) => {
     const songStuff = useSongSelectionStore();
     const { profile } = useProfileStore();
     const selectKeyOptions = [defaultKeyValue].concat(keys.map(k => ({ value: k, label: k })));
-    const selectCapoOptions = [defaultFretValue].concat(frets.map(f => ({ value: f, label: getCapoText(f) })));
+    const selectCapoOptions = [defaultFretValue].concat(frets.map(f => ({ value: f, label: getCapoText(Number(f)) })));
 
     const loadSongOptions = async (inputValue) => {
         const results = await searchChordsheets(profile.orgId, inputValue || "");
@@ -33,13 +33,13 @@ const SongSelectionDialog = ({ onAdd, isOpen, onClose }) => {
     };
 
     const handleAdd = () => {
-        onAdd((prevOutputs) => [...prevOutputs, { song: songStuff.selectedSong.song, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: uuidv4() }]);
+        onAdd((prevOutputs) => [...prevOutputs, { song: songStuff.selectedSong.song.value, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: uuidv4() }]);
         songStuff.setSelectedSong(defaultOutputValue);
         onClose();
     };
 
     const handleEdit = () => {
-        onAdd((prevOutputs) => prevOutputs.map((output) => output.index === songStuff.songId ? { song: songStuff.selectedSong.song, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: output.index } : output));
+        onAdd((prevOutputs) => prevOutputs.map((output) => output.index === songStuff.songId ? { song: songStuff.selectedSong.song.value, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: output.index } : output));
         songStuff.setSelectedSong(defaultOutputValue);
         songStuff.setIsEdit(false);
         onClose();
@@ -60,16 +60,16 @@ const SongSelectionDialog = ({ onAdd, isOpen, onClose }) => {
                 </h3>
 
                 <label htmlFor="song">Song</label>
-                <AsyncSelect cacheOptions defaultOptions loadOptions={loadSongOptions} onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, song: e.value })} id="song" />
+                <AsyncSelect cacheOptions defaultOptions loadOptions={loadSongOptions} onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, song: e })} value={songStuff.selectedSong.song} id="song" />
 
                 <label className="mt-4 block" htmlFor="key">Key</label>
                 <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, targetKey: e.value })} value={songStuff.selectedSong.targetKey !== "" ? selectKeyOptions.find(k => k.value === songStuff.selectedSong.targetKey) : defaultKeyValue} options={selectKeyOptions} isSearchable id="key" />
 
                 <label className="mt-4 block" htmlFor="capo">Capo</label>
-                <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, capo: Number(e.value) })} value={songStuff.selectedSong.song !== "" ? selectCapoOptions.find(f => f.value === songStuff.selectedSong.capo) : defaultFretValue} options={selectCapoOptions} isSearchable id="capo" />
+                <Select onChange={(e) => songStuff.setSelectedSong({ ...songStuff.selectedSong, capo: Number(e.value) })} value={songStuff.selectedSong.capo !== 0 ? selectCapoOptions.find(f => Number(f.value) === songStuff.selectedSong.capo) : defaultFretValue} options={selectCapoOptions} isSearchable id="capo" />
                 
                 <div className="mt-4 flex justify-end gap-2">
-                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEdit : handleAdd} disabled={!songStuff.selectedSong.song || !songStuff.selectedSong.targetKey}>
+                    <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg mt-4 flex items-center gap-2 disabled:opacity-50" onClick={songStuff.isEdit ? handleEdit : handleAdd} disabled={!songStuff.selectedSong.song.value || !songStuff.selectedSong.targetKey}>
                         {songStuff.isEdit ? "Update" : "Add"}
                     </button>
                     <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg mt-4 flex items-center gap-2" onClick={songStuff.isEdit ? handleEditClose : onClose}>
@@ -254,7 +254,7 @@ const SetListForm = () => {
                 setOutputs(data.outputs.map(output => ({
                     song: output.chordSheetId,
                     targetKey: output.targetKey,
-                    capo: String(output.capo),
+                    capo: output.capo,
                     order: output.order,
                     index: uuidv4(),
                 })).sort((a, b) => a.order - b.order));
@@ -375,7 +375,7 @@ const SetListForm = () => {
         setIsOpen(true);
         songStuff.setIsEdit(true);
         songStuff.setSongId(index);
-        songStuff.setSelectedSong({ song: song.song, targetKey: song.targetKey, capo: song.capo });
+        songStuff.setSelectedSong({ song: { value: song.song, label: sheetMap[song.song] ? `${sheetMap[song.song].title} - ${sheetMap[song.song].artist} - ${sheetMap[song.song].key}` : "Loading..." }, targetKey: song.targetKey, capo: song.capo });
     };    
 
     const handleDragEnd = event => {
@@ -407,7 +407,7 @@ const SetListForm = () => {
     return (
         <div className="p-4">
             <Toaster />
-            <SongSelectionDialog onAdd={setOutputs} isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            <SongSelectionDialog onAdd={setOutputs} isOpen={isOpen} onClose={() => setIsOpen(false)} sheetMap={sheetMap} />
             <div className="mb-4">
                 <label htmlFor="name">Set List Name</label>
                 <input
