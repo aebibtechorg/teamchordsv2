@@ -214,7 +214,7 @@ const ChordProSheet = () => {
 
                 <button
                     onClick={() => { setIsConverterOpen(true); setSourceText(content); setPreview(''); }}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[160px]"
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[160px]"
                 >
                     Convert format
                 </button>
@@ -222,7 +222,7 @@ const ChordProSheet = () => {
                 {id !== 'new' && (
                     <button
                         onClick={handleDeleteClick} // Call handleDeleteClick to open dialog
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[128px]"
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center justify-center gap-2 w-full sm:w-1/4 md:w-[128px]"
                     >
                         <Trash2 size={16} />
                         Delete
@@ -270,7 +270,7 @@ const ChordProSheet = () => {
                         <div className="flex gap-2 mb-3">
                             <button
                                 onClick={() => setPreview(convert(selectedFormat, sourceText))}
-                                className="bg-gray-700 text-white px-3 py-1 rounded"
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded"
                             >Preview</button>
                             <button
                                 onClick={() => {
@@ -280,7 +280,7 @@ const ChordProSheet = () => {
                                     setIsConverterOpen(false);
                                     toast.success('Converted and applied to editor');
                                 }}
-                                className="bg-blue-600 text-white px-3 py-1 rounded"
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded"
                             >Apply</button>
                             <button
                                 onClick={() => { setIsConverterOpen(false); }}
