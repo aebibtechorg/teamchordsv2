@@ -103,8 +103,6 @@ internal static class InviteEndpoints
 
                         var httpClient = httpFactory.CreateClient();
                         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Zoho-enczapikey", apiKey);
-
-                        var inviteUrl = $"{frontendUrl}/invite/{i.Id}";
                         
                         var payload = new
                         {

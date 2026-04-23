@@ -61,7 +61,7 @@ async function inviteUser(email, organizationId) {
     try {
         const res = await apiFetch(`/api/invites`, {
             method: 'POST',
-            body: JSON.stringify({ email, organizationId, baseUrl: window.location.origin })
+            body: JSON.stringify({ email, organizationId, baseUrl: `${window.location.origin}/invite` })
         });
         if (!res.ok) {
             const text = await res.json();
