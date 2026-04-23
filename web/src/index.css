@@ -47,6 +47,11 @@
     .sheet h1 {
         margin-bottom: 1rem;
     }
+    
+    h1.title {
+        font-size: 16px;
+        font-weight: bold;
+    }
 
     @media print {
         pre {

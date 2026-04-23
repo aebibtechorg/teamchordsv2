@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
 import ChordSheetJS from "chordsheetjs";
@@ -8,16 +8,74 @@ import { Guitar, PrinterIcon } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
-import { useNavigate } from "react-router-dom";
 
+// Paper sizes in px at 96dpi
+const PAGE_SIZES = {
+    letter: { widthPx: 816,  heightPx: 1056, size: 'letter', label: 'Letter' },
+    a4:     { widthPx: 794,  heightPx: 1123, size: 'a4',     label: 'A4'     },
+    legal:  { widthPx: 816,  heightPx: 1344, size: 'legal',  label: 'Legal'  },
+};
+
+// Renders a chord sheet scaled to fit its wrapper, preserving paper aspect ratio
+const ScaledPage = ({ html, pageSizeKey }) => {
+    const wrapperRef = useRef(null);
+    const [scale, setScale] = useState(1);
+    const [wrapperWidth, setWrapperWidth] = useState(0);
+    const { widthPx, heightPx } = PAGE_SIZES[pageSizeKey];
+
+    useEffect(() => {
+        const el = wrapperRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver(([entry]) => {
+            setScale(entry.contentRect.width / widthPx);
+            setWrapperWidth(entry.contentRect.width);
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [widthPx]);
+
+    const isMobile = wrapperWidth < 768;
+
+    if (isMobile) {
+        return (
+            <div
+                ref={wrapperRef}
+                className="mt-4 w-full sheet bg-white shadow-lg border border-gray-200 p-6 text-[14px] overflow-x-auto"
+                dangerouslySetInnerHTML={{ __html: html }}
+            />
+        );
+    }
+
+    return (
+        <div
+            ref={wrapperRef}
+            className="mt-4 w-full max-w-4xl mx-auto overflow-hidden"
+            style={{ height: heightPx * scale }}
+        >
+            <pre
+                className="columns-2 sheet bg-white shadow-lg border border-gray-200 p-6 text-[12px]"
+                dangerouslySetInnerHTML={{ __html: html }}
+                style={{
+                    width: widthPx,
+                    height: heightPx,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    columnGap: '10px',
+                    columnFill: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    breakInside: 'avoid'
+                }}
+            />
+        </div>
+    );
+};
 
 const SetListView = () => {
     const { id } = useParams();
     const [setlist, setSetlist] = useState(null);
     const [outputs, setOutputs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [ogImage, setOgImage] = useState("");
-    const navigate = useNavigate();
+    const [pageSize, setPageSize] = useState("letter");
 
     useEffect(() => {
         const signalRHub = '/hubs';
@@ -25,17 +83,15 @@ const SetListView = () => {
         const fetchSet = async () => {
             const setlistData = await getSetList(id);
             const outputData = await getOutputs(id);
-            
             setSetlist(setlistData);
             setOutputs(outputData);
             document.title = `Team Chords - ${setlistData.name}`;
         };
-        fetchSet().then(() => setIsLoading(false)).catch((err) => {
-            toast.error(`An error has occured.`)
+        fetchSet().then(() => setIsLoading(false)).catch(() => {
+            toast.error(`An error has occured.`);
             setIsLoading(false);
         });
-        
-        // Setup SignalR hub connections for realtime updates
+
         const setlistConn = new HubConnectionBuilder()
             .withUrl(`${signalRHub}/setlists`)
             .withAutomaticReconnect()
@@ -169,10 +225,6 @@ const SetListView = () => {
         }
     };
 
-    const handlePrint = () => {
-        window.print();
-    };
-
     if (isLoading) {
         return (
             <div className="w-screen h-screen flex items-center justify-center">
@@ -193,23 +245,48 @@ const SetListView = () => {
     }
   
     return (
-        <div className="bg-gray-100">
+        <div className="bg-gray-100 pb-8">
+            <style dangerouslySetInnerHTML={{__html: `@page { size: ${PAGE_SIZES[pageSize].size}; }`}} />
+
+            {/* Print-only output */}
             <div className="hidden print:block">
-                {outputs.map((output) => <pre key={output.id} dangerouslySetInnerHTML={{ __html: renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo) }} />)}
+                {outputs.map((output) => (
+                    <pre key={output.id} dangerouslySetInnerHTML={{ __html: renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo) }} />
+                ))}
             </div>
-            {setlist && <h2 className="print:hidden text-center text-sm md:text-base lg:text-lg font-bold sticky top-0 left-0 z-10 w-full bg-gray-700 text-white py-4 shadow-md flex items-center gap-2 justify-center"><span>{setlist.name}</span><button onClick={handlePrint} className="flex items-center justify-center gap-1 bg-gray-500 hover:bg-gray-600 p-2 rounded font-normal"><PrinterIcon size={18} /> Print</button></h2>}
-            <div className="print:hidden flex flex-col items-center">
-            {outputs.map((output) =>
-                <div
-                    key={output.id}
-                    dangerouslySetInnerHTML={
-                        { __html: renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo)}}
-                    className="columns-1 lg:columns-2 sheet overflow-x-auto text-[12px] xl:text-base mt-4 bg-white shadow-lg rounded-lg p-6 max-w-3xl xl:max-w-5xl w-full border border-gray-200"
-                    style={{columnGap: '20px'}}
-                />
-            )}
+
+            {/* Toolbar */}
+            <h2 className="print:hidden text-center text-sm md:text-base lg:text-lg font-bold sticky top-0 left-0 z-10 w-full bg-gray-700 text-white py-4 shadow-md flex items-center gap-2 justify-center">
+                <span>{setlist.name}</span>
+                <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(e.target.value)}
+                    className="hidden md:flex bg-gray-500 hover:bg-gray-600 p-2 rounded font-normal text-white"
+                >
+                    {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
+                        <option key={key} value={key}>{label}</option>
+                    ))}
+                </select>
+                <button
+                    onClick={() => window.print()}
+                    className="flex items-center justify-center gap-1 bg-gray-500 hover:bg-gray-600 p-2 rounded font-normal"
+                >
+                    <PrinterIcon size={18} /> Print
+                </button>
+            </h2>
+
+            {/* Scaled page previews */}
+            <div className="print:hidden md:px-4">
+                {outputs.map((output) => (
+                    <ScaledPage
+                        key={output.id}
+                        html={renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo)}
+                        pageSizeKey={pageSize}
+                    />
+                ))}
             </div>
-            <footer className="print:hidden text-center text-sm text-white w-full bg-gray-700">
+
+            <footer className="print:hidden text-center text-sm text-white w-full bg-gray-700 mt-8 py-2">
                 <p>Generated by <a href={window.location.origin} target="_blank" rel="noopener noreferrer"><Guitar className="inline-block" /> Team Chords</a></p>
             </footer>
         </div>
