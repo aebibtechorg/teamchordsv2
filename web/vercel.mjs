@@ -8,7 +8,7 @@ export const config = {
     rewrites: [
         { source: '/api/:path*', destination: 'https://api-tc2.aebibtech.com/api/:path*' },
         { source: '/hubs/:path*', destination: 'https://api-tc2.aebibtech.com/hubs/:path*' },
-        { source: '^/((?!api|hubs).*)', destination: '/index.html' }
+        { source: '/(.*)', destination: '/index.html' }
     ]
 };
 
