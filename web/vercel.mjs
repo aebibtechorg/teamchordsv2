@@ -1,7 +1,7 @@
 import { deploymentEnv } from '@vercel/config/v1';
 
-const API_HOST = deploymentEnv('services__api__https__0');
-const backend = (API_HOST || 'https://api-tc2.aebibtech.com').replace(/\/$/, '');
+const API_HOST = deploymentEnv('services__api__https__0') || 'https://api-tc2.aebibtech.com';
+const backend = API_HOST.replace(/\/$/, '');
 
 export const config = {
     rewrites: [
