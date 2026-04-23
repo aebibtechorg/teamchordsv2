@@ -97,7 +97,7 @@ export default function TeamManagement() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {currentUserRole === 'admin' && member.userId !== profile.id && (
                     <button
-                      onClick={() => setConfirmRemove(member)}
+                      onClick={() => { setConfirmRemove(member) }}
                       className="text-red-600 hover:text-red-900"
                     >
                       Remove
@@ -110,12 +110,13 @@ export default function TeamManagement() {
         </table>
       </div>
 
-      {confirmRemove && (
+      {confirmRemove != null && (
         <ConfirmDialog
+          isOpen={true}
+          onClose={() => setConfirmRemove(null)}
+          onConfirm={() => handleRemoveMember(confirmRemove.userId)}
           title="Remove Member"
           message={`Are you sure you want to remove ${confirmRemove.name} from the team?`}
-          onConfirm={() => handleRemoveMember(confirmRemove.userId)}
-          onCancel={() => setConfirmRemove(null)}
         />
       )}
 
