@@ -12,7 +12,7 @@ import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 const ChordLibrary = () => {
-  const [chordsheets, setChordsheets] = useState([]);
+  const [chordSheets, setChordSheets] = useState([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize] = useState(12);
@@ -32,7 +32,7 @@ const ChordLibrary = () => {
   // Debounce effect to delay API call
   const fetchData = async () => {
     const { data, count } = await getChordsheets(profile.orgId, pageIndex, pageSize, debouncedSearchTerm);
-    setChordsheets(data);
+    setChordSheets(data);
     setTotalCount(count);
   };
 
@@ -153,7 +153,7 @@ const ChordLibrary = () => {
 
   return (
     <div className="p-4 pb-12">
-      <div className="sticky top-0 bg-gray-100">
+      <div className="sticky top-0 bg-gray-100 z-50">
       <h1 className="w-full flex justify-between mb-4">
         <p className="text-2xl font-bold">Library</p>
         <div className="flex gap-2">
@@ -240,9 +240,9 @@ const ChordLibrary = () => {
       </div>
       </div>
 
-      {chordsheets && (
+      {chordSheets && (
         <ChordLibraryTable
-          data={chordsheets}
+          data={chordSheets}
           pageIndex={pageIndex}
           setPageIndex={setPageIndex}
           totalCount={totalCount}
