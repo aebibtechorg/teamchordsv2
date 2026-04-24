@@ -8,7 +8,7 @@ import { useProfileStore } from "../store/useProfileStore";
 import OrgSelector from "./OrgSelector";
 
 const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const { logout, user } = useAuth0();
   const { setUserProfile } = useProfileStore();
 
