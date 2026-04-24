@@ -49,9 +49,11 @@ internal static class BillingEndpoints
             if (productId == null)
                 return Results.BadRequest("Invalid plan");
 
-            var apiKey = httpContext.RequestServices.GetRequiredService<IConfiguration>()["Dodo:SecretKey"];
+            var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = config["Dodo:SecretKey"];
             var client = httpClientFactory.CreateClient();
-            client.BaseAddress = new Uri("https://test.dodopayments.com");
+            var baseUrl = config["Dodo:BaseUrl"] ?? "https://test.dodopayments.com";
+            client.BaseAddress = new Uri(baseUrl);
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
             // Dodo Payments POST /checkouts (Checkout Sessions)
