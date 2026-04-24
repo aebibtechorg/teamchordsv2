@@ -1,9 +1,9 @@
-import { Link } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { getProfile } from "../utils/common";
+import ConfirmDialog from "./ConfirmDialog";
 
 const PENDING_PLAN_KEY = "pendingPlanCheckout";
 const PLAN_ORDER = { Free: 0, GiggingBand: 1, Organization: 2 };
@@ -13,6 +13,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
   const { loginWithRedirect } = useAuth0();
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Derive current plan from active org
   const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
@@ -132,7 +133,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
       // cardRank < currentRank, only possible for Free card
       return (
         <button
-          onClick={handleCancel}
+          onClick={() => setShowCancelConfirm(true)}
           className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition duration-300"
         >
           Cancel Plan
@@ -272,6 +273,17 @@ const PricingCards = ({ isAuthenticated = false }) => {
             </table>
           </div>
         </div>
+
+        {/* Cancel Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={showCancelConfirm}
+          onClose={() => setShowCancelConfirm(false)}
+          onConfirm={handleCancel}
+          title="Confirm Cancellation"
+          message="Are you sure you want to cancel your plan? This action cannot be undone."
+          confirmLabel="Yes, Cancel Plan"
+          cancelLabel="No, Keep Plan"
+        />
       </div>
     </div>
   );

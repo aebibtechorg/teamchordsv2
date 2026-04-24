@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from './Modal';
 
-const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
+const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmLabel = "Confirm", cancelLabel = "Cancel" }) => {
   if (!isOpen) {
     return null;
   }
@@ -16,7 +16,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
             onClick={onClose}
             className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800"
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={() => {
@@ -25,7 +25,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
             }}
             className="px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white"
           >
-            Confirm
+            {confirmLabel}
           </button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import Select from 'react-select';
 import { keys, INSTRUMENTS, MUSICAL_ROLES } from '../constants';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../utils/api';
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Profile = () => {
     const { user } = useAuth0();
@@ -16,6 +17,7 @@ const Profile = () => {
     const [showModal, setShowModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isCanceling, setIsCanceling] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
@@ -87,9 +89,6 @@ const Profile = () => {
     };
 
     const handleCancel = async () => {
-        if (!window.confirm('Are you sure you want to cancel your subscription? Your plan will remain active until the end of the current billing period.')) {
-            return;
-        }
 
         setIsCanceling(true);
         try {
@@ -235,7 +234,7 @@ const Profile = () => {
                                 )}
                                 {activeOrg.plan !== 'Free' && activeOrgRole?.toLowerCase() === 'admin' && (
                                     <button
-                                        onClick={handleCancel}
+                                        onClick={() => setShowCancelConfirm(true)}
                                         disabled={isCanceling}
                                         className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
                                     >
@@ -269,6 +268,17 @@ const Profile = () => {
                 <Modal onClose={() => setShowModal(false)}>
                     <UpdatePassword />
                 </Modal>
+            )}
+            {showCancelConfirm && (
+                <ConfirmDialog
+                    isOpen={showCancelConfirm}
+                    onClose={() => setShowCancelConfirm(false)}
+                    onConfirm={handleCancel}
+                    title="Cancel Subscription"
+                    message="Are you sure you want to cancel your subscription? This action cannot be undone."
+                    confirmLabel="Yes, cancel it"
+                    cancelLabel="No, keep it"
+                />
             )}
         </>
     );
