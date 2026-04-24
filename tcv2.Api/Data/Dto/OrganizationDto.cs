@@ -14,5 +14,6 @@ public class OrganizationDto
     public DateTime? UpdatedAt { get; set; }
     public Plan Plan { get; set; }
     public SubscriptionStatus SubscriptionStatus { get; set; }
+    public DateTime? PlanExpiresAt { get; set; }
 }
 }

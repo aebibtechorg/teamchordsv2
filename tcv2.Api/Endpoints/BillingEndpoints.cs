@@ -151,7 +151,7 @@ internal static class BillingEndpoints
                         ? SubscriptionStatus.Canceled
                         : SubscriptionStatus.PastDue;
                     // next_billing_date is the last known period end when cancelled
-                    org.PlanExpiresAt = data.NextBillingDate;
+                    org.PlanExpiresAt = data.ExpiresAt ?? data.NextBillingDate;
                     org.UpdatedAt = DateTime.UtcNow;
                     await db.SaveChangesAsync();
                 }

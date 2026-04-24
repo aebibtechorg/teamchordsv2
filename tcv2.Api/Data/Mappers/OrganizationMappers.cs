@@ -14,7 +14,8 @@ public static class OrganizationMappers
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt,
             Plan = organization.Plan,
-            SubscriptionStatus = organization.SubscriptionStatus
+            SubscriptionStatus = organization.SubscriptionStatus,
+            PlanExpiresAt = organization.PlanExpiresAt
         };
     }
 

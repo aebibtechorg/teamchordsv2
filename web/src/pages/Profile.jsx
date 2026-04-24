@@ -187,6 +187,11 @@ const Profile = () => {
                         <div className="bg-gray-50 p-4 rounded">
                             <p className="text-sm text-gray-600 mb-2">Current Plan: <span className="font-semibold">{activeOrg.plan || 'Free'}</span></p>
                             <p className="text-sm text-gray-600 mb-4">Status: <span className="font-semibold">{activeOrg.subscriptionStatus || 'None'}</span></p>
+                            {activeOrg.planExpiresAt && (
+                                <p className="text-sm text-gray-600 mb-4">
+                                    {new Date(activeOrg.planExpiresAt) < new Date() ? 'Expired on' : 'Expires on'}: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>
+                                </p>
+                            )}
                             {activeOrg.plan === 'Free' && (
                                 <a href="/#pricing" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
                                     Upgrade Plan
