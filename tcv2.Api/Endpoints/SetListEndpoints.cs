@@ -7,6 +7,7 @@ using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using tcv2.Api.Data.Mappers;
 using tcv2.Api.Hubs;
+using tcv2.Api.Services;
 
 namespace tcv2.Api.Endpoints;
 
@@ -66,6 +67,13 @@ internal static class SetListEndpoints
             {
                 return Results.Conflict(new { message = "SetList with this name already exists in the organization" });
             }
+
+            var org = await db.Organizations.FindAsync(dto.OrgId);
+            if (org == null) return Results.NotFound("Organization not found");
+
+            var currentSetListCount = await db.SetLists.CountAsync(s => s.OrgId == dto.OrgId);
+            var gate = FeatureGate.CheckLimits(org, 0, currentSetListCount + 1, 0, 0);
+            if (gate != null) return gate;
 
             var s = dto.ToEntity();
             s.Id = Guid.NewGuid();

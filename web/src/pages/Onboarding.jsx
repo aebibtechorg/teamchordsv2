@@ -33,7 +33,8 @@ const Onboarding = () => {
       const updated = await getProfile();
       if (updated) {
         setUserProfile(updated);
-        navigate("/library");
+        const pendingPlan = localStorage.getItem("pendingPlanCheckout");
+        navigate(pendingPlan ? "/pricing?checkout=1" : "/library");
       }
     } catch (err) {
       console.error(err);

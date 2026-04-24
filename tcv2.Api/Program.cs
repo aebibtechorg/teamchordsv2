@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,12 @@ else
     builder.Services.AddSignalR();
 }
 
+builder.Services.AddHttpClient();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 var app = builder.Build();
 
@@ -115,6 +122,9 @@ api.MapSetListEndpoints();
 
 // Users CRUD (moved to Endpoints/UserEndpoints.cs)
 api.MapUserEndpoints();
+
+// Billing endpoints
+api.MapBillingEndpoints();
 
 api.MapGet("/config", () =>
 {

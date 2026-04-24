@@ -8,6 +8,7 @@ using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using tcv2.Api.Data.Mappers;
 using tcv2.Api.Hubs;
+using tcv2.Api.Services;
 
 namespace tcv2.Api.Endpoints;
 
@@ -62,6 +63,12 @@ internal static class ChordSheetEndpoints
                 return Results.BadRequest("orgId is required.");
             }
 
+            var org = await db.Organizations.FindAsync(og);
+            if (org == null) return Results.NotFound("Organization not found");
+
+            var gate = FeatureGate.CheckBackupExport(org);
+            if (gate != null) return gate;
+
             var chordsheets = await db.ChordSheets
                 .Where(x => x.OrgId == og)
                 .Select(x => x.ToDto())
@@ -81,6 +88,14 @@ internal static class ChordSheetEndpoints
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
+
+            var org = await db.Organizations.FindAsync(dto.OrgId);
+            if (org == null) return Results.NotFound("Organization not found");
+
+            var currentSongCount = await db.ChordSheets.CountAsync(c => c.OrgId == dto.OrgId);
+            var gate = FeatureGate.CheckLimits(org, currentSongCount + 1, 0, 0, 0);
+            if (gate != null) return gate;
+
             var cs = dto.ToEntity();
             cs.Id = Guid.NewGuid();
             
@@ -90,12 +105,24 @@ internal static class ChordSheetEndpoints
             return Results.Created($"/api/chordsheets/{cs.Id}", cs.ToDto());
         });
 
-        chordSheets.MapPost("/bulk", ([FromBody] BulkChordSheetRequestDto request, [FromServices] IServiceProvider services) =>
+        chordSheets.MapPost("/bulk", async ([FromBody] BulkChordSheetRequestDto request, [FromServices] IServiceProvider services, AppDbContext db) =>
         {
             if (string.IsNullOrEmpty(request.ConnectionId))
             {
                 return Results.BadRequest("ConnectionId is required for bulk upload.");
             }
+
+            if (request.Dtos.Length == 0)
+            {
+                return Results.BadRequest("No chord sheets to upload.");
+            }
+
+            var orgId = request.Dtos[0].OrgId;
+            var org = await db.Organizations.FindAsync(orgId);
+            if (org == null) return Results.NotFound("Organization not found");
+
+            var gate = FeatureGate.CheckBulkUpload(org);
+            if (gate != null) return gate;
 
             Task.Run(async () =>
             {

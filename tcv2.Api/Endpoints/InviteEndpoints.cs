@@ -8,6 +8,7 @@ using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using tcv2.Api.Data.Mappers;
+using tcv2.Api.Services;
 
 namespace tcv2.Api.Endpoints;
 
@@ -155,6 +156,13 @@ internal static class InviteEndpoints
             {
                 if (isExistingUser)
                 {
+                    var org = await db.Organizations.FindAsync(invite.OrganizationId.Value);
+                    if (org == null) return Results.NotFound("Organization not found");
+
+                    var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == invite.OrganizationId.Value);
+                    var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
+                    if (gate != null) return gate;
+
                     var userOrg = new UserOrganization
                     {
                         UserId = existingUser.Id,

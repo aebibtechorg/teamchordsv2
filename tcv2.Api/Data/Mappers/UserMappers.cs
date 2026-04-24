@@ -44,6 +44,8 @@ public static class UserMappers
                 Name = uo.Organization.Name,
                 CreatedAt = uo.Organization.CreatedAt,
                 UpdatedAt = uo.Organization.UpdatedAt,
+                Plan = uo.Organization.Plan,
+                SubscriptionStatus = uo.Organization.SubscriptionStatus,
                 Role = uo.Role.ToString()
             }).ToList()
         };

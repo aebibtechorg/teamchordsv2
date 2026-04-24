@@ -19,6 +19,7 @@ import AcceptInvitePage from "./pages/AcceptInvite";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import TeamManagement from "./pages/TeamManagement";
+import Pricing from "./pages/Pricing.jsx";
 
 export const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -87,5 +88,6 @@ export const router = createBrowserRouter([
   {
     path: "/team",
     element: <Protected><TeamManagement /></Protected>,
-  }
+  },
+  { path: "/pricing", element: <Protected><Pricing /></Protected> },
 ]);

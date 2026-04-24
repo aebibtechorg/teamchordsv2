@@ -1,4 +1,4 @@
-import { User, Power, Library, BookAudio, Users } from "lucide-react";
+import { User, Power, Library, BookAudio, Users, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MobileSidebar from "./MobileSidebar";
@@ -51,6 +51,7 @@ const Sidebar = () => {
                     <OrgSelector />
                   </div>
                 )}
+                <NavItem to="/pricing" icon={<CreditCard size={24} />} label="Plans" isOpen={isOpen} />
                 <NavItem onClick={handleSignOut} icon={<Power size={24} />} label="Sign out" isOpen={isOpen} />
             </div>
         </nav>

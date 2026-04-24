@@ -12,7 +12,9 @@ public static class OrganizationMappers
             Id = organization.Id,
             Name = organization.Name,
             CreatedAt = organization.CreatedAt,
-            UpdatedAt = organization.UpdatedAt
+            UpdatedAt = organization.UpdatedAt,
+            Plan = organization.Plan,
+            SubscriptionStatus = organization.SubscriptionStatus
         };
     }
 
