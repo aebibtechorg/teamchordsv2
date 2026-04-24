@@ -77,7 +77,11 @@ internal static class BillingEndpoints
                 },
                 subscription_data = request.Plan == Plan.GiggingBand
                     ? (object)new { trial_period_days = 14 }
-                    : null
+                    : null,
+                customization = new
+                {
+                    theme = "light"
+                }
             };
 
             var response = await client.PostAsJsonAsync("/checkouts", checkoutRequest);
