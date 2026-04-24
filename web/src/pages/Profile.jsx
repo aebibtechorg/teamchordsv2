@@ -8,12 +8,14 @@ import { Toaster, toast } from 'react-hot-toast';
 import Select from 'react-select';
 import { keys, INSTRUMENTS, MUSICAL_ROLES } from '../constants';
 import { useSearchParams } from 'react-router-dom';
+import { apiFetch } from '../utils/api';
 
 const Profile = () => {
     const { user } = useAuth0();
     const { profile, setUserProfile } = useProfileStore();
     const [showModal, setShowModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCanceling, setIsCanceling] = useState(false);
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
@@ -81,6 +83,34 @@ const Profile = () => {
             toast.error('An error occurred while saving.');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleCancel = async () => {
+        if (!window.confirm('Are you sure you want to cancel your subscription? Your plan will remain active until the end of the current billing period.')) {
+            return;
+        }
+
+        setIsCanceling(true);
+        try {
+            const res = await apiFetch('/api/billing/cancel', {
+                method: 'POST',
+                body: JSON.stringify({ orgId: activeOrgId })
+            });
+            if (res.ok) {
+                // Refresh profile
+                const refreshed = await getProfile();
+                if (refreshed) {
+                    setUserProfile(refreshed);
+                    toast.success('Subscription cancelled. Your plan stays active until the end of the billing period.');
+                }
+            } else {
+                toast.error('Failed to cancel subscription.');
+            }
+        } catch (err) {
+            toast.error('An error occurred while canceling.');
+        } finally {
+            setIsCanceling(false);
         }
     };
 
@@ -192,11 +222,27 @@ const Profile = () => {
                                     {new Date(activeOrg.planExpiresAt) < new Date() ? 'Expired on' : 'Expires on'}: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>
                                 </p>
                             )}
-                            {activeOrg.plan === 'Free' && (
-                                <a href="/#pricing" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
-                                    Upgrade Plan
-                                </a>
+                            {activeOrg.subscriptionStatus === 'Canceled' && activeOrg.planExpiresAt && (
+                                <p className="text-sm text-orange-600 mb-4">
+                                    Cancels on: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>
+                                </p>
                             )}
+                            <div className="flex gap-2">
+                                {activeOrg.plan === 'Free' && (
+                                    <a href="/#pricing" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                                        Upgrade Plan
+                                    </a>
+                                )}
+                                {activeOrg.plan !== 'Free' && activeOrgRole?.toLowerCase() === 'admin' && (
+                                    <button
+                                        onClick={handleCancel}
+                                        disabled={isCanceling}
+                                        className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
+                                    >
+                                        {isCanceling ? 'Canceling...' : 'Cancel Subscription'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

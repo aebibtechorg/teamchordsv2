@@ -3,25 +3,39 @@ import { apiFetch } from "../utils/api";
 import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
+import { getProfile } from "../utils/common";
 
 const PENDING_PLAN_KEY = "pendingPlanCheckout";
+const PLAN_ORDER = { Free: 0, GiggingBand: 1, Organization: 2 };
 
 const PricingCards = ({ isAuthenticated = false }) => {
-  const { profile } = useProfileStore();
+  const { profile, setUserProfile } = useProfileStore();
   const { loginWithRedirect } = useAuth0();
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
 
+  // Derive current plan from active org
+  const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
+  const currentPlan = activeOrg?.plan || 'Free';
+
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('checkout') === '1') {
-      const pendingPlan = localStorage.getItem(PENDING_PLAN_KEY);
-      if (pendingPlan && profile?.orgId) {
-        localStorage.removeItem(PENDING_PLAN_KEY);
-        handleCheckout(pendingPlan);
+    const handleCheckoutRedirect = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('checkout') === '1') {
+        // Re-fetch profile to ensure fresh plan data
+        const freshProfile = await getProfile();
+        if (freshProfile) {
+          setUserProfile(freshProfile);
+        }
+        const pendingPlan = localStorage.getItem(PENDING_PLAN_KEY);
+        if (pendingPlan && freshProfile?.orgId) {
+          localStorage.removeItem(PENDING_PLAN_KEY);
+          handleCheckout(pendingPlan);
+        }
       }
-    }
-  }, [profile?.orgId]);
+    };
+    handleCheckoutRedirect();
+  }, []);
 
   const handleCheckout = async (plan) => {
     setIsLoading(true);
@@ -55,6 +69,78 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
   };
 
+  const handleCancel = async () => {
+    if (!profile?.orgId) {
+      setCheckoutError('No active organization selected.');
+      return;
+    }
+
+    try {
+      const res = await apiFetch('/api/billing/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ orgId: profile.orgId })
+      });
+      if (res.ok) {
+        // Re-fetch profile to update plan
+        const freshProfile = await getProfile();
+        if (freshProfile) {
+          setUserProfile(freshProfile);
+        }
+      } else {
+        setCheckoutError('Failed to cancel subscription.');
+      }
+    } catch (error) {
+      console.error('Cancel error:', error);
+      setCheckoutError('An error occurred while canceling.');
+    }
+  };
+
+  const getPlanButton = (cardPlan) => {
+    if (!isAuthenticated) {
+      return (
+        <button
+          onClick={() => handleCheckout(cardPlan)}
+          className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
+        >
+          {cardPlan === 'Free' ? 'Get Started' : 'Choose Plan'}
+        </button>
+      );
+    }
+
+    const currentRank = PLAN_ORDER[currentPlan] || 0;
+    const cardRank = PLAN_ORDER[cardPlan] || 0;
+
+    if (cardRank === currentRank) {
+      return (
+        <button
+          disabled
+          className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg cursor-not-allowed"
+        >
+          Current Plan
+        </button>
+      );
+    } else if (cardRank > currentRank) {
+      return (
+        <button
+          onClick={() => handleCheckout(cardPlan)}
+          className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
+        >
+          Upgrade
+        </button>
+      );
+    } else {
+      // cardRank < currentRank, only possible for Free card
+      return (
+        <button
+          onClick={handleCancel}
+          className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition duration-300"
+        >
+          Cancel Plan
+        </button>
+      );
+    }
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen">
       <div className="container mx-auto px-4 py-16">
@@ -79,9 +165,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li>Read-only public sharing</li>
               <li className="text-gray-400">Real-time live view sync (Live Mode)</li>
             </ul>
-            <button className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition duration-300">
-              {isAuthenticated ? "Current Plan" : "Get Started"}
-            </button>
+            {getPlanButton('Free')}
           </div>
 
           {/* Tier 2: Gigging Band */}
@@ -102,12 +186,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li>PDF Export/Print</li>
               <li>Offline Mode</li>
             </ul>
-            <button 
-              onClick={() => handleCheckout('GiggingBand')}
-              className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
-            >
-              {isAuthenticated ? "Upgrade" : "Choose Plan"}
-            </button>
+            {getPlanButton('GiggingBand')}
           </div>
 
           {/* Tier 3: Organization */}
@@ -122,12 +201,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li>Admin Controls</li>
               <li>Priority Support</li>
             </ul>
-            <button 
-              onClick={() => handleCheckout('Organization')}
-              className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition duration-300"
-            >
-              {isAuthenticated ? "Upgrade" : "Choose Plan"}
-            </button>
+            {getPlanButton('Organization')}
           </div>
         </div>
 

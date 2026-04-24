@@ -160,6 +160,59 @@ internal static class BillingEndpoints
             return Results.Ok();
         }).AllowAnonymous();
 
+        billing.MapPost("/cancel", async (
+            [FromBody] CancelRequest request,
+            HttpContext httpContext,
+            AppDbContext db,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (auth0UserId == null)
+                return Results.Unauthorized();
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            if (user == null)
+                return Results.NotFound("User not found");
+
+            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
+            if (callerRole != OrgRole.Admin)
+                return Results.Forbid();
+
+            var org = await db.Organizations.FindAsync(request.OrgId);
+            if (org == null)
+                return Results.NotFound("Organization not found");
+
+            if (string.IsNullOrWhiteSpace(org.DodoSubscriptionId))
+                return Results.BadRequest("No active subscription to cancel");
+
+            var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = config["Dodo:SecretKey"];
+            var client = httpClientFactory.CreateClient();
+            var baseUrl = config["Dodo:BaseUrl"] ?? "https://test.dodopayments.com";
+            client.BaseAddress = new Uri(baseUrl);
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+            // Dodo Payments PATCH /subscriptions/{subscription_id} to cancel at next billing date
+            var cancelRequest = new
+            {
+                cancel_at_next_billing_date = true,
+                cancel_reason = "cancelled_by_customer"
+            };
+
+            var response = await client.PatchAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}", cancelRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return Results.BadRequest(new { error });
+            }
+
+            org.SubscriptionStatus = SubscriptionStatus.Canceled;
+            org.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            return Results.NoContent();
+        });
+
         return api;
     }
 
@@ -221,3 +274,6 @@ public class DodoWebhookData
     public DateTime? NextBillingDate { get; set; }
     public DateTime? ExpiresAt { get; set; }
 }
+
+public record CancelRequest(Guid OrgId);
+
