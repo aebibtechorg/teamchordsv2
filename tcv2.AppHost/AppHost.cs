@@ -52,6 +52,10 @@ if (builder.Configuration["Destination"] == "aca")
     {
         api.WithReference(db).WaitFor(db);
         api.WithReference(redis).WaitFor(redis);
+
+        builder.AddDevTunnel("dodo-webhook")
+            .WithReference(api)
+            .WithAnonymousAccess();
     }
 
     if (builder.ExecutionContext.IsPublishMode)

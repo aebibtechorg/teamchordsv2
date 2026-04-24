@@ -112,7 +112,7 @@ internal static class BillingEndpoints
                 return Results.BadRequest("Invalid signature");
 
             var dodoEvent = System.Text.Json.JsonSerializer.Deserialize<DodoWebhookEvent>(
-                json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                json, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower, PropertyNameCaseInsensitive = true });
             if (dodoEvent?.Type == null)
                 return Results.BadRequest("Invalid event");
 
@@ -131,8 +131,9 @@ internal static class BillingEndpoints
                     {
                         org.Plan = plan;
                         org.SubscriptionStatus = SubscriptionStatus.Active;
-                        org.DodoCustomerId = data.CustomerId;
+                        org.DodoCustomerId = data.Customer.CustomerId;
                         org.DodoSubscriptionId = data.SubscriptionId;
+                        org.PlanExpiresAt = data.ExpiresAt;
                         org.UpdatedAt = DateTime.UtcNow;
                         await db.SaveChangesAsync();
                     }
@@ -206,13 +207,17 @@ public class DodoWebhookEvent
     public DodoWebhookData Data { get; set; } = new();
 }
 
+/// <summary>Customer object in Dodo webhook data</summary>
+public record DodoCustomer(string? CustomerId);
+
 /// <summary>Common fields present in subscription webhook payloads</summary>
 public class DodoWebhookData
 {
     public string? SubscriptionId { get; set; }
-    public string? CustomerId { get; set; }
+    public DodoCustomer Customer { get; set; } = new(null);
     public string? ProductId { get; set; }
     public string? Status { get; set; }
     public Dictionary<string, string>? Metadata { get; set; }
     public DateTime? NextBillingDate { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 }
