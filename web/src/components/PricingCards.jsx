@@ -58,7 +58,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
 
     try {
-      const { url } = await startCheckout(plan, profile.orgId, `${window.location.origin}/profile`);
+      const { url } = await startCheckout(plan, profile.orgId, `${window.location.origin}/billing`);
       window.location.href = url;
     } catch (error) {
       console.error('Checkout error:', error);
