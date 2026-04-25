@@ -293,21 +293,21 @@ const SetListView = () => {
             </footer>
 
             {/* Bluetooth Pedal */}
-            <div className="print:hidden fixed bottom-4 right-4 z-20">
-                <BluetoothPedal
-                    outputs={outputs}
-                    setOutputs={setOutputs}
-                    show={showPedal}
-                    onClose={() => setShowPedal(false)}
-                />
-                <button
-                    onClick={() => setShowPedal(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow-md"
-                >
-                    <BluetoothPedal className="w-5 h-5" />
-                    Show Pedal
-                </button>
-            </div>
+            {/*<div className="print:hidden fixed bottom-4 right-4 z-20">*/}
+            {/*    <BluetoothPedal*/}
+            {/*        outputs={outputs}*/}
+            {/*        setOutputs={setOutputs}*/}
+            {/*        show={showPedal}*/}
+            {/*        onClose={() => setShowPedal(false)}*/}
+            {/*    />*/}
+            {/*    <button*/}
+            {/*        onClick={() => setShowPedal(true)}*/}
+            {/*        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow-md"*/}
+            {/*    >*/}
+            {/*        <BluetoothPedal className="w-5 h-5" />*/}
+            {/*        Show Pedal*/}
+            {/*    </button>*/}
+            {/*</div>*/}
         </div>
     );
 };
