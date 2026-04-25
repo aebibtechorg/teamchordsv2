@@ -218,7 +218,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
                 <tr>
                   <th className="py-3 px-6 text-left font-bold">Feature</th>
                   <th className="py-3 px-6 text-center font-bold">Jam Session (Free)</th>
-                  <th className="py-3 px-6 text-center font-bold">Gigging Band ($15)</th>
+                  <th className="py-3 px-6 text-center font-bold">Gigging Band ($5)</th>
                   <th className="py-3 px-6 text-center font-bold">Organization ($49)</th>
                 </tr>
               </thead>
