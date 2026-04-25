@@ -20,6 +20,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import TeamManagement from "./pages/TeamManagement";
 import Pricing from "./pages/Pricing.jsx";
+import Billing from "./pages/Billing.jsx";
 
 export const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -90,4 +91,5 @@ export const router = createBrowserRouter([
     element: <Protected><TeamManagement /></Protected>,
   },
   { path: "/pricing", element: <Protected><Pricing /></Protected> },
+  { path: "/billing", element: <Protected><Billing /></Protected> },
 ]);

@@ -7,7 +7,7 @@ import { updateMe, upsertProfile, getProfile } from '../utils/common';
 import { Toaster, toast } from 'react-hot-toast';
 import Select from 'react-select';
 import { keys, INSTRUMENTS, MUSICAL_ROLES } from '../constants';
-import { useSearchParams } from 'react-router-dom';
+import {Link, useSearchParams} from 'react-router-dom';
 import { apiFetch } from '../utils/api';
 import ConfirmDialog from "../components/ConfirmDialog";
 
@@ -210,41 +210,41 @@ const Profile = () => {
                 </div>
 
                 {/* Billing */}
-                {activeOrg && (
-                    <div className="mb-6">
-                        <h2 className="text-xl font-semibold mb-4">Billing</h2>
-                        <div className="bg-gray-50 p-4 rounded">
-                            <p className="text-sm text-gray-600 mb-2">Current Plan: <span className="font-semibold">{activeOrg.plan || 'Free'}</span></p>
-                            <p className="text-sm text-gray-600 mb-4">Status: <span className="font-semibold">{activeOrg.subscriptionStatus || 'None'}</span></p>
-                            {activeOrg.planExpiresAt && (
-                                <p className="text-sm text-gray-600 mb-4">
-                                    {new Date(activeOrg.planExpiresAt) < new Date() ? 'Expired on' : 'Expires on'}: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>
-                                </p>
-                            )}
-                            {activeOrg.subscriptionStatus === 'Canceled' && activeOrg.planExpiresAt && (
-                                <p className="text-sm text-orange-600 mb-4">
-                                    Cancels on: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>
-                                </p>
-                            )}
-                            <div className="flex gap-2">
-                                {activeOrg.plan === 'Free' && (
-                                    <a href="/#pricing" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
-                                        Upgrade Plan
-                                    </a>
-                                )}
-                                {activeOrg.plan !== 'Free' && activeOrgRole?.toLowerCase() === 'admin' && (
-                                    <button
-                                        onClick={() => setShowCancelConfirm(true)}
-                                        disabled={isCanceling}
-                                        className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
-                                    >
-                                        {isCanceling ? 'Canceling...' : 'Cancel Subscription'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/*{activeOrg && (*/}
+                {/*    <div className="mb-6">*/}
+                {/*        <h2 className="text-xl font-semibold mb-4">Billing</h2>*/}
+                {/*        <div className="bg-gray-50 p-4 rounded">*/}
+                {/*            <p className="text-sm text-gray-600 mb-2">Current Plan: <span className="font-semibold">{activeOrg.plan || 'Free'}</span></p>*/}
+                {/*            <p className="text-sm text-gray-600 mb-4">Status: <span className="font-semibold">{activeOrg.subscriptionStatus || 'None'}</span></p>*/}
+                {/*            {activeOrg.planExpiresAt && (*/}
+                {/*                <p className="text-sm text-gray-600 mb-4">*/}
+                {/*                    {new Date(activeOrg.planExpiresAt) < new Date() ? 'Expired on' : 'Expires on'}: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>*/}
+                {/*                </p>*/}
+                {/*            )}*/}
+                {/*            {activeOrg.subscriptionStatus === 'Canceled' && activeOrg.planExpiresAt && (*/}
+                {/*                <p className="text-sm text-orange-600 mb-4">*/}
+                {/*                    Cancels on: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>*/}
+                {/*                </p>*/}
+                {/*            )}*/}
+                {/*            <div className="flex gap-2">*/}
+                {/*                {activeOrg.plan === 'Free' && (*/}
+                {/*                    <Link to="/pricing" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">*/}
+                {/*                        Upgrade Plan*/}
+                {/*                    </Link>*/}
+                {/*                )}*/}
+                {/*                {activeOrg.plan !== 'Free' && activeOrgRole?.toLowerCase() === 'admin' && (*/}
+                {/*                    <button*/}
+                {/*                        onClick={() => setShowCancelConfirm(true)}*/}
+                {/*                        disabled={isCanceling}*/}
+                {/*                        className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"*/}
+                {/*                    >*/}
+                {/*                        {isCanceling ? 'Canceling...' : 'Cancel Subscription'}*/}
+                {/*                    </button>*/}
+                {/*                )}*/}
+                {/*            </div>*/}
+                {/*        </div>*/}
+                {/*    </div>*/}
+                {/*)}*/}
 
                 {/* Buttons */}
                 <div className="flex flex-col sm:flex-row gap-2 justify-end">

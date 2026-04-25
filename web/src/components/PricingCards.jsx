@@ -3,6 +3,7 @@ import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { getProfile } from "../utils/common";
+import { startCheckout, cancelSubscription } from "../utils/billing";
 import ConfirmDialog from "./ConfirmDialog";
 
 const PENDING_PLAN_KEY = "pendingPlanCheckout";
@@ -57,15 +58,11 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
 
     try {
-      const res = await apiFetch('/api/billing/checkout', {
-        method: 'POST',
-        body: JSON.stringify({ plan, orgId: profile.orgId, redirectUrl: `${window.location.origin}/profile` })
-      });
-      const data = await res.json();
-      window.location.href = data.url;
+      const { url } = await startCheckout(plan, profile.orgId, `${window.location.origin}/profile`);
+      window.location.href = url;
     } catch (error) {
       console.error('Checkout error:', error);
-      setCheckoutError('An error occurred during checkout. Please try again.');
+      setCheckoutError(error.message || 'An error occurred during checkout. Please try again.');
       setIsLoading(false);
     }
   };
@@ -77,22 +74,15 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
 
     try {
-      const res = await apiFetch('/api/billing/cancel', {
-        method: 'POST',
-        body: JSON.stringify({ orgId: profile.orgId })
-      });
-      if (res.ok) {
-        // Re-fetch profile to update plan
-        const freshProfile = await getProfile();
-        if (freshProfile) {
-          setUserProfile(freshProfile);
-        }
-      } else {
-        setCheckoutError('Failed to cancel subscription.');
+      await cancelSubscription(profile.orgId);
+      // Re-fetch profile to update plan
+      const freshProfile = await getProfile();
+      if (freshProfile) {
+        setUserProfile(freshProfile);
       }
     } catch (error) {
       console.error('Cancel error:', error);
-      setCheckoutError('An error occurred while canceling.');
+      setCheckoutError(error.message || 'An error occurred while canceling.');
     }
   };
 

@@ -13,6 +13,16 @@ namespace tcv2.Api.Endpoints;
 
 internal static class BillingEndpoints
 {
+    private static Plan? GetPlanFromProductId(string productId)
+    {
+        return productId switch
+        {
+            DodoProductIds.GiggingBand => Plan.GiggingBand,
+            DodoProductIds.Organization => Plan.Organization,
+            _ => null
+        };
+    }
+
     public static RouteGroupBuilder MapBillingEndpoints(this RouteGroupBuilder api)
     {
         var billing = api.MapGroup("/billing");
@@ -64,20 +74,18 @@ internal static class BillingEndpoints
                 {
                     new { product_id = productId, quantity = 1 }
                 },
-                customer = new
-                {
-                    email = user.Email,
-                    name = user.Name ?? user.Email
-                },
+                customer = (object)(org.DodoCustomerId != null
+                    ? new { customer_id = org.DodoCustomerId, email = user.Email, name = user.Name ?? user.Email }
+                    : new { email = user.Email, name = user.Name ?? user.Email }),
                 return_url = $"{request.redirectUrl?.TrimEnd('/')}?success=true",
                 metadata = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
                     { "plan", request.Plan.ToString() }
                 },
-                subscription_data = request.Plan == Plan.GiggingBand
-                    ? (object)new { trial_period_days = 14 }
-                    : null,
+                // subscription_data = request.Plan == Plan.GiggingBand
+                //     ? (object)new { trial_period_days = 14 }
+                //     : null,
                 customization = new
                 {
                     theme = "light"
@@ -126,18 +134,18 @@ internal static class BillingEndpoints
             {
                 var data = dodoEvent.Data;
                 var orgIdStr = data.Metadata?.GetValueOrDefault("organization_id");
-                var planStr = data.Metadata?.GetValueOrDefault("plan");
+                var plan = GetPlanFromProductId(data.ProductId!);
 
-                if (Guid.TryParse(orgIdStr, out var orgId) && Enum.TryParse<Plan>(planStr, out var plan))
+                if (Guid.TryParse(orgIdStr, out var orgId) && plan.HasValue)
                 {
                     var org = await db.Organizations.FindAsync(orgId);
                     if (org != null)
                     {
-                        org.Plan = plan;
+                        org.Plan = plan.Value;
                         org.SubscriptionStatus = SubscriptionStatus.Active;
                         org.DodoCustomerId = data.Customer.CustomerId;
                         org.DodoSubscriptionId = data.SubscriptionId;
-                        org.PlanExpiresAt = data.ExpiresAt;
+                        org.PlanExpiresAt = data.NextBillingDate;
                         org.UpdatedAt = DateTime.UtcNow;
                         await db.SaveChangesAsync();
                     }
@@ -163,6 +171,60 @@ internal static class BillingEndpoints
 
             return Results.Ok();
         }).AllowAnonymous();
+
+        billing.MapPost("/portal", async (
+            [FromBody] PortalRequest request,
+            HttpContext httpContext,
+            AppDbContext db,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (auth0UserId == null)
+                return Results.Unauthorized();
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            if (user == null)
+                return Results.NotFound("User not found");
+
+            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
+            if (callerRole != OrgRole.Admin)
+                return Results.Forbid();
+
+            var org = await db.Organizations.FindAsync(request.OrgId);
+            if (org == null)
+                return Results.NotFound("Organization not found");
+
+            if (string.IsNullOrWhiteSpace(org.DodoCustomerId))
+                return Results.BadRequest("No billing customer found");
+
+            var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var apiKey = config["Dodo:SecretKey"];
+            var client = httpClientFactory.CreateClient();
+            var baseUrl = config["Dodo:BaseUrl"] ?? "https://test.dodopayments.com";
+            client.BaseAddress = new Uri(baseUrl);
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+            // Dodo Payments POST /customers/{customer_id}/customer-portal/session
+            // https://docs.dodopayments.com/api-reference/customers/customer-portal-create
+            var portalUrl = $"/customers/{org.DodoCustomerId}/customer-portal/session?send_email=false";
+            if (!string.IsNullOrEmpty(request.returnUrl))
+            {
+                portalUrl += $"&return_url={Uri.EscapeDataString(request.returnUrl)}";
+            }
+
+            var response = await client.PostAsync(portalUrl, null);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return Results.BadRequest(new { error });
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<DodoCustomerPortalResponse>();
+            if (result?.link == null)
+                return Results.BadRequest("Failed to create customer portal session");
+
+            return Results.Ok(new { url = result.link });
+        });
 
         billing.MapPost("/cancel", async (
             [FromBody] CancelRequest request,
@@ -210,7 +272,7 @@ internal static class BillingEndpoints
                 return Results.BadRequest(new { error });
             }
 
-            org.SubscriptionStatus = SubscriptionStatus.Canceled;
+            // Note: Status remains Active until webhook fires subscription.cancelled at period end
             org.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
 
@@ -281,3 +343,8 @@ public class DodoWebhookData
 
 public record CancelRequest(Guid OrgId);
 
+/// <summary>Dodo Payments POST /customers/{customer_id}/portal response</summary>
+public record DodoCustomerPortalResponse(
+    string link);    // URL to redirect the customer to the portal
+
+public record PortalRequest(Guid OrgId, string? returnUrl);

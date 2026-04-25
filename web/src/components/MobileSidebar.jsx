@@ -27,7 +27,7 @@ const MobileSidebar = () => {
         <MobileNavItem to="/setlists" icon={<BookAudio size={16} />} label="Set Lists" />
         <MobileNavItem to="/team" icon={<Users size={16} />} label="Team" />
         <MobileNavItem to="/profile" icon={<User size={16} />} label="Profile" />
-        <MobileNavItem to="/pricing" icon={<CreditCard size={16} />} label="Plans" />
+        <MobileNavItem to="/billing" icon={<CreditCard size={16} />} label="Billing" />
         <MobileNavItem onClick={handleSignOut} icon={<Power size={16} />} />
       </div>
     </nav>

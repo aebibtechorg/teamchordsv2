@@ -42,6 +42,7 @@ const Sidebar = () => {
                 <NavItem to="/library" icon={<Library size={24} />} label="Library" isOpen={isOpen} />
                 <NavItem to="/setlists" icon={<BookAudio size={24} />} label="Set Lists" isOpen={isOpen} />
                 <NavItem to="/team" icon={<Users size={24} />} label="Team" isOpen={isOpen} />
+                <NavItem to="/billing" icon={<CreditCard size={24} />} label="Billing" isOpen={isOpen} />
             </div>
             <div className="flex flex-col space-y-4">
                 <hr />
@@ -51,7 +52,6 @@ const Sidebar = () => {
                     <OrgSelector />
                   </div>
                 )}
-                <NavItem to="/pricing" icon={<CreditCard size={24} />} label="Plans" isOpen={isOpen} />
                 <NavItem onClick={handleSignOut} icon={<Power size={24} />} label="Sign out" isOpen={isOpen} />
             </div>
         </nav>
