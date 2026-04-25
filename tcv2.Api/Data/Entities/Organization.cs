@@ -3,6 +3,22 @@ using System.ComponentModel.DataAnnotations;
  
 namespace tcv2.Api.Data.Entities
 {
+    public enum Plan
+    {
+        Free,
+        GiggingBand,
+        Organization
+    }
+
+    public enum SubscriptionStatus
+    {
+        None,
+        Active,
+        Canceled,
+        PastDue,
+        Incomplete
+    }
+
     public class Organization
     {
         [Key]
@@ -13,6 +29,16 @@ namespace tcv2.Api.Data.Entities
         public DateTime? UpdatedAt { get; set; }
 
         public string? Name { get; set; }
+
+        public Plan Plan { get; set; } = Plan.Free;
+
+        public SubscriptionStatus SubscriptionStatus { get; set; } = SubscriptionStatus.None;
+
+        public string? DodoCustomerId { get; set; }
+
+        public string? DodoSubscriptionId { get; set; }
+
+        public DateTime? PlanExpiresAt { get; set; }
         
         // Many-to-many: organization can have many users
         public ICollection<User> Users { get; set; } = new List<User>();

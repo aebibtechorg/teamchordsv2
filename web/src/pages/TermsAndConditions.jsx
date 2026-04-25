@@ -10,7 +10,7 @@ const TermsAndConditions = () => {
 
         <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
         <p className="mb-4">Welcome to <strong>Team Chords</strong> (“Company”, “we”, “our”, “us”)!</p>
-        <p className="mb-4">These Terms of Service (“Terms”, “Terms of Service”) govern your use of our website located at <strong>tc2.aebibtech.com</strong> (together or individually “Service”) operated by <strong>Team Chords</strong>.</p>
+        <p className="mb-4">These Terms of Service (“Terms”, “Terms of Service”) govern your use of our website located at <strong>{window.location.origin}</strong> (together or individually “Service”) operated by <strong>Team Chords</strong>.</p>
         <p className="mb-4">Our Privacy Policy also governs your use of our Service and explains how we collect, safeguard and disclose information that results from your use of our web pages.</p>
         <p className="mb-4">Your agreement with us includes these Terms and our Privacy Policy (“Agreements”). You acknowledge that you have read and understood Agreements, and agree to be bound of them.</p>
         <p className="mb-4">If you do not agree with (or cannot comply with) Agreements, then you may not use the Service, but please let us know by emailing at <strong>paul@aebibtech.com</strong> so we can try to find a solution. These Terms apply to all visitors, users and others who wish to access or use Service.</p>

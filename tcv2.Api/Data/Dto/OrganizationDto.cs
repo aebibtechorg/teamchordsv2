@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using tcv2.Api.Data.Entities;
 
 namespace tcv2.Api.Data.Dto
 {
@@ -11,5 +12,8 @@ public class OrganizationDto
     public string? Name { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public Plan Plan { get; set; }
+    public SubscriptionStatus SubscriptionStatus { get; set; }
+    public DateTime? PlanExpiresAt { get; set; }
 }
 }

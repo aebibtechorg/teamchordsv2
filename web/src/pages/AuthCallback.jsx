@@ -19,7 +19,8 @@ const AuthCallback = () => {
           setUserProfile(d)
           const hasOrgs = (d.organizations && d.organizations.length > 0) || (d.Organizations && d.Organizations.length > 0);
           if (hasOrgs) {
-            navigate('/library')
+            const pendingPlan = localStorage.getItem("pendingPlanCheckout");
+            navigate(pendingPlan ? "/pricing?checkout=1" : "/library");
           } else {
             navigate('/onboard')
           }

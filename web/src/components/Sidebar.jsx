@@ -1,4 +1,4 @@
-import { User, Power, Library, BookAudio, Users } from "lucide-react";
+import { User, Power, Library, BookAudio, Users, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MobileSidebar from "./MobileSidebar";
@@ -8,7 +8,7 @@ import { useProfileStore } from "../store/useProfileStore";
 import OrgSelector from "./OrgSelector";
 
 const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const { logout, user } = useAuth0();
   const { setUserProfile } = useProfileStore();
 
@@ -42,6 +42,7 @@ const Sidebar = () => {
                 <NavItem to="/library" icon={<Library size={24} />} label="Library" isOpen={isOpen} />
                 <NavItem to="/setlists" icon={<BookAudio size={24} />} label="Set Lists" isOpen={isOpen} />
                 <NavItem to="/team" icon={<Users size={24} />} label="Team" isOpen={isOpen} />
+                <NavItem to="/billing" icon={<CreditCard size={24} />} label="Billing" isOpen={isOpen} />
             </div>
             <div className="flex flex-col space-y-4">
                 <hr />

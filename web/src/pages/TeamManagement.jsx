@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import Modal from '../components/Modal';
 import TeamTable from '../components/team/TeamTable';
 import { Toaster, toast } from 'react-hot-toast';
+import {Plus} from "lucide-react";
 
 export default function TeamManagement() {
   const { profile } = useProfileStore();
@@ -69,8 +70,9 @@ export default function TeamManagement() {
         <h1 className="text-2xl font-bold">Team Management</h1>
         <button 
           onClick={() => setIsInviteDialogOpen(true)}
-          className="bg-gray-500 hover:bg-gray-600 disabled:opacity-50 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white"
+          className="bg-gray-500 hover:bg-gray-600 disabled:opacity-50 py-2 px-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white flex items-center gap-2"
         >
+          <Plus size={16} />
           Invite User
         </button>
       </div>

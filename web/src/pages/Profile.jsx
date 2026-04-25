@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useProfileStore } from "../store/useProfileStore";
 import Modal from "../components/Modal";
@@ -7,12 +7,26 @@ import { updateMe, upsertProfile, getProfile } from '../utils/common';
 import { Toaster, toast } from 'react-hot-toast';
 import Select from 'react-select';
 import { keys, INSTRUMENTS, MUSICAL_ROLES } from '../constants';
+import {Link, useSearchParams} from 'react-router-dom';
+import { apiFetch } from '../utils/api';
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Profile = () => {
     const { user } = useAuth0();
     const { profile, setUserProfile } = useProfileStore();
     const [showModal, setShowModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCanceling, setIsCanceling] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get('success') === 'true') {
+            toast.success('Payment successful! Your plan has been upgraded.');
+            // Refresh profile to get updated plan
+            getProfile().then(setUserProfile);
+        }
+    }, [searchParams, setUserProfile]);
 
     // Local form state
     const [givenName, setGivenName] = useState(profile?.givenName || profile?.GivenName || '');
@@ -71,6 +85,31 @@ const Profile = () => {
             toast.error('An error occurred while saving.');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleCancel = async () => {
+
+        setIsCanceling(true);
+        try {
+            const res = await apiFetch('/api/billing/cancel', {
+                method: 'POST',
+                body: JSON.stringify({ orgId: activeOrgId })
+            });
+            if (res.ok) {
+                // Refresh profile
+                const refreshed = await getProfile();
+                if (refreshed) {
+                    setUserProfile(refreshed);
+                    toast.success('Subscription cancelled. Your plan stays active until the end of the billing period.');
+                }
+            } else {
+                toast.error('Failed to cancel subscription.');
+            }
+        } catch (err) {
+            toast.error('An error occurred while canceling.');
+        } finally {
+            setIsCanceling(false);
         }
     };
 
@@ -170,6 +209,43 @@ const Profile = () => {
                     </div>
                 </div>
 
+                {/* Billing */}
+                {/*{activeOrg && (*/}
+                {/*    <div className="mb-6">*/}
+                {/*        <h2 className="text-xl font-semibold mb-4">Billing</h2>*/}
+                {/*        <div className="bg-gray-50 p-4 rounded">*/}
+                {/*            <p className="text-sm text-gray-600 mb-2">Current Plan: <span className="font-semibold">{activeOrg.plan || 'Free'}</span></p>*/}
+                {/*            <p className="text-sm text-gray-600 mb-4">Status: <span className="font-semibold">{activeOrg.subscriptionStatus || 'None'}</span></p>*/}
+                {/*            {activeOrg.planExpiresAt && (*/}
+                {/*                <p className="text-sm text-gray-600 mb-4">*/}
+                {/*                    {new Date(activeOrg.planExpiresAt) < new Date() ? 'Expired on' : 'Expires on'}: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>*/}
+                {/*                </p>*/}
+                {/*            )}*/}
+                {/*            {activeOrg.subscriptionStatus === 'Canceled' && activeOrg.planExpiresAt && (*/}
+                {/*                <p className="text-sm text-orange-600 mb-4">*/}
+                {/*                    Cancels on: <span className="font-semibold">{new Date(activeOrg.planExpiresAt).toLocaleDateString()}</span>*/}
+                {/*                </p>*/}
+                {/*            )}*/}
+                {/*            <div className="flex gap-2">*/}
+                {/*                {activeOrg.plan === 'Free' && (*/}
+                {/*                    <Link to="/pricing" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">*/}
+                {/*                        Upgrade Plan*/}
+                {/*                    </Link>*/}
+                {/*                )}*/}
+                {/*                {activeOrg.plan !== 'Free' && activeOrgRole?.toLowerCase() === 'admin' && (*/}
+                {/*                    <button*/}
+                {/*                        onClick={() => setShowCancelConfirm(true)}*/}
+                {/*                        disabled={isCanceling}*/}
+                {/*                        className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"*/}
+                {/*                    >*/}
+                {/*                        {isCanceling ? 'Canceling...' : 'Cancel Subscription'}*/}
+                {/*                    </button>*/}
+                {/*                )}*/}
+                {/*            </div>*/}
+                {/*        </div>*/}
+                {/*    </div>*/}
+                {/*)}*/}
+
                 {/* Buttons */}
                 <div className="flex flex-col sm:flex-row gap-2 justify-end">
                     <button 
@@ -192,6 +268,17 @@ const Profile = () => {
                 <Modal onClose={() => setShowModal(false)}>
                     <UpdatePassword />
                 </Modal>
+            )}
+            {showCancelConfirm && (
+                <ConfirmDialog
+                    isOpen={showCancelConfirm}
+                    onClose={() => setShowCancelConfirm(false)}
+                    onConfirm={handleCancel}
+                    title="Cancel Subscription"
+                    message="Are you sure you want to cancel your subscription? This action cannot be undone."
+                    confirmLabel="Yes, cancel it"
+                    cancelLabel="No, keep it"
+                />
             )}
         </>
     );
