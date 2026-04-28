@@ -138,9 +138,9 @@ const PricingCards = ({ isAuthenticated = false }) => {
         <p className="text-xl text-gray-600 text-center mb-12">
           Each account can own one organization, and invites can still add you to other organizations.
         </p>
-        <div className="max-w-3xl mx-auto mb-12 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 text-center">
-          Tiering is based on chord sheet and set list capacity inside your organization.
-        </div>
+        {/*<div className="max-w-3xl mx-auto mb-12 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 text-center">*/}
+        {/*  Tiering is based on chord sheet and set list capacity inside your organization.*/}
+        {/*</div>*/}
 
         {/* Pricing Tiers */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
