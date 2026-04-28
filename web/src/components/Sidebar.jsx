@@ -10,13 +10,13 @@ import OrgSelector from "./OrgSelector";
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { logout, user } = useAuth0();
-  const { setUserProfile } = useProfileStore();
+  const { clearUserProfile } = useProfileStore();
 
   const handleSignOut = async (e) => {
     e.preventDefault();
 
     try {
-      setUserProfile(null);
+      clearUserProfile();
       await logout({ logoutParams: { returnTo: window.location.origin } });
     } catch (err) {
       console.error(err);

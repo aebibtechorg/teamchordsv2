@@ -1,16 +1,18 @@
 import {User, Power, Library, BookAudio, Users, CreditCard} from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth0 } from '@auth0/auth0-react';
 import OrgSelector from './OrgSelector';
+import { useProfileStore } from '../store/useProfileStore';
 
 const MobileSidebar = () => {
   const { logout } = useAuth0();
-  const navigate = useNavigate();
+  const { clearUserProfile } = useProfileStore();
 
   const handleSignOut = async (e) => {
     e.preventDefault();
 
     try {
+      clearUserProfile();
       await logout({ logoutParams: { returnTo: window.location.origin } });
     } catch (err) {
       console.error(err);

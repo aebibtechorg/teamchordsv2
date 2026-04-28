@@ -8,8 +8,16 @@ const getProfileFromStorage = () => {
 export const useProfileStore = create((set) => ({
   profile: getProfileFromStorage(),
   setUserProfile: (user) => {
-    localStorage.setItem('profile', JSON.stringify(user));
+    if (user) {
+      localStorage.setItem('profile', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('profile');
+    }
     set({ profile: user });
+  },
+  clearUserProfile: () => {
+    localStorage.removeItem('profile');
+    set({ profile: null });
   },
   setActiveOrg: (orgId) => set((state) => {
     const p = state.profile ? { ...state.profile, orgId } : null;

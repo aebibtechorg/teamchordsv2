@@ -22,7 +22,13 @@ internal static class ChordSheetEndpoints
         {
             var q = db.ChordSheets.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
-            if (req.Query.TryGetValue("orgId", out var orgId) && Guid.TryParse(orgId, out var og)) q = q.Where(x => x.OrgId == og);
+
+            if (!req.Query.TryGetValue("orgId", out var orgId) || string.IsNullOrWhiteSpace(orgId) || !Guid.TryParse(orgId, out var og))
+            {
+                return Results.BadRequest("orgId is required.");
+            }
+
+            q = q.Where(x => x.OrgId == og);
             if (req.Query.TryGetValue("title", out var title)) q = q.Where(x => EF.Functions.ILike(x.Title!, $"%{title}%"));
             if (req.Query.TryGetValue("artist", out var artist)) q = q.Where(x => EF.Functions.ILike(x.Artist!, $"%{artist}%"));
             if (req.Query.TryGetValue("content", out var content)) q = q.Where(x => EF.Functions.ILike(x.Content!, $"%{content}%"));
