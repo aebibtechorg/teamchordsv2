@@ -154,7 +154,7 @@ export default function TeamManagement() {
                 setOrgNameError(null);
               }}
               readOnly={!canEditOrgName}
-              className={`w-full max-w-md text-2xl font-bold text-gray-900 outline-none transition ${canEditOrgName ? 'focus:bg-white focus:border-gray-400 focus:ring-2 focus:ring-gray-200' : 'cursor-default'}`}
+              className={`w-full bg-transparent max-w-md text-2xl font-bold text-gray-900 outline-none transition ${canEditOrgName ? 'focus:bg-white focus:border-gray-400 focus:ring-2 focus:ring-gray-200' : 'cursor-default'}`}
               placeholder="Organization name"
               aria-label="Organization name"
             />
