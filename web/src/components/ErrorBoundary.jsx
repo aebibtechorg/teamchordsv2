@@ -11,6 +11,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    console.log(error, errorInfo);
     this.setState({ error, errorInfo });
     // You can hook up remote logging here (Sentry, LogRocket, etc.)
   }

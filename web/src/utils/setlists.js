@@ -3,6 +3,10 @@ import { apiFetch } from './api';
 // Cursor-based fetch for setlists. Options: { search, afterCreatedAt, afterId, pageSize }
 async function getSetLists(orgId, { search = "", afterCreatedAt = null, afterId = null, pageSize = 50 } = {}) {
     try {
+        if (!orgId || String(orgId).trim() === '') {
+            return { data: [], nextCursor: null };
+        }
+
         const parts = [`orgId=${encodeURIComponent(orgId)}`];
         if (search) parts.push(`search=${encodeURIComponent(search)}`);
         if (afterCreatedAt) parts.push(`afterCreatedAt=${encodeURIComponent(afterCreatedAt)}`);

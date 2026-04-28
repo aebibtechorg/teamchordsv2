@@ -26,6 +26,7 @@ const ChordLibrary = () => {
   const debounceTimeout = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const orgId = profile?.orgId;
 
   // State for ConfirmDialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -33,14 +34,20 @@ const ChordLibrary = () => {
 
   // Debounce effect to delay API call
   const fetchData = async () => {
-    const { data, nextCursor } = await getChordsheetsCursor(profile.orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize });
+    if (!orgId) {
+      setChordSheets([]);
+      setNextCursor(null);
+      return;
+    }
+
+    const { data, nextCursor } = await getChordsheetsCursor(orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize });
     setChordSheets(data);
     setNextCursor(nextCursor);
   };
 
   const handleUploadComplete = () => {
     setIsUploadDialogOpen(false);
-    fetchData().catch((err) => toast.error("A network error has occured."));
+    fetchData().catch(() => toast.error("A network error has occured."));
   };
 
   // Function to open the confirmation dialog
@@ -55,7 +62,7 @@ const ChordLibrary = () => {
       try {
         await deleteChordsheet(chordSheetToDeleteId);
         toast.success("Chord sheet deleted successfully!");
-        fetchData().catch((err) => toast.error("A network error has occured."));
+        fetchData().catch(() => toast.error("A network error has occured."));
       } catch (error) {
         console.error("Error deleting chord sheet:", error);
         toast.error("Failed to delete chord sheet.");
@@ -114,11 +121,17 @@ const ChordLibrary = () => {
 
   // Fetch data when search term or pagination changes
   useEffect(() => {
-    fetchData().then(() => setIsLoading(false)).catch((err) => {
+    if (!orgId) {
+      setChordSheets([]);
+      setNextCursor(null);
+      return;
+    }
+
+    fetchData().then(() => setIsLoading(false)).catch(() => {
       toast.error("A network error has occured.");
       setIsLoading(false);
     });
-  }, [currentCursor, pageSize, debouncedSearchTerm, profile.orgId]);
+  }, [currentCursor, debouncedSearchTerm, orgId, pageSize]);
 
   // Initialize and manage SignalR connection
   useEffect(() => {

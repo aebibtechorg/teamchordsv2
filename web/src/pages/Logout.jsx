@@ -9,8 +9,8 @@ const Logout= () => {
     useEffect(() => {
         // Trigger Auth0 logout and return to app origin
         if (typeof window !== "undefined") {
-            clearUserProfile();
-            logout({ logoutParams: { returnTo: window.location.origin } });
+            logout({ logoutParams: { returnTo: window.location.origin } })
+                .then(() => { clearUserProfile() });
         }
     }, [clearUserProfile, logout]);
 

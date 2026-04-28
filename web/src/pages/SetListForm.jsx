@@ -22,11 +22,16 @@ import Modal from "../components/Modal";
 const SongSelectionDialog = ({ onAdd, isOpen, onClose, sheetMap }) => {
     const songStuff = useSongSelectionStore();
     const { profile } = useProfileStore();
+    const orgId = profile?.orgId;
     const selectKeyOptions = [defaultKeyValue].concat(keys.map(k => ({ value: k, label: k })));
     const selectCapoOptions = [defaultFretValue].concat(frets.map(f => ({ value: f, label: getCapoText(Number(f)) })));
 
     const loadSongOptions = async (inputValue) => {
-        const results = await searchChordsheets(profile.orgId, inputValue || "");
+        if (!orgId) {
+            return [defaultSelectedSongValue];
+        }
+
+        const results = await searchChordsheets(orgId, inputValue || "");
         // map to react-select options
         const opts = results.map((sheet) => ({ value: sheet.id, label: `${sheet.title} - ${sheet.artist} - ${sheet.key}` }));
         return [defaultSelectedSongValue].concat(opts);
@@ -130,7 +135,7 @@ const SortableSongItem = ({ output, sheet, handleDeleteSong, openEditDialog, han
                 <svg viewBox="0 0 20 20" width="20" fill="currentColor"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg>
             </div>
 
-            <div className="flex-grow ml-4">
+            <div className="grow ml-4">
                 <p className="font-semibold">{sheet?.title || "Unknown"}</p>
                 <p className="text-sm text-gray-500">{sheet?.artist || 'Unknown Artist'}</p>
             </div>

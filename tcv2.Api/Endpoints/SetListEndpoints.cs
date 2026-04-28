@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using System.Linq;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
-using tcv2.Api.Data.Entities;
 using tcv2.Api.Data.Mappers;
 using tcv2.Api.Hubs;
 using tcv2.Api.Services;
@@ -20,7 +18,13 @@ internal static class SetListEndpoints
         {
             var q = db.SetLists.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
-            if (req.Query.TryGetValue("orgId", out var orgId) && Guid.TryParse(orgId, out var g)) q = q.Where(x => x.OrgId == g);
+
+            if (!req.Query.TryGetValue("orgId", out var orgId) || string.IsNullOrWhiteSpace(orgId) || !Guid.TryParse(orgId, out var g))
+            {
+                return Results.BadRequest("orgId is required.");
+            }
+
+            q = q.Where(x => x.OrgId == g);
             // support unified search param on name
             if (req.Query.TryGetValue("search", out var s) && !string.IsNullOrWhiteSpace(s))
             {
@@ -59,7 +63,7 @@ internal static class SetListEndpoints
             return Results.Ok(s.ToDetailDto());
         }).AllowAnonymous();
 
-        setlists.MapPost("/", async (SetListDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        setlists.MapPost("/", async (SetListDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -91,7 +95,7 @@ internal static class SetListEndpoints
             }
         });
 
-        setlists.MapPut("/{id}", async (Guid id, SetListDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        setlists.MapPut("/{id}", async (Guid id, SetListDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -115,7 +119,7 @@ internal static class SetListEndpoints
             }
         });
 
-        setlists.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        setlists.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var existing = await db.SetLists.FindAsync(id);
             if (existing == null) return Results.NotFound();
