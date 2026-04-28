@@ -30,9 +30,8 @@ const OrgSelector = ({ className = '' }) => {
 
   const handleChange = (e) => {
     const id = e.target.value || null;
-    if (id == 'create-new') {
+    if (id === 'create-new') {
       setIsOpenCreateOrg(true);
-      setActiveOrg((previous) => previous);
     } else {
       setActiveOrg(id);
     }
