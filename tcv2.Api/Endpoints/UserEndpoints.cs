@@ -192,6 +192,18 @@ internal static class UserEndpoints
                 string? createdAuth0UserId = null;
                 string? createdAuth0Picture = null;
 
+                async Task RollbackSafelyAsync()
+                {
+                    try
+                    {
+                        await tx.RollbackAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Transaction may already be completed; keep the original error intact.
+                    }
+                }
+
                 try
                 {
                     var u = dto.ToEntity();
@@ -310,16 +322,27 @@ internal static class UserEndpoints
 
                     await db.SaveChangesAsync();
                     await tx.CommitAsync();
-                    return Results.Created($"/api/users/{u.Id}", u.ToDetailDto());
+
+                    var createdUser = await db.Users
+                        .Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization)
+                        .Include(x => x.Profile)
+                        .FirstOrDefaultAsync(x => x.Id == u.Id);
+
+                    if (createdUser == null)
+                    {
+                        return Results.BadRequest(new { message = "Failed to reload created user" });
+                    }
+
+                    return Results.Created($"/api/users/{u.Id}", createdUser.ToDetailDto());
                 }
                 catch (DbUpdateException ex)
                 {
-                    await tx.RollbackAsync();
+                    await RollbackSafelyAsync();
                     return EndpointHelpers.HandleDbUpdateException(ex);
                 }
                 catch (Exception ex)
                 {
-                    await tx.RollbackAsync();
+                    await RollbackSafelyAsync();
 
                     // cleanup Auth0 user if it was created
                     if (!string.IsNullOrWhiteSpace(createdAuth0UserId))
@@ -372,6 +395,10 @@ internal static class UserEndpoints
         {
             var existing = await db.Users.FindAsync(id);
             if (existing == null) return Results.NotFound();
+            if (await db.Organizations.AnyAsync(o => o.OwnerUserId == id))
+            {
+                return Results.Conflict(new { message = "Cannot delete a user who owns an organization." });
+            }
             db.Users.Remove(existing);
             await db.SaveChangesAsync();
             return Results.NoContent();

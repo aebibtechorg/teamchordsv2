@@ -1,17 +1,15 @@
-import { useNavigate } from "react-router-dom";
 import { useAuth0 } from '@auth0/auth0-react';
 import { useProfileStore } from "../store/useProfileStore";
 
 const NoSidebar = ({ children }) => {
     const { logout } = useAuth0();
-    const { setUserProfile } = useProfileStore();
-    const navigate = useNavigate();
+    const { clearUserProfile } = useProfileStore();
 
         const handleSignOut = async (e) => {
                 e.preventDefault();
 
                 try {
-                    setUserProfile(null);
+                    clearUserProfile();
                     await logout({ logoutParams: { returnTo: window.location.origin } });
                 } catch (err) {
                     console.error(err);

@@ -10,6 +10,7 @@ public static class OrganizationMappers
         return new OrganizationDto
         {
             Id = organization.Id,
+            OwnerUserId = organization.OwnerUserId,
             Name = organization.Name,
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt,

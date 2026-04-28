@@ -26,6 +26,7 @@ const ChordLibrary = () => {
   const debounceTimeout = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const orgId = profile?.orgId;
 
   // State for ConfirmDialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -33,14 +34,20 @@ const ChordLibrary = () => {
 
   // Debounce effect to delay API call
   const fetchData = async () => {
-    const { data, nextCursor } = await getChordsheetsCursor(profile.orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize });
+    if (!orgId) {
+      setChordSheets([]);
+      setNextCursor(null);
+      return;
+    }
+
+    const { data, nextCursor } = await getChordsheetsCursor(orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize });
     setChordSheets(data);
     setNextCursor(nextCursor);
   };
 
   const handleUploadComplete = () => {
     setIsUploadDialogOpen(false);
-    fetchData().catch((err) => toast.error("A network error has occured."));
+    fetchData().catch(() => toast.error("A network error has occured."));
   };
 
   // Function to open the confirmation dialog
@@ -55,7 +62,7 @@ const ChordLibrary = () => {
       try {
         await deleteChordsheet(chordSheetToDeleteId);
         toast.success("Chord sheet deleted successfully!");
-        fetchData().catch((err) => toast.error("A network error has occured."));
+        fetchData().catch(() => toast.error("A network error has occured."));
       } catch (error) {
         console.error("Error deleting chord sheet:", error);
         toast.error("Failed to delete chord sheet.");
@@ -66,36 +73,36 @@ const ChordLibrary = () => {
     }
   };
 
-  // const handleBackup = async () => {
-  //   try {
-  //     const response = await backupChordsheets(profile.orgId);
-  //     if (response.ok) {
-  //       const blob = await response.blob();
-  //       const contentDisposition = response.headers.get('Content-Disposition');
-  //       let filename = 'chordsheets_backup.json';
-  //       if (contentDisposition) {
-  //         const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-  //         if (filenameMatch && filenameMatch[1]) {
-  //           filename = filenameMatch[1];
-  //         }
-  //       }
-  //       const url = window.URL.createObjectURL(blob);
-  //       const a = document.createElement('a');
-  //       a.href = url;
-  //       a.download = filename;
-  //       document.body.appendChild(a);
-  //       a.click();
-  //       a.remove();
-  //       window.URL.revokeObjectURL(url);
-  //       toast.success("Chord sheets backup downloaded!");
-  //     } else {
-  //       toast.error("Failed to download backup.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error backing up chord sheets:", error);
-  //     toast.error("A network error has occured during backup.");
-  //   }
-  // };
+  const handleBackup = async () => {
+    try {
+      const response = await backupChordsheets(profile.orgId);
+      if (response.ok) {
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'chordsheets_backup.json';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1];
+          }
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success("Chord sheets backup downloaded!");
+      } else {
+        toast.error("Failed to download backup.");
+      }
+    } catch (error) {
+      console.error("Error backing up chord sheets:", error);
+      toast.error("A network error has occured during backup.");
+    }
+  };
 
   useEffect(() => {
     if (debounceTimeout.current) {
@@ -114,11 +121,17 @@ const ChordLibrary = () => {
 
   // Fetch data when search term or pagination changes
   useEffect(() => {
-    fetchData().then(() => setIsLoading(false)).catch((err) => {
+    if (!orgId) {
+      setChordSheets([]);
+      setNextCursor(null);
+      return;
+    }
+
+    fetchData().then(() => setIsLoading(false)).catch(() => {
       toast.error("A network error has occured.");
       setIsLoading(false);
     });
-  }, [currentCursor, pageSize, debouncedSearchTerm, profile.orgId]);
+  }, [currentCursor, debouncedSearchTerm, orgId, pageSize]);
 
   // Initialize and manage SignalR connection
   useEffect(() => {
@@ -176,12 +189,12 @@ const ChordLibrary = () => {
               >
                 <Upload size={16} /> Upload
               </button>
-              {/*<button*/}
-              {/*  onClick={handleBackup}*/}
-              {/*  className="border rounded px-2 py-2 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"*/}
-              {/*>*/}
-              {/*  <Download size={16} /> Backup*/}
-              {/*</button>*/}
+              <button
+                onClick={handleBackup}
+                className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
+              >
+                <Download size={16} /> Backup
+              </button>
             </div>
   
             {/* Ellipsis Menu for Small Screens */}
@@ -213,16 +226,16 @@ const ChordLibrary = () => {
                     <Upload size={14} className="inline-block mr-2" />
                     Upload
                   </button>
-                  {/*<button*/}
-                  {/*  onClick={() => {*/}
-                  {/*    handleBackup();*/}
-                  {/*    setMenuOpen(false);*/}
-                  {/*  }}*/}
-                  {/*  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"*/}
-                  {/*>*/}
-                  {/*  <Download size={14} className="inline-block mr-2" />*/}
-                  {/*  Backup*/}
-                  {/*</button>*/}
+                  <button
+                    onClick={() => {
+                      handleBackup().then(() => setMenuOpen(false));
+                      // setMenuOpen(false);
+                    }}
+                    className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"
+                  >
+                    <Download size={14} className="inline-block mr-2" />
+                    Backup
+                  </button>
                 </div>
               )}
             </div>

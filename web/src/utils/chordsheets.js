@@ -3,6 +3,10 @@ import { apiFetch } from "./api";
 // Cursor-based fetch for chordsheets. Options: { search, afterCreatedAt, afterId, pageSize }
 async function getChordsheetsCursor(orgId, { search = "", afterCreatedAt = null, afterId = null, pageSize = 12 } = {}) {
     try {
+        if (!orgId || String(orgId).trim() === '') {
+            return { data: [], nextCursor: null };
+        }
+
         const parts = [`orgId=${encodeURIComponent(orgId)}`];
         if (search) parts.push(`search=${encodeURIComponent(search)}`);
         if (afterCreatedAt) parts.push(`afterCreatedAt=${encodeURIComponent(afterCreatedAt)}`);
@@ -22,6 +26,10 @@ async function getChordsheetsCursor(orgId, { search = "", afterCreatedAt = null,
 
 // Helper used by async select in SetListForm
 async function searchChordsheets(orgId, inputValue, pageSize = 20) {
+    if (!orgId || String(orgId).trim() === '') {
+        return [];
+    }
+
     const { data } = await getChordsheetsCursor(orgId, { search: inputValue, pageSize });
     return data || [];
 }
@@ -105,8 +113,7 @@ async function deleteChordsheet(id) {
 
 async function backupChordsheets(orgId) {
     try {
-        const res = await apiFetch(`/api/chordsheets/backup?orgId=${encodeURIComponent(orgId)}`);
-        return res;
+        return await apiFetch(`/api/chordsheets/backup?orgId=${encodeURIComponent(orgId)}`);
     } catch (err) {
         console.error("Error backing up chordsheets:", err);
         throw err;

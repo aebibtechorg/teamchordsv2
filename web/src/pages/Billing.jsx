@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, ExternalLink, ArrowUpCircle, XCircle } from 'lucide-react';
+import { ExternalLink, ArrowUpCircle, XCircle } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useProfileStore } from '../store/useProfileStore';
 import { getProfile } from '../utils/common';
@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 const PLAN_LABELS = {
   Free: 'Jam Session (Free)',
   GiggingBand: 'Gigging Band',
-  Organization: 'Organization',
+  Organization: 'Pro Library',
 };
 
 const STATUS_BADGE = {
@@ -19,6 +19,19 @@ const STATUS_BADGE = {
   PastDue:    'bg-yellow-100 text-yellow-800',
   Incomplete: 'bg-orange-100 text-orange-800',
   None:       'bg-gray-100 text-gray-600',
+};
+
+const REFRESH_RETRY_DELAY_MS = 2000;
+
+const getBillingState = (userProfile) => {
+  const orgId = userProfile?.orgId;
+  const activeOrg = userProfile?.organizations?.find(o => o.id === orgId);
+
+  return {
+    plan: activeOrg?.plan ?? 'Free',
+    status: activeOrg?.subscriptionStatus ?? 'None',
+    expiresAt: activeOrg?.planExpiresAt ?? null,
+  };
 };
 
 export default function Billing() {
@@ -34,9 +47,51 @@ export default function Billing() {
   const plan = activeOrg?.plan ?? 'Free';
   const status = activeOrg?.subscriptionStatus ?? 'None';
   const expiresAt = activeOrg?.planExpiresAt;
+  const currentBillingState = getBillingState(profile);
 
   const isPaid = plan !== 'Free';
   const isCancelPending = status === 'Canceled' && isPaid; // cancelled but period not ended yet
+
+  const refreshProfile = useCallback(async ({ retryOnce = false } = {}) => {
+    const fresh = await getProfile();
+    if (fresh) {
+      setUserProfile(fresh);
+
+      if (retryOnce) {
+        const freshBillingState = getBillingState(fresh);
+        const isStillStale =
+          freshBillingState.plan === currentBillingState.plan &&
+          freshBillingState.status === currentBillingState.status &&
+          freshBillingState.expiresAt === currentBillingState.expiresAt;
+
+        if (isStillStale) {
+          await new Promise(resolve => setTimeout(resolve, REFRESH_RETRY_DELAY_MS));
+          const retried = await getProfile();
+          if (retried) setUserProfile(retried);
+        }
+      }
+    }
+  }, [currentBillingState.expiresAt, currentBillingState.plan, currentBillingState.status, setUserProfile]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshProfile({ retryOnce: true });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshProfile({ retryOnce: true });
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshProfile]);
 
   const handlePortal = async () => {
     setPortalLoading(true);
@@ -57,8 +112,7 @@ export default function Billing() {
       await cancelSubscription(orgId);
       toast.success('Subscription cancelled. Access continues until the end of your billing period.');
       // Refresh profile so status reflects the webhook eventually, but for now just refetch
-      const fresh = await getProfile();
-      if (fresh) setUserProfile(fresh);
+      await refreshProfile();
     } catch (err) {
       toast.error(err.message || 'Failed to cancel subscription.');
     } finally {
@@ -74,7 +128,7 @@ export default function Billing() {
     <div className="p-6 max-w-2xl">
       <Toaster />
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <CreditCard size={24} /> Billing
+        Billing
       </h1>
 
       {/* Current Plan Card */}

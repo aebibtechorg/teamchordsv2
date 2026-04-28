@@ -1,4 +1,3 @@
-import { apiFetch } from "../utils/api";
 import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
@@ -135,10 +134,13 @@ const PricingCards = ({ isAuthenticated = false }) => {
   return (
     <div className="bg-gray-100 min-h-screen">
       <div className="container mx-auto px-4 py-16">
-        <h1 className="text-4xl font-bold text-center mb-4">Find the Right Plan for Your Team</h1>
+        <h1 className="text-4xl font-bold text-center mb-4">Find the Right Plan for Your Library</h1>
         <p className="text-xl text-gray-600 text-center mb-12">
-          From solo artists to large organizations, we have a plan that fits your needs.
+          Each account can own one organization, and invites can still add you to other organizations.
         </p>
+        {/*<div className="max-w-3xl mx-auto mb-12 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 text-center">*/}
+        {/*  Tiering is based on chord sheet and set list capacity inside your organization.*/}
+        {/*</div>*/}
 
         {/* Pricing Tiers */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -146,12 +148,11 @@ const PricingCards = ({ isAuthenticated = false }) => {
           <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
             <h2 className="text-2xl font-bold mb-4">Jam Session</h2>
             <p className="text-4xl font-extrabold mb-4">$0<span className="text-lg font-normal text-gray-500">/ month</span></p>
-            <p className="text-gray-600 mb-6">For solo artists, hobbyists, or users testing the platform.</p>
-            <ul className="space-y-4 text-gray-700 mb-8 flex-grow">
-              <li><span className="font-bold">1 Team</span> allowed</li>
-              <li>Max <span className="font-bold">3 Team Members</span></li>
-              <li><span className="font-bold">50 Songs</span> (ChordPro sheets)</li>
+            <p className="text-gray-600 mb-6">For solo artists and hobbyists getting started with a small library.</p>
+            <ul className="space-y-4 text-gray-700 mb-8 grow">
+              <li><span className="font-bold">50 Chord Sheets</span> (ChordPro sheets)</li>
               <li><span className="font-bold">3 Set Lists</span></li>
+              <li><span className="font-bold">3 Team Members</span></li>
               <li>Basic ChordPro Editor</li>
               <li>Read-only public sharing</li>
               <li className="text-gray-400">Real-time live view sync (Live Mode)</li>
@@ -166,12 +167,11 @@ const PricingCards = ({ isAuthenticated = false }) => {
             </div>
             <h2 className="text-2xl font-bold mb-4">Gigging Band</h2>
             <p className="text-4xl font-extrabold mb-4">$5<span className="text-lg font-normal text-gray-500">/ month</span></p>
-            <p className="text-gray-600 mb-6">For local bands, worship teams, and performing groups.</p>
-            <ul className="space-y-4 text-gray-700 mb-8 flex-grow">
-              <li><span className="font-bold">1 Team</span> allowed</li>
-              <li><span className="font-bold">Unlimited</span> Team Members</li>
-              <li><span className="font-bold">Unlimited</span> Songs</li>
+            <p className="text-gray-600 mb-6">For active groups that need a bigger shared library and flexible set lists.</p>
+            <ul className="space-y-4 text-gray-700 mb-8 grow">
+              <li><span className="font-bold">250 Chord Sheets</span></li>
               <li><span className="font-bold">Unlimited</span> Set Lists</li>
+              <li><span className="font-bold">Unlimited</span> Team Members</li>
               <li><span className="font-bold text-blue-600">Real-Time "Live Mode"</span></li>
               <li>Transposition Tools</li>
               <li>PDF Export/Print</li>
@@ -180,13 +180,15 @@ const PricingCards = ({ isAuthenticated = false }) => {
             {getPlanButton('GiggingBand')}
           </div>
 
-          {/* Tier 3: Organization */}
+          {/* Tier 3: Pro Library */}
           <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
-            <h2 className="text-2xl font-bold mb-4">Organization</h2>
+            <h2 className="text-2xl font-bold mb-4">Pro Library</h2>
             <p className="text-4xl font-extrabold mb-4">$49<span className="text-lg font-normal text-gray-500">/ month</span></p>
-            <p className="text-gray-600 mb-6">For multi-campus churches, music schools, or booking agencies.</p>
-            <ul className="space-y-4 text-gray-700 mb-8 flex-grow">
-              <li><span className="font-bold">Up to 5 Teams</span></li>
+            <p className="text-gray-600 mb-6">For organizations that need the largest shared chord library and set list capacity.</p>
+            <ul className="space-y-4 text-gray-700 mb-8 grow">
+              <li><span className="font-bold">Unlimited Chord Sheets</span></li>
+              <li><span className="font-bold">Unlimited Set Lists</span></li>
+              <li><span className="font-bold">Unlimited Team Members</span></li>
               <li>Everything in Gigging Band</li>
               <li><span className="font-bold text-blue-600">Centralized Library</span></li>
               <li>Admin Controls</li>
@@ -219,27 +221,27 @@ const PricingCards = ({ isAuthenticated = false }) => {
                   <th className="py-3 px-6 text-left font-bold">Feature</th>
                   <th className="py-3 px-6 text-center font-bold">Jam Session (Free)</th>
                   <th className="py-3 px-6 text-center font-bold">Gigging Band ($5)</th>
-                  <th className="py-3 px-6 text-center font-bold">Organization ($49)</th>
+                  <th className="py-3 px-6 text-center font-bold">Pro Library ($49)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Members</td>
+                  <td className="py-4 px-6 font-semibold">Chord Sheets</td>
+                  <td className="py-4 px-6 text-center">50</td>
+                  <td className="py-4 px-6 text-center font-bold">250</td>
+                  <td className="py-4 px-6 text-center font-bold">Unlimited</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Set Lists</td>
                   <td className="py-4 px-6 text-center">3</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Songs</td>
-                  <td className="py-4 px-6 text-center">50</td>
+                  <td className="py-4 px-6 font-semibold">Members</td>
+                  <td className="py-4 px-6 text-center">3</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Teams</td>
-                  <td className="py-4 px-6 text-center">1</td>
-                  <td className="py-4 px-6 text-center">1</td>
-                  <td className="py-4 px-6 text-center font-bold">Up to 5</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-4 px-6 font-semibold">Live Sync</td>
@@ -257,11 +259,15 @@ const PricingCards = ({ isAuthenticated = false }) => {
                   <td className="py-4 px-6 font-semibold">Library Sharing</td>
                   <td className="py-4 px-6 text-center">No</td>
                   <td className="py-4 px-6 text-center">No</td>
-                  <td className="py-4 px-6 text-center font-bold">Cross-Team</td>
+                  <td className="py-4 px-6 text-center font-bold">Cross-Org</td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className="mt-6 text-center text-sm text-gray-500">
+          Each account can own one organization. If you are invited into other organizations, you can still join them.
         </div>
 
         {/* Cancel Confirmation Dialog */}

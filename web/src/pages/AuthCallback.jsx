@@ -8,7 +8,7 @@ import Spinner from '../components/Spinner'
 const AuthCallback = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated, isLoading } = useAuth0()
-  const { setUserProfile } = useProfileStore()
+  const { setUserProfile, clearUserProfile } = useProfileStore()
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -24,14 +24,18 @@ const AuthCallback = () => {
           } else {
             navigate('/onboard')
           }
+        } else {
+          clearUserProfile()
+          navigate('/onboard')
         }
       } else {
+        clearUserProfile()
         // if not authenticated, redirect to signin
         navigate('/signin')
       }
     }
     fetchProfile()
-  }, [isAuthenticated, isLoading, user, setUserProfile, navigate])
+  }, [clearUserProfile, isAuthenticated, isLoading, navigate, setUserProfile, user?.sub])
 
   return (
     <div className="flex items-center justify-center h-screen">

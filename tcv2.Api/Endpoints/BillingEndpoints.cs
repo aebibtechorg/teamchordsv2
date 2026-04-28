@@ -41,14 +41,17 @@ internal static class BillingEndpoints
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(
-                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId);
-            if (userOrg == null)
-                return Results.BadRequest("User does not belong to this organization");
-
             var org = await db.Organizations.FindAsync(request.OrgId);
             if (org == null)
                 return Results.NotFound("Organization not found");
+
+            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(
+                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId);
+            if (userOrg == null && org.OwnerUserId != user.Id)
+                return Results.BadRequest("User does not belong to this organization");
+
+            if (userOrg != null && userOrg.Role != OrgRole.Admin && org.OwnerUserId != user.Id)
+                return Results.Forbid();
 
             var productId = request.Plan switch
             {
@@ -186,13 +189,17 @@ internal static class BillingEndpoints
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
-            if (callerRole != OrgRole.Admin)
-                return Results.Forbid();
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id);
 
             var org = await db.Organizations.FindAsync(request.OrgId);
             if (org == null)
                 return Results.NotFound("Organization not found");
+
+            if (callerMembership == null && org.OwnerUserId != user.Id)
+                return Results.Forbid();
+
+            if (callerMembership != null && callerMembership.Role != OrgRole.Admin && org.OwnerUserId != user.Id)
+                return Results.Forbid();
 
             if (string.IsNullOrWhiteSpace(org.DodoCustomerId))
                 return Results.BadRequest("No billing customer found");
@@ -240,13 +247,17 @@ internal static class BillingEndpoints
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
-            if (callerRole != OrgRole.Admin)
-                return Results.Forbid();
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id);
 
             var org = await db.Organizations.FindAsync(request.OrgId);
             if (org == null)
                 return Results.NotFound("Organization not found");
+
+            if (callerMembership == null && org.OwnerUserId != user.Id)
+                return Results.Forbid();
+
+            if (callerMembership != null && callerMembership.Role != OrgRole.Admin && org.OwnerUserId != user.Id)
+                return Results.Forbid();
 
             if (string.IsNullOrWhiteSpace(org.DodoSubscriptionId))
                 return Results.BadRequest("No active subscription to cancel");

@@ -16,18 +16,31 @@ const SetList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const debounceTimeout = useRef(null);
+  const orgId = profile?.orgId;
 
   const fetchData = async () => {
-    const { data, nextCursor } = await getSetLists(profile.orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 12 });
+    if (!orgId) {
+      setSetLists([]);
+      setNextCursor(null);
+      return;
+    }
+
+    const { data, nextCursor } = await getSetLists(orgId, { search: debouncedSearchTerm, afterCreatedAt: currentCursor?.createdAt, afterId: currentCursor?.id, pageSize: 12 });
     setSetLists(data || []);
     setNextCursor(nextCursor);
   };
 
   // Fetch data when org, cursor or debounced search changes
   useEffect(() => {
+    if (!orgId) {
+      setSetLists([]);
+      setNextCursor(null);
+      return;
+    }
+
     setIsLoading(true);
     fetchData().then(() => setIsLoading(false)).catch((err) => toast.error(`A network error has occured: ${err}.`));
-  }, [profile.orgId, currentCursor, debouncedSearchTerm]);
+  }, [currentCursor, debouncedSearchTerm, orgId]);
 
   // Debounce searchTerm -> debouncedSearchTerm and reset pagination when search changes
   useEffect(() => {

@@ -21,9 +21,9 @@ internal static class InviteEndpoints
         {
             var q = db.Invites.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
-            if (req.Query.TryGetValue("email", out var email)) q = q.Where(x => EF.Functions.ILike(x.Email!, $"%{email}%"));
+            if (req.Query.TryGetValue("email", out var email)) q = q.Where(x => EF.Functions.ILike(x.Email, $"%{email}%"));
             if (req.Query.TryGetValue("invitedBy", out var ib) && Guid.TryParse(ib, out var ibg)) q = q.Where(x => x.InvitedBy == ibg);
-            if (req.Query.TryGetValue("token", out var token)) q = q.Where(x => EF.Functions.ILike(x.Token!, $"%{token}%"));
+            if (req.Query.TryGetValue("token", out var token)) q = q.Where(x => EF.Functions.ILike(x.Token, $"%{token}%"));
             if (req.Query.TryGetValue("used", out var used) && bool.TryParse(used, out var bused)) q = q.Where(x => x.Used == bused);
             if (req.Query.TryGetValue("createdFrom", out var cf) && DateTimeOffset.TryParse(cf, out var cfrom)) q = q.Where(x => x.CreatedAt >= cfrom);
             if (req.Query.TryGetValue("createdTo", out var ct) && DateTimeOffset.TryParse(ct, out var cto)) q = q.Where(x => x.CreatedAt <= cto);
@@ -56,7 +56,10 @@ internal static class InviteEndpoints
         });
 
         invites.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Invites.FindAsync(id) is Invite i ? Results.Ok(i.ToDto()) : Results.NotFound());
+        {
+            var invite = await db.Invites.FindAsync(id);
+            return invite is not null ? Results.Ok(invite.ToDto()) : Results.NotFound();
+        });
 
         invites.MapPost("/", async (InviteDto dto, AppDbContext db, IHttpClientFactory httpFactory, IServiceProvider provider, HttpRequest req) =>
         {
@@ -70,7 +73,9 @@ internal static class InviteEndpoints
             var i = dto.ToEntity();
             i.Id = Guid.NewGuid();
             i.InvitedBy = inviter.Id;
-            i.Token = dto.Token ?? Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            i.Token = string.IsNullOrWhiteSpace(dto.Token)
+                ? Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+                : dto.Token;
             i.CreatedAt = DateTimeOffset.UtcNow;
             i.ExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
             
@@ -85,9 +90,9 @@ internal static class InviteEndpoints
                     using var scope = provider.CreateScope();
                     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Invite");
                     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    var invitedByUser = await db.Users.FindAsync(i.InvitedBy);
-                    var team = await db.Organizations.FindAsync(i.OrganizationId);
+                    var scopeDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    var invitedByUser = await scopeDb.Users.FindAsync(i.InvitedBy);
+                    var team = await scopeDb.Organizations.FindAsync(i.OrganizationId);
                     try
                     {
                         var apiKey = config["ZeptoMail:ApiKey"];
@@ -143,42 +148,59 @@ internal static class InviteEndpoints
 
         invites.MapGet("/{id}/accept", async (Guid id, AppDbContext db) =>
         {
-            var invite = await db.Invites.FindAsync(id);
-            if (invite == null) return Results.NotFound(new { message = "Invite not found" });
-            if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
-            if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
+            var strategy = db.Database.CreateExecutionStrategy();
 
-            var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower());
-            var isExistingUser = existingUser != null;
-            var oldUsed = JsonSerializer.Deserialize<bool>(JsonSerializer.Serialize(invite.Used));
-            invite.Used = true;
-            try
+            return await strategy.ExecuteAsync(async () =>
             {
-                if (isExistingUser)
+                await using var tx = await db.Database.BeginTransactionAsync();
+
+                try
                 {
-                    var org = await db.Organizations.FindAsync(invite.OrganizationId.Value);
-                    if (org == null) return Results.NotFound("Organization not found");
+                    var invite = await db.Invites.FindAsync(id);
+                    if (invite == null) return Results.NotFound(new { message = "Invite not found" });
+                    if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
+                    if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
 
-                    var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == invite.OrganizationId.Value);
-                    var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
-                    if (gate != null) return gate;
+                    var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower());
+                    var isExistingUser = existingUser != null;
+                    var oldUsed = invite.Used;
+                    invite.Used = true;
 
-                    var userOrg = new UserOrganization
+                    if (isExistingUser)
                     {
-                        UserId = existingUser.Id,
-                        OrganizationId = invite.OrganizationId.Value,
-                        Role = OrgRole.Member,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    db.UserOrganizations.Add(userOrg);
+                        if (invite.OrganizationId == null) return Results.BadRequest(new { message = "Invite organization is missing" });
+
+                        var organizationId = invite.OrganizationId.Value;
+                        var org = await db.Organizations.FindAsync(organizationId);
+                        if (org == null) return Results.NotFound("Organization not found");
+
+                        var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId);
+                        var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
+                        if (gate != null) return gate;
+
+                        if (existingUser == null) return Results.BadRequest(new { message = "User not found" });
+
+                        var userOrg = new UserOrganization
+                        {
+                            UserId = existingUser.Id,
+                            OrganizationId = organizationId,
+                            Role = OrgRole.Member,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.UserOrganizations.Add(userOrg);
+                    }
+
+                    await db.SaveChangesAsync();
+                    await tx.CommitAsync();
+
+                    return Results.Ok(new { isExistingUser, email = invite.Email, organizationId = invite.OrganizationId, used = oldUsed });
                 }
-                await db.SaveChangesAsync();
-                return Results.Ok(new { isExistingUser, email = invite.Email, organizationId = invite.OrganizationId, used = oldUsed });
-            }
-            catch (DbUpdateException ex)
-            {
-                return EndpointHelpers.HandleDbUpdateException(ex);
-            }
+                catch (DbUpdateException ex)
+                {
+                    await tx.RollbackAsync();
+                    return EndpointHelpers.HandleDbUpdateException(ex);
+                }
+            });
         }).AllowAnonymous();
 
         invites.MapPut("/{id}", async (Guid id, InviteDto dto, AppDbContext db) =>
