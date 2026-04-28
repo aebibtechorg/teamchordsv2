@@ -176,12 +176,12 @@ const ChordLibrary = () => {
               >
                 <Upload size={16} /> Upload
               </button>
-              {/*<button*/}
-              {/*  onClick={handleBackup}*/}
-              {/*  className="border rounded px-2 py-2 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"*/}
-              {/*>*/}
-              {/*  <Download size={16} /> Backup*/}
-              {/*</button>*/}
+              <button
+                onClick={handleBackup}
+                className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
+              >
+                <Download size={16} /> Backup
+              </button>
             </div>
   
             {/* Ellipsis Menu for Small Screens */}
@@ -213,16 +213,16 @@ const ChordLibrary = () => {
                     <Upload size={14} className="inline-block mr-2" />
                     Upload
                   </button>
-                  {/*<button*/}
-                  {/*  onClick={() => {*/}
-                  {/*    handleBackup().then(() => setMenuOpen(false));*/}
-                  {/*    // setMenuOpen(false);*/}
-                  {/*  }}*/}
-                  {/*  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"*/}
-                  {/*>*/}
-                  {/*  <Download size={14} className="inline-block mr-2" />*/}
-                  {/*  Backup*/}
-                  {/*</button>*/}
+                  <button
+                    onClick={() => {
+                      handleBackup().then(() => setMenuOpen(false));
+                      // setMenuOpen(false);
+                    }}
+                    className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"
+                  >
+                    <Download size={14} className="inline-block mr-2" />
+                    Backup
+                  </button>
                 </div>
               )}
             </div>
