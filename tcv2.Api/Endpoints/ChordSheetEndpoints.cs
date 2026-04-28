@@ -92,8 +92,8 @@ internal static class ChordSheetEndpoints
             var org = await db.Organizations.FindAsync(dto.OrgId);
             if (org == null) return Results.NotFound("Organization not found");
 
-            var currentSongCount = await db.ChordSheets.CountAsync(c => c.OrgId == dto.OrgId);
-            var gate = FeatureGate.CheckLimits(org, currentSongCount + 1, 0, 0, 0);
+            var currentChordSheetCount = await db.ChordSheets.CountAsync(c => c.OrgId == dto.OrgId);
+            var gate = FeatureGate.CheckLimits(org, currentChordSheetCount + 1, 0, 0, 0);
             if (gate != null) return gate;
 
             var cs = dto.ToEntity();

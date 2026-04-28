@@ -25,6 +25,8 @@ const OrgSelector = ({ className = '' }) => {
   // profile may include `organizations` array from /api/users/me
   const orgs = profile.organizations || profile.Organizations || [];
   const active = profile.orgId || (orgs.length ? orgs[0].id || orgs[0].Id || null : null);
+  const profileId = profile.id || profile.Id;
+  const ownsOrganization = orgs.some((o) => (o.ownerUserId || o.OwnerUserId) === profileId);
 
   const handleChange = (e) => {
     const id = e.target.value || null;
@@ -50,7 +52,7 @@ const OrgSelector = ({ className = '' }) => {
           {o.name || o.Name}
         </option>
       ))}
-      <option value="create-new">Create new</option>
+      {!ownsOrganization && <option value="create-new">Create new</option>}
     </select>
     {isOpenCreateOrg && (<Modal onClose={() => setIsOpenCreateOrg(false)}>
       <div className="p-4">

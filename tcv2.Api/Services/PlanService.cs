@@ -34,12 +34,12 @@ namespace tcv2.Api.Services
             return org.Plan >= Plan.Organization;
         }
 
-        public static int GetSongLimit(Organization org)
+        public static int GetChordSheetLimit(Organization org)
         {
             return org.Plan switch
             {
                 Plan.Free => 50,
-                Plan.GiggingBand => int.MaxValue,
+                Plan.GiggingBand => 250,
                 Plan.Organization => int.MaxValue,
                 _ => 50
             };

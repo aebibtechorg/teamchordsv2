@@ -60,11 +60,11 @@ namespace tcv2.Api.Services
             return null;
         }
 
-        public static IResult? CheckLimits(Organization org, int currentSongs, int currentSetLists, int currentMembers, int currentTeams)
+        public static IResult? CheckLimits(Organization org, int currentChordSheets, int currentSetLists, int currentMembers, int currentTeams)
         {
-            if (currentSongs >= PlanService.GetSongLimit(org))
+            if (currentChordSheets >= PlanService.GetChordSheetLimit(org))
             {
-                return Results.Json(new { upgrade = true, message = $"Song limit reached ({PlanService.GetSongLimit(org)}). Upgrade to add more." }, statusCode: StatusCodes.Status403Forbidden);
+                return Results.Json(new { upgrade = true, message = $"Chord sheet limit reached ({PlanService.GetChordSheetLimit(org)}). Upgrade to add more." }, statusCode: StatusCodes.Status403Forbidden);
             }
             if (currentSetLists >= PlanService.GetSetListLimit(org))
             {

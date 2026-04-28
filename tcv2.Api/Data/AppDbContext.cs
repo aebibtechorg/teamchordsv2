@@ -37,6 +37,12 @@ namespace tcv2.Api.Data
                 .HasForeignKey(c => c.OrgId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Organization>()
+                .HasOne(o => o.OwnerUser)
+                .WithMany()
+                .HasForeignKey(o => o.OwnerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // SetList -> Outputs (one-to-many)
             modelBuilder.Entity<Output>()
                 .HasOne(o => o.SetList)

@@ -66,36 +66,36 @@ const ChordLibrary = () => {
     }
   };
 
-  // const handleBackup = async () => {
-  //   try {
-  //     const response = await backupChordsheets(profile.orgId);
-  //     if (response.ok) {
-  //       const blob = await response.blob();
-  //       const contentDisposition = response.headers.get('Content-Disposition');
-  //       let filename = 'chordsheets_backup.json';
-  //       if (contentDisposition) {
-  //         const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
-  //         if (filenameMatch && filenameMatch[1]) {
-  //           filename = filenameMatch[1];
-  //         }
-  //       }
-  //       const url = window.URL.createObjectURL(blob);
-  //       const a = document.createElement('a');
-  //       a.href = url;
-  //       a.download = filename;
-  //       document.body.appendChild(a);
-  //       a.click();
-  //       a.remove();
-  //       window.URL.revokeObjectURL(url);
-  //       toast.success("Chord sheets backup downloaded!");
-  //     } else {
-  //       toast.error("Failed to download backup.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error backing up chord sheets:", error);
-  //     toast.error("A network error has occured during backup.");
-  //   }
-  // };
+  const handleBackup = async () => {
+    try {
+      const response = await backupChordsheets(profile.orgId);
+      if (response.ok) {
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'chordsheets_backup.json';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1];
+          }
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success("Chord sheets backup downloaded!");
+      } else {
+        toast.error("Failed to download backup.");
+      }
+    } catch (error) {
+      console.error("Error backing up chord sheets:", error);
+      toast.error("A network error has occured during backup.");
+    }
+  };
 
   useEffect(() => {
     if (debounceTimeout.current) {
@@ -215,8 +215,8 @@ const ChordLibrary = () => {
                   </button>
                   {/*<button*/}
                   {/*  onClick={() => {*/}
-                  {/*    handleBackup();*/}
-                  {/*    setMenuOpen(false);*/}
+                  {/*    handleBackup().then(() => setMenuOpen(false));*/}
+                  {/*    // setMenuOpen(false);*/}
                   {/*  }}*/}
                   {/*  className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"*/}
                   {/*>*/}

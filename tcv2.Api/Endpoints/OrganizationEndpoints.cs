@@ -67,30 +67,35 @@ internal static class OrganizationEndpoints
                 Name = dto.Name,
                 CreatedAt = DateTime.UtcNow
             };
-            db.Organizations.Add(o);
             try
             {
-                // If an authenticated user initiated this request, associate them with the new organization.
                 var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                if (!string.IsNullOrWhiteSpace(auth0UserId))
-                {
-                    var user = await db.Users.Include(u => u.Organizations).FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
-                    if (user != null)
-                    {
-                        // Add the new organization to the user's organizations (many-to-many)
-                        var userOrg = new UserOrganization
-                        {
-                            UserId = user.Id,
-                            OrganizationId = o.Id,
-                            Role = OrgRole.Admin,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.UserOrganizations.Add(userOrg);
+                if (string.IsNullOrWhiteSpace(auth0UserId)) return Results.Unauthorized();
 
-                        user.UpdatedAt = DateTime.UtcNow;
-                        // user is tracked by EF; changes will be persisted below when we save
-                    }
+                var user = await db.Users.Include(u => u.Organizations).FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
+                if (user == null) return Results.NotFound(new { message = "User not found" });
+
+                var ownsOrg = await db.Organizations.AnyAsync(x => x.OwnerUserId == user.Id);
+                if (ownsOrg)
+                {
+                    return Results.Conflict(new { message = "You already own an organization." });
                 }
+
+                o.OwnerUserId = user.Id;
+                db.Organizations.Add(o);
+
+                // Add the new organization to the user's organizations (many-to-many)
+                var userOrg = new UserOrganization
+                {
+                    UserId = user.Id,
+                    OrganizationId = o.Id,
+                    Role = OrgRole.Admin,
+                    CreatedAt = DateTime.UtcNow
+                };
+                db.UserOrganizations.Add(userOrg);
+
+                user.UpdatedAt = DateTime.UtcNow;
+                // user is tracked by EF; changes will be persisted below when we save
 
                 await db.SaveChangesAsync();
                 return Results.Created($"/api/organizations/{o.Id}", o.ToDto());
@@ -154,15 +159,20 @@ internal static class OrganizationEndpoints
             var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
             if (caller == null) return Results.Unauthorized();
 
-            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == caller.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
-            if (callerRole != OrgRole.Admin) return Results.Forbid();
+            var org = await db.Organizations.FindAsync(id);
+            if (org == null) return Results.NotFound();
+
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == caller.Id);
+            if (callerMembership == null && org.OwnerUserId != caller.Id) return Results.Forbid();
+            if (callerMembership != null && callerMembership.Role != OrgRole.Admin && org.OwnerUserId != caller.Id) return Results.Forbid();
+
+            if (org.OwnerUserId == userId) return Results.Conflict(new { message = "Cannot remove the organization owner." });
 
             var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin);
-            var targetRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == userId).Select(uo => uo.Role).FirstOrDefaultAsync();
-            if (adminCount == 1 && targetRole == OrgRole.Admin) return Results.Conflict(new { message = "Cannot remove the last admin from the organization" });
-
             var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId);
             if (userOrg == null) return Results.NotFound();
+
+            if (adminCount == 1 && userOrg.Role == OrgRole.Admin) return Results.Conflict(new { message = "Cannot remove the last admin from the organization" });
 
             db.UserOrganizations.Remove(userOrg);
             await db.SaveChangesAsync();
@@ -178,15 +188,19 @@ internal static class OrganizationEndpoints
             var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
             if (caller == null) return Results.Unauthorized();
 
-            var callerRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == caller.Id).Select(uo => uo.Role).FirstOrDefaultAsync();
-            if (callerRole != OrgRole.Admin) return Results.Forbid();
+            var org = await db.Organizations.FindAsync(id);
+            if (org == null) return Results.NotFound();
+
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == caller.Id);
+            if (callerMembership == null && org.OwnerUserId != caller.Id) return Results.Forbid();
+            if (callerMembership != null && callerMembership.Role != OrgRole.Admin && org.OwnerUserId != caller.Id) return Results.Forbid();
 
             var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin);
-            var targetRole = await db.UserOrganizations.Where(uo => uo.OrganizationId == id && uo.UserId == userId).Select(uo => uo.Role).FirstOrDefaultAsync();
-            if (targetRole == OrgRole.Admin && adminCount == 1 && dto.Role != "Admin") return Results.Conflict(new { message = "Cannot demote the last admin from the organization" });
-
             var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId);
             if (userOrg == null) return Results.NotFound();
+
+            if (org.OwnerUserId == userId && dto.Role != "Admin") return Results.Conflict(new { message = "Cannot demote the organization owner." });
+            if (adminCount == 1 && userOrg.Role == OrgRole.Admin && dto.Role != "Admin") return Results.Conflict(new { message = "Cannot demote the last admin from the organization" });
 
             userOrg.Role = Enum.Parse<OrgRole>(dto.Role);
             await db.SaveChangesAsync();

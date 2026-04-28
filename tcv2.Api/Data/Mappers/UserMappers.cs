@@ -41,6 +41,7 @@ public static class UserMappers
             Organizations = user.UserOrganizations.Select(uo => new OrganizationWithRoleDto
             {
                 Id = uo.Organization.Id,
+                OwnerUserId = uo.Organization.OwnerUserId,
                 Name = uo.Organization.Name,
                 CreatedAt = uo.Organization.CreatedAt,
                 UpdatedAt = uo.Organization.UpdatedAt,

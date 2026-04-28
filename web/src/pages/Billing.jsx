@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, ExternalLink, ArrowUpCircle, XCircle } from 'lucide-react';
+import { ExternalLink, ArrowUpCircle, XCircle } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useProfileStore } from '../store/useProfileStore';
 import { getProfile } from '../utils/common';
@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 const PLAN_LABELS = {
   Free: 'Jam Session (Free)',
   GiggingBand: 'Gigging Band',
-  Organization: 'Organization',
+  Organization: 'Pro Library',
 };
 
 const STATUS_BADGE = {
@@ -74,7 +74,7 @@ export default function Billing() {
     <div className="p-6 max-w-2xl">
       <Toaster />
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <CreditCard size={24} /> Billing
+        Billing
       </h1>
 
       {/* Current Plan Card */}

@@ -372,6 +372,10 @@ internal static class UserEndpoints
         {
             var existing = await db.Users.FindAsync(id);
             if (existing == null) return Results.NotFound();
+            if (await db.Organizations.AnyAsync(o => o.OwnerUserId == id))
+            {
+                return Results.Conflict(new { message = "Cannot delete a user who owns an organization." });
+            }
             db.Users.Remove(existing);
             await db.SaveChangesAsync();
             return Results.NoContent();
