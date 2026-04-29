@@ -6,6 +6,7 @@ using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using System.Security.Claims;
 using tcv2.Api.Data.Mappers;
+using tcv2.Api.Services;
 
 namespace tcv2.Api.Endpoints;
 
@@ -50,7 +51,10 @@ internal static class OrganizationEndpoints
         });
 
         orgs.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Organizations.FindAsync(id) is Organization o ? Results.Ok(o.ToDto()) : Results.NotFound());
+        {
+            var o = await db.Organizations.FindAsync(id);
+            return o is not null ? Results.Ok(o.ToDto()) : Results.NotFound();
+        });
 
         orgs.MapPost("/", async (HttpRequest req, OrganizationDto dto, AppDbContext db) =>
         {
@@ -67,43 +71,53 @@ internal static class OrganizationEndpoints
                 Name = dto.Name,
                 CreatedAt = DateTime.UtcNow
             };
-            try
+
+            var strategy = db.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrWhiteSpace(auth0UserId)) return Results.Unauthorized();
-
-                var user = await db.Users.Include(u => u.Organizations).FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
-                if (user == null) return Results.NotFound(new { message = "User not found" });
-
-                var ownsOrg = await db.Organizations.AnyAsync(x => x.OwnerUserId == user.Id);
-                if (ownsOrg)
+                await using var tx = await db.Database.BeginTransactionAsync();
+                try
                 {
-                    return Results.Conflict(new { message = "You already own an organization." });
+                    var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrWhiteSpace(auth0UserId)) return Results.Unauthorized();
+
+                    var user = await db.Users.Include(u => u.Organizations).FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
+                    if (user == null) return Results.NotFound(new { message = "User not found" });
+
+                    var ownsOrg = await db.Organizations.AnyAsync(x => x.OwnerUserId == user.Id);
+                    if (ownsOrg)
+                    {
+                        return Results.Conflict(new { message = "You already own an organization." });
+                    }
+
+                    o.OwnerUserId = user.Id;
+                    db.Organizations.Add(o);
+
+                    // Add the new organization to the user's organizations (many-to-many)
+                    var userOrg = new UserOrganization
+                    {
+                        UserId = user.Id,
+                        OrganizationId = o.Id,
+                        Role = OrgRole.Admin,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    db.UserOrganizations.Add(userOrg);
+
+                    user.UpdatedAt = DateTime.UtcNow;
+                    // user is tracked by EF; changes will be persisted below when we save
+
+                    await OrganizationOnboardingSeeder.SeedAsync(db, o, DateTime.UtcNow);
+
+                    await db.SaveChangesAsync();
+                    await tx.CommitAsync();
+                    return Results.Created($"/api/organizations/{o.Id}", o.ToDto());
                 }
-
-                o.OwnerUserId = user.Id;
-                db.Organizations.Add(o);
-
-                // Add the new organization to the user's organizations (many-to-many)
-                var userOrg = new UserOrganization
+                catch (DbUpdateException ex)
                 {
-                    UserId = user.Id,
-                    OrganizationId = o.Id,
-                    Role = OrgRole.Admin,
-                    CreatedAt = DateTime.UtcNow
-                };
-                db.UserOrganizations.Add(userOrg);
-
-                user.UpdatedAt = DateTime.UtcNow;
-                // user is tracked by EF; changes will be persisted below when we save
-
-                await db.SaveChangesAsync();
-                return Results.Created($"/api/organizations/{o.Id}", o.ToDto());
-            }
-            catch (DbUpdateException ex)
-            {
-                return EndpointHelpers.HandleDbUpdateException(ex);
-            }
+                    await tx.RollbackAsync();
+                    return EndpointHelpers.HandleDbUpdateException(ex);
+                }
+            });
         });
 
         orgs.MapPut("/{id}", async (Guid id, OrganizationDto dto, AppDbContext db) =>
@@ -133,8 +147,26 @@ internal static class OrganizationEndpoints
         {
             var existing = await db.Organizations.FindAsync(id);
             if (existing == null) return Results.NotFound();
+            await using var tx = await db.Database.BeginTransactionAsync();
+
+            var setListIds = await db.SetLists.Where(s => s.OrgId == id).Select(s => s.Id).ToListAsync();
+            var outputs = await db.Outputs
+                .Where(o => o.SetListId != null && setListIds.Contains(o.SetListId.Value))
+                .ToListAsync();
+
+            var setLists = await db.SetLists.Where(s => s.OrgId == id).ToListAsync();
+            var chordSheets = await db.ChordSheets.Where(c => c.OrgId == id).ToListAsync();
+            var invites = await db.Invites.Where(i => i.OrganizationId == id).ToListAsync();
+            var memberships = await db.UserOrganizations.Where(uo => uo.OrganizationId == id).ToListAsync();
+
+            db.Outputs.RemoveRange(outputs);
+            db.SetLists.RemoveRange(setLists);
+            db.ChordSheets.RemoveRange(chordSheets);
+            db.Invites.RemoveRange(invites);
+            db.UserOrganizations.RemoveRange(memberships);
             db.Organizations.Remove(existing);
             await db.SaveChangesAsync();
+            await tx.CommitAsync();
             return Results.NoContent();
         });
 
