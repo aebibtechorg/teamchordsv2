@@ -75,7 +75,7 @@ const SetListTable = ({ data, onRefresh, hasPrev, hasNext, onPrev, onNext }) => 
       {DeleteModal}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="divide-y divide-gray-200">
-          {data.map((setlist) => (
+          {data.map((setlist, index) => (
             <div
               key={setlist.id}
               className="flex flex-col gap-4 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
@@ -83,6 +83,7 @@ const SetListTable = ({ data, onRefresh, hasPrev, hasNext, onPrev, onNext }) => 
               tabIndex={0}
               role="button"
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/setlists/${setlist.id}`); }}
+              data-tour={index === 0 ? "setlists-first-row" : undefined}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-col gap-1">
@@ -95,7 +96,7 @@ const SetListTable = ({ data, onRefresh, hasPrev, hasNext, onPrev, onNext }) => 
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 sm:ml-4 sm:justify-end">
+              <div className="flex flex-wrap items-center gap-2 sm:ml-4 sm:justify-end" data-tour={index === 0 ? "setlists-row-actions" : undefined}>
                 <button
                   title="Preview"
                   onClick={(e) => handlePreviewWrapper(setlist.id, e)}
@@ -126,7 +127,7 @@ const SetListTable = ({ data, onRefresh, hasPrev, hasNext, onPrev, onNext }) => 
         </div>
       </div>
       {data.length === 0 && (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-gray-500">No set lists found.</div>
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-gray-500" data-tour="setlists-empty">No set lists found.</div>
       )}
       <div className="mt-6 flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
         <button

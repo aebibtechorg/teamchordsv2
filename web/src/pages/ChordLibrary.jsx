@@ -10,6 +10,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import Spinner from "../components/Spinner";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { hasOrgMembership, startLibraryTour } from "../utils/onboardingTours";
 
 const ChordLibrary = () => {
   const [chordSheets, setChordSheets] = useState([]);
@@ -27,6 +28,7 @@ const ChordLibrary = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const orgId = profile?.orgId;
+  const libraryTourStartedRef = useRef(false);
 
   // State for ConfirmDialog
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -133,6 +135,20 @@ const ChordLibrary = () => {
     });
   }, [currentCursor, debouncedSearchTerm, orgId, pageSize]);
 
+  useEffect(() => {
+    if (isLoading || !profile || !orgId || libraryTourStartedRef.current) return;
+    if (!hasOrgMembership(profile)) return;
+
+    const timer = window.setTimeout(async () => {
+      const started = await startLibraryTour(profile);
+      if (started) {
+        libraryTourStartedRef.current = true;
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [chordSheets, isLoading, orgId, profile]);
+
   // Initialize and manage SignalR connection
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
@@ -172,13 +188,14 @@ const ChordLibrary = () => {
     <div className="p-4">
       <div className="bg-gray-100">
         <h1 className="w-full flex justify-between mb-4">
-          <p className="text-2xl font-bold">Library</p>
+          <p className="text-2xl font-bold" data-tour="library-title">Library</p>
           <div className="flex gap-2">
             {/* Full Buttons for Larger Screens */}
             <div className="hidden sm:flex gap-2">
               <Link
                 to="/library/new"
                 className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
+                data-tour="library-create"
               >
                 <Plus size={16} />
                 New Song
@@ -186,6 +203,7 @@ const ChordLibrary = () => {
               <button
                 onClick={() => setIsUploadDialogOpen(true)}
                 className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2"
+                data-tour="library-upload"
               >
                 <Upload size={16} /> Upload
               </button>
@@ -202,6 +220,7 @@ const ChordLibrary = () => {
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="border rounded px-2 py-2 text-gray-500 flex items-center"
+                data-tour="library-mobile-menu"
               >
                 <MoreVertical size={20} />
               </button>
@@ -212,6 +231,7 @@ const ChordLibrary = () => {
                     to="/library/new"
                     className="block px-4 py-2 hover:bg-gray-200 text-black text-sm"
                     onClick={() => setMenuOpen(false)}
+                    data-tour="library-create-mobile"
                   >
                     <Plus size={14} className="inline-block mr-2" />
                     New Song
@@ -222,6 +242,7 @@ const ChordLibrary = () => {
                       setMenuOpen(false);
                     }}
                     className="block px-4 py-2 w-full text-left hover:bg-gray-200 text-black text-sm"
+                    data-tour="library-upload-mobile"
                   >
                     <Upload size={14} className="inline-block mr-2" />
                     Upload
@@ -251,6 +272,7 @@ const ChordLibrary = () => {
               className="w-full border border-gray-300 bg-white p-2 pl-10 rounded"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+                  data-tour="library-search"
             />
             <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
           </div>
@@ -260,7 +282,6 @@ const ChordLibrary = () => {
       {chordSheets && (
         <ChordLibraryTable
           data={chordSheets}
-          pageSize={pageSize}
           hasPrev={cursorStack.length > 0}
           hasNext={!!nextCursor}
           onPrev={() => {

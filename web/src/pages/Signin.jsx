@@ -4,6 +4,7 @@ import { useProfileStore } from "../store/useProfileStore";
 import { getProfile } from "../utils/common";
 import { useAuth0 } from "@auth0/auth0-react";
 import Spinner from "../components/Spinner";
+import { hasOrgMembership } from "../utils/onboardingTours";
 
 const Signin = () => {
   const { loginWithRedirect, isAuthenticated, user } = useAuth0();
@@ -15,7 +16,7 @@ const Signin = () => {
     const d = await getProfile(id);
     if (d) {
       setUserProfile(d);
-      navigate("/library");
+      navigate(hasOrgMembership(d) ? "/library" : "/onboard");
     }
     else {
       clearUserProfile();

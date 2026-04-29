@@ -7,17 +7,15 @@ import { updateMe, upsertProfile, getProfile } from '../utils/common';
 import { Toaster, toast } from 'react-hot-toast';
 import Select from 'react-select';
 import { keys, INSTRUMENTS, MUSICAL_ROLES } from '../constants';
-import {Link, useSearchParams} from 'react-router-dom';
-import { apiFetch } from '../utils/api';
-import ConfirmDialog from "../components/ConfirmDialog";
+import {useNavigate, useSearchParams} from 'react-router-dom';
+import { seedTour } from '../utils/onboardingTours';
 
 const Profile = () => {
     const { user } = useAuth0();
     const { profile, setUserProfile } = useProfileStore();
+    const navigate = useNavigate();
     const [showModal, setShowModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [isCanceling, setIsCanceling] = useState(false);
-    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
@@ -53,6 +51,16 @@ const Profile = () => {
     const activeOrgName = activeOrg ? (activeOrg.name || activeOrg.Name) : null;
     const activeOrgRole = activeOrg ? (activeOrg.role || activeOrg.Role) : null;
 
+    const replayLibraryTour = () => {
+        seedTour('library', profile);
+        navigate('/library');
+    };
+
+    const replaySetListsTour = () => {
+        seedTour('setlists', profile);
+        navigate('/setlists');
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
@@ -85,31 +93,6 @@ const Profile = () => {
             toast.error('An error occurred while saving.');
         } finally {
             setIsSaving(false);
-        }
-    };
-
-    const handleCancel = async () => {
-
-        setIsCanceling(true);
-        try {
-            const res = await apiFetch('/api/billing/cancel', {
-                method: 'POST',
-                body: JSON.stringify({ orgId: activeOrgId })
-            });
-            if (res.ok) {
-                // Refresh profile
-                const refreshed = await getProfile();
-                if (refreshed) {
-                    setUserProfile(refreshed);
-                    toast.success('Subscription cancelled. Your plan stays active until the end of the billing period.');
-                }
-            } else {
-                toast.error('Failed to cancel subscription.');
-            }
-        } catch (err) {
-            toast.error('An error occurred while canceling.');
-        } finally {
-            setIsCanceling(false);
         }
     };
 
@@ -147,6 +130,27 @@ const Profile = () => {
                         <p className="text-sm text-gray-500">
                             {activeOrgName ? `${activeOrgName} (${activeOrgRole})` : 'No organization'}
                         </p>
+                    </div>
+                </div>
+
+                <div className="mb-6 rounded border border-gray-200 bg-white p-4">
+                    <h2 className="text-xl font-semibold mb-2">Onboarding</h2>
+                    <p className="text-sm text-gray-600 mb-3">Replay the product tours at any time.</p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                            type="button"
+                            onClick={replayLibraryTour}
+                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                        >
+                            Replay Library Tour
+                        </button>
+                        <button
+                            type="button"
+                            onClick={replaySetListsTour}
+                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                        >
+                            Replay Set Lists Tour
+                        </button>
                     </div>
                 </div>
 
@@ -268,17 +272,6 @@ const Profile = () => {
                 <Modal onClose={() => setShowModal(false)}>
                     <UpdatePassword />
                 </Modal>
-            )}
-            {showCancelConfirm && (
-                <ConfirmDialog
-                    isOpen={showCancelConfirm}
-                    onClose={() => setShowCancelConfirm(false)}
-                    onConfirm={handleCancel}
-                    title="Cancel Subscription"
-                    message="Are you sure you want to cancel your subscription? This action cannot be undone."
-                    confirmLabel="Yes, cancel it"
-                    cancelLabel="No, keep it"
-                />
             )}
         </>
     );
