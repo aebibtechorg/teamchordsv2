@@ -25,8 +25,8 @@ const MobileSidebar = () => {
         <OrgSelector />
       </div>
       <div className="w-full flex justify-between">
-        <MobileNavItem to="/library" icon={<Library size={16} />} label="Library" />
-        <MobileNavItem to="/setlists" icon={<BookAudio size={16} />} label="Set Lists" />
+        <MobileNavItem to="/library" icon={<Library size={16} />} label="Library" dataTour="mobile-sidebar-library" />
+        <MobileNavItem to="/setlists" icon={<BookAudio size={16} />} label="Set Lists" dataTour="mobile-sidebar-setlists" />
         <MobileNavItem to="/team" icon={<Users size={16} />} label="Team" />
         <MobileNavItem to="/profile" icon={<User size={16} />} label="Profile" />
         <MobileNavItem to="/billing" icon={<CreditCard size={16} />} label="Billing" />
@@ -36,13 +36,14 @@ const MobileSidebar = () => {
   );
 };
 
-function MobileNavItem({ to, icon, label, onClick }) {
+function MobileNavItem({ to, icon, label, onClick, dataTour }) {
   if (to) {
     return (
       <Link
         to={to}
         className="flex flex-col w-full justify-center items-center space-y-2 rounded-md cursor-pointer hover:bg-gray-500"
         title={label}
+        data-tour={dataTour}
       >
         {icon}
         <span className="text-xs">{label}</span>
@@ -55,6 +56,7 @@ function MobileNavItem({ to, icon, label, onClick }) {
       onClick={onClick}
       className="flex flex-col w-full justify-center items-center space-y-2 rounded-md cursor-pointer hover:bg-gray-500"
       title={label}
+      data-tour={dataTour}
     >
       {icon}
       <span className="text-xs">{label}</span>

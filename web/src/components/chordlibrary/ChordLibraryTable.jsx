@@ -2,16 +2,17 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 
-const ChordLibraryTable = ({ data, pageSize, hasPrev, hasNext, onPrev, onNext, onDelete }) => {
+const ChordLibraryTable = ({ data, hasPrev, hasNext, onPrev, onNext, onDelete }) => {
 
   return (
     <div>
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="divide-y divide-gray-200">
-          {data.map((chord) => (
+          {data.map((chord, index) => (
             <div
               key={chord.id}
               className="flex flex-col gap-4 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+              data-tour={index === 0 ? "library-first-row" : undefined}
             >
               <Link to={`/library/${chord.id}`} className="min-w-0 flex-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400">
                 <div className="flex flex-col gap-1">
@@ -34,6 +35,7 @@ const ChordLibraryTable = ({ data, pageSize, hasPrev, hasNext, onPrev, onNext, o
                   }}
                   className="inline-flex items-center gap-2 rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
                   title="Delete Chord Sheet"
+                  data-tour={index === 0 ? "library-delete-first-row" : undefined}
                 >
                   <Trash2 size={18} />
                   <span className="sr-only">Delete chord sheet</span>
@@ -45,7 +47,7 @@ const ChordLibraryTable = ({ data, pageSize, hasPrev, hasNext, onPrev, onNext, o
       </div>
 
       {data.length === 0 && (
-        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-gray-500">
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-gray-500" data-tour="library-empty">
           No chords found.
         </div>
       )}

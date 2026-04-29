@@ -5,6 +5,7 @@ import { Plus, Search } from 'lucide-react'
 import { getSetLists } from "../utils/setlists";
 import SetListTable from "../components/setlist/SetListTable";
 import { Toaster, toast } from 'react-hot-toast';
+import { startSetListsTour } from "../utils/onboardingTours";
 
 const SetList = () => {
   const { profile } = useProfileStore();
@@ -17,6 +18,7 @@ const SetList = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const debounceTimeout = useRef(null);
   const orgId = profile?.orgId;
+  const setListsTourStartedRef = useRef(false);
 
   const fetchData = async () => {
     if (!orgId) {
@@ -42,6 +44,19 @@ const SetList = () => {
     fetchData().then(() => setIsLoading(false)).catch((err) => toast.error(`A network error has occured: ${err}.`));
   }, [currentCursor, debouncedSearchTerm, orgId]);
 
+  useEffect(() => {
+    if (isLoading || !profile || !orgId || setListsTourStartedRef.current) return;
+
+    const timer = window.setTimeout(async () => {
+      const started = await startSetListsTour(profile);
+      if (started) {
+        setListsTourStartedRef.current = true;
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [isLoading, orgId, profile]);
+
   // Debounce searchTerm -> debouncedSearchTerm and reset pagination when search changes
   useEffect(() => {
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -62,8 +77,8 @@ const SetList = () => {
     <div className="p-4">
       <Toaster />
       <h1 className="w-full flex justify-between mb-4">
-        <p className="text-2xl font-bold">Set Lists</p>
-        <Link to="/setlists/new" className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2">
+        <p className="text-2xl font-bold" data-tour="setlists-title">Set Lists</p>
+        <Link to="/setlists/new" className="border rounded px-2 py-2 bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-2" data-tour="setlists-create">
           <Plus size={16} />
           New Set List
         </Link>
@@ -77,6 +92,7 @@ const SetList = () => {
             className="w-full border border-gray-300 bg-white p-2 pl-10 rounded"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            data-tour="setlists-search"
           />
           <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
         </div>

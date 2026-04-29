@@ -39,8 +39,8 @@ const Sidebar = () => {
         <hr className="my-4" />
         <nav className="flex flex-col justify-between h-full">
             <div className="flex flex-col space-y-4">
-                <NavItem to="/library" icon={<Library size={24} />} label="Library" isOpen={isOpen} />
-                <NavItem to="/setlists" icon={<BookAudio size={24} />} label="Set Lists" isOpen={isOpen} />
+                <NavItem to="/library" icon={<Library size={24} />} label="Library" isOpen={isOpen} dataTour="sidebar-library" />
+                <NavItem to="/setlists" icon={<BookAudio size={24} />} label="Set Lists" isOpen={isOpen} dataTour="sidebar-setlists" />
                 <NavItem to="/team" icon={<Users size={24} />} label="Team" isOpen={isOpen} />
                 <NavItem to="/billing" icon={<CreditCard size={24} />} label="Billing" isOpen={isOpen} />
             </div>
@@ -61,13 +61,14 @@ const Sidebar = () => {
   );
 };
 
-function NavItem({ to, icon, label, isOpen, onClick }) {
+function NavItem({ to, icon, label, isOpen, onClick, dataTour }) {
     if (to) {
       return (
         <Link
           to={to}
           className="flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-gray-500"
           title={label}
+          data-tour={dataTour}
         >
           {icon}
           {isOpen && <span>{label}</span>}
@@ -80,6 +81,7 @@ function NavItem({ to, icon, label, isOpen, onClick }) {
         onClick={onClick}
         className="flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-gray-500"
         title={label}
+        data-tour={dataTour}
       >
         {icon}
         {isOpen && <span>{label}</span>}
