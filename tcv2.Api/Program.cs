@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +18,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
-builder.Host.UseSerilog((context, services, configuration) =>
+builder.Host.UseSerilog((context, _, configuration) =>
 {
     configuration
         .ReadFrom.Configuration(context.Configuration)
@@ -126,13 +125,25 @@ api.MapUserEndpoints();
 // Billing endpoints
 api.MapBillingEndpoints();
 
+// Platform admin endpoints
+api.MapAdminEndpoints();
+
 api.MapGet("/config", () =>
 {
     var config = new
     {
         Auth0Domain = app.Configuration["WebAuth0:Domain"],
         Auth0ClientId = app.Configuration["WebAuth0:ClientId"],
-        Auth0Audience = app.Configuration["WebAuth0:Audience"]
+        Auth0Audience = app.Configuration["WebAuth0:Audience"],
+        Chatwoot = new
+        {
+            Enabled = !string.IsNullOrWhiteSpace(app.Configuration["Chatwoot:BaseUrl"]) && !string.IsNullOrWhiteSpace(app.Configuration["Chatwoot:WebsiteToken"]),
+            BaseUrl = app.Configuration["Chatwoot:BaseUrl"],
+            WebsiteToken = app.Configuration["Chatwoot:WebsiteToken"],
+            Position = app.Configuration["Chatwoot:Position"] ?? "right",
+            HideMessageBubble = bool.TryParse(app.Configuration["Chatwoot:HideMessageBubble"], out var hideMessageBubble) && hideMessageBubble,
+            Locale = app.Configuration["Chatwoot:Locale"] ?? "en"
+        }
     };
    return Results.Ok(config);
 }).AllowAnonymous();

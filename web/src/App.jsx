@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import MainLogo from "./components/MainLogo";
 import PricingCards from "./components/PricingCards";
+import ChatwootWidget from "./components/ChatwootWidget";
 
 function App() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
@@ -23,6 +24,7 @@ function App() {
 
   return (
     <div className="h-screen overflow-y-scroll snap-mandatory snap-y scroll-smooth">
+      <ChatwootWidget />
       {/* Navbar */}
       <nav className="fixed top-0 left-0 w-full flex justify-between p-3 sm:p-4 bg-gray-700 text-white shadow-md z-10">
         <h1 className="flex items-center text-lg sm:text-xl">
@@ -31,7 +33,7 @@ function App() {
         <div>
           <div className="flex items-center gap-3">
             <a
-              href="#pricing"
+              href="/#pricing"
               className="px-3 py-2 sm:px-4 sm:py-2 rounded bg-gray-500 hover:bg-gray-600 transition text-sm sm:text-base"
             >
               Pricing

@@ -1,7 +1,6 @@
 #pragma warning disable ASPIREACADOMAINS001,ASPIREDOCKERFILEBUILDER001
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 var builder = DistributedApplication.CreateBuilder(args);
 
 
@@ -34,9 +33,17 @@ if (builder.Configuration["Destination"] == "aca")
             c.EnvironmentVariables.Add("Auth0__Audience", builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientId", builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientSecret", builder.Configuration["Auth0:ClientSecret"] ?? Environment.GetEnvironmentVariable("Auth0__ClientSecret") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__Domain", builder.Configuration["AdminAuth0:Domain"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Domain") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__Audience", builder.Configuration["AdminAuth0:Audience"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Audience") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__ClientId", builder.Configuration["AdminAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("AdminAuth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__Domain", builder.Configuration["WebAuth0:Domain"] ?? Environment.GetEnvironmentVariable("WebAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__Audience", builder.Configuration["WebAuth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__ClientId", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__BaseUrl", builder.Configuration["Chatwoot:BaseUrl"] ?? Environment.GetEnvironmentVariable("Chatwoot__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__WebsiteToken", builder.Configuration["Chatwoot:WebsiteToken"] ?? Environment.GetEnvironmentVariable("Chatwoot__WebsiteToken") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__Position", builder.Configuration["Chatwoot:Position"] ?? Environment.GetEnvironmentVariable("Chatwoot__Position") ?? "right");
+            c.EnvironmentVariables.Add("Chatwoot__HideMessageBubble", builder.Configuration["Chatwoot:HideMessageBubble"] ?? Environment.GetEnvironmentVariable("Chatwoot__HideMessageBubble") ?? "false");
+            c.EnvironmentVariables.Add("Chatwoot__Locale", builder.Configuration["Chatwoot:Locale"] ?? Environment.GetEnvironmentVariable("Chatwoot__Locale") ?? "en");
             c.EnvironmentVariables.Add("ZeptoMail__ApiKey", builder.Configuration["ZeptoMail:ApiKey"] ?? Environment.GetEnvironmentVariable("ZeptoMail__ApiKey") ?? "");
             c.EnvironmentVariables.Add("ZeptoMail__TemplateKey", builder.Configuration["ZeptoMail:TemplateKey"] ?? Environment.GetEnvironmentVariable("ZeptoMail__TemplateKey") ?? "");
             c.EnvironmentVariables.Add("ZeptoMail__FromEmailAddress", builder.Configuration["ZeptoMail:FromEmailAddress"] ?? Environment.GetEnvironmentVariable("ZeptoMail__FromEmailAddress") ?? "");
@@ -64,7 +71,7 @@ if (builder.Configuration["Destination"] == "aca")
         api.WithEnvironment("ConnectionStrings__Redis", builder.Configuration.GetConnectionString("Redis"));
     }
 
-    var webClient = builder.AddViteApp("webclient", "../web")
+    _ = builder.AddViteApp("webclient", "../web")
         .WithReference(api)
         .WaitFor(api)
         .WithEndpoint(endpointName: "http", endpoint =>
@@ -80,7 +87,7 @@ if (builder.Configuration["Destination"] == "aca")
             .WithHttpEndpoint(targetPort: 80)
             .WithExternalHttpEndpoints()
             .PublishAsDockerFile()
-            .PublishAsAzureContainerApp((infra, app) =>
+            .PublishAsAzureContainerApp((_, app) =>
             {
                 app.ConfigureCustomDomain(customDomain, certificateName);
             });
@@ -108,9 +115,17 @@ if (builder.Configuration["Destination"] == "compose")
             c.EnvironmentVariables.Add("Auth0__Audience", builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientId", builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientSecret", builder.Configuration["Auth0:ClientSecret"] ?? Environment.GetEnvironmentVariable("Auth0__ClientSecret") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__Domain", builder.Configuration["AdminAuth0:Domain"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Domain") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__Audience", builder.Configuration["AdminAuth0:Audience"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Audience") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__ClientId", builder.Configuration["AdminAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("AdminAuth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__Domain", builder.Configuration["WebAuth0:Domain"] ?? Environment.GetEnvironmentVariable("WebAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__Audience", builder.Configuration["WebAuth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__ClientId", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__BaseUrl", builder.Configuration["Chatwoot:BaseUrl"] ?? Environment.GetEnvironmentVariable("Chatwoot__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__WebsiteToken", builder.Configuration["Chatwoot:WebsiteToken"] ?? Environment.GetEnvironmentVariable("Chatwoot__WebsiteToken") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__Position", builder.Configuration["Chatwoot:Position"] ?? Environment.GetEnvironmentVariable("Chatwoot__Position") ?? "right");
+            c.EnvironmentVariables.Add("Chatwoot__HideMessageBubble", builder.Configuration["Chatwoot:HideMessageBubble"] ?? Environment.GetEnvironmentVariable("Chatwoot__HideMessageBubble") ?? "false");
+            c.EnvironmentVariables.Add("Chatwoot__Locale", builder.Configuration["Chatwoot:Locale"] ?? Environment.GetEnvironmentVariable("Chatwoot__Locale") ?? "en");
             c.EnvironmentVariables.Add("ZeptoMail__ApiKey", builder.Configuration["ZeptoMail:ApiKey"] ?? Environment.GetEnvironmentVariable("ZeptoMail__ApiKey") ?? "");
             c.EnvironmentVariables.Add("ZeptoMail__TemplateKey", builder.Configuration["ZeptoMail:TemplateKey"] ?? Environment.GetEnvironmentVariable("ZeptoMail__TemplateKey") ?? "");
             c.EnvironmentVariables.Add("ZeptoMail__FromEmailAddress", builder.Configuration["ZeptoMail:FromEmailAddress"] ?? Environment.GetEnvironmentVariable("ZeptoMail__FromEmailAddress") ?? "");
@@ -122,14 +137,14 @@ if (builder.Configuration["Destination"] == "compose")
         })
         .WaitFor(db)
         .WaitFor(redis)
-        .PublishAsDockerComposeService((resource, service) =>
+        .PublishAsDockerComposeService((_, service) =>
         {
             service.Name = "api";
         });
     
     builder.AddNpmApp("webclient-server", "../web")
         .WithReference(api)
-        .PublishAsDockerComposeService((resource, service) =>
+        .PublishAsDockerComposeService((_, service) =>
         {
             service.Name = "frontend";
         });
