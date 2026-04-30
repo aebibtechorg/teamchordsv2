@@ -485,3 +485,10 @@ $RECYCLE.BIN/
 *.swp
 
 node_modules
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
