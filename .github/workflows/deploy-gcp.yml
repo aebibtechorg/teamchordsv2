@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      REGION: us-central1
+      REGION: asia-southeast1
       ARTIFACT_REPOSITORY: tcv2-containers
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_region: us-central1
+      TF_VAR_region: asia-southeast1
       TF_VAR_github_owner: ${{ github.repository_owner }}
       TF_VAR_github_repo: ${{ github.event.repository.name }}
       TF_VAR_teamchords_connection_string: ${{ secrets.NEON_POSTGRES_CS }}
