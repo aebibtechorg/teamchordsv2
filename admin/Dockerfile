@@ -2,7 +2,7 @@
 FROM node:22-slim AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # 2. Build stage
 FROM node:22-slim AS build
