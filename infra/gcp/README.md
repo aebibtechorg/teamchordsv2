@@ -20,6 +20,7 @@ Set these values through `TF_VAR_*` environment variables, a `.tfvars` file, or 
 - `redis_connection_string`
 - `auth0_domain`
 - `auth0_audience`
+- `auth0_client_id`
 - `auth0_client_secret`
 - `web_auth0_domain`
 - `web_auth0_client_id`
@@ -57,6 +58,18 @@ Optional values:
 3. Initialize Terraform with the GCS backend.
 4. Apply the stack.
 
+## GitHub secrets bootstrap
+
+The repo root contains a local `.env` template with the values used by the deployment workflow. Fill in the blanks on your machine, keep `gcp-sa-key.json` next to it, and then upload everything into GitHub secrets with the helper script:
+
+```bash
+gh auth login
+chmod +x scripts/setup-github-secrets.sh
+scripts/setup-github-secrets.sh -r <owner>/<repo>
+```
+
+If you prefer to target a different `.env` or key file, pass `--env-file` and `--key-file`.
+
 Example:
 
 ```bash
@@ -70,6 +83,7 @@ export TF_VAR_teamchords_connection_string="..."
 export TF_VAR_redis_connection_string="..."
 export TF_VAR_auth0_domain="..."
 export TF_VAR_auth0_audience="..."
+export TF_VAR_auth0_client_id="..."
 export TF_VAR_auth0_client_secret="..."
 export TF_VAR_web_auth0_domain="..."
 export TF_VAR_web_auth0_client_id="..."

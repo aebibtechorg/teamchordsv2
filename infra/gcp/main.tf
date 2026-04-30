@@ -153,6 +153,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "Auth0__ClientId"
+        value = var.auth0_client_id
+      }
+
+      env {
         name  = "Auth0__ClientSecret"
         value = var.auth0_client_secret
       }

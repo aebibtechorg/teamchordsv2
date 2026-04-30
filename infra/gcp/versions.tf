@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "replace-with-gcp-state-bucket"
+    bucket = "teamchords-tfstate"
     prefix = "gcp"
   }
 }

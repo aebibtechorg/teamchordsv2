@@ -65,6 +65,11 @@ variable "auth0_audience" {
   type        = string
 }
 
+variable "auth0_client_id" {
+  description = "Auth0 client ID used by the API"
+  type        = string
+}
+
 variable "auth0_client_secret" {
   description = "Auth0 client secret used by the API"
   type        = string
