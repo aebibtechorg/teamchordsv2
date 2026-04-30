@@ -16,4 +16,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "18081:80"
+    
+  tcv2.admin:
+    image: tcv2admin
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    ports:
+      - "18082:3000"
 
