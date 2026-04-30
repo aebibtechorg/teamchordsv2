@@ -10,6 +10,8 @@ if (builder.Configuration["Destination"] == "aca")
 
     var customDomain = builder.AddParameter("customDomain");
     var certificateName = builder.AddParameter("certificateName");
+    var adminCustomDomain = builder.AddParameter("adminCustomDomain");
+    var adminCertificateName = builder.AddParameter("adminCertificateName");
 
 
 
@@ -39,6 +41,7 @@ if (builder.Configuration["Destination"] == "aca")
             c.EnvironmentVariables.Add("WebAuth0__Domain", builder.Configuration["WebAuth0:Domain"] ?? Environment.GetEnvironmentVariable("WebAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__Audience", builder.Configuration["WebAuth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__ClientId", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("CustomerApp__BaseUrl", builder.Configuration["CustomerApp:BaseUrl"] ?? Environment.GetEnvironmentVariable("CustomerApp__BaseUrl") ?? "");
             c.EnvironmentVariables.Add("Chatwoot__BaseUrl", builder.Configuration["Chatwoot:BaseUrl"] ?? Environment.GetEnvironmentVariable("Chatwoot__BaseUrl") ?? "");
             c.EnvironmentVariables.Add("Chatwoot__WebsiteToken", builder.Configuration["Chatwoot:WebsiteToken"] ?? Environment.GetEnvironmentVariable("Chatwoot__WebsiteToken") ?? "");
             c.EnvironmentVariables.Add("Chatwoot__Position", builder.Configuration["Chatwoot:Position"] ?? Environment.GetEnvironmentVariable("Chatwoot__Position") ?? "right");
@@ -80,6 +83,15 @@ if (builder.Configuration["Destination"] == "aca")
         })
         .ExcludeFromManifest();
 
+    _ = builder.AddViteApp("adminclient", "../admin")
+        .WithReference(api)
+        .WaitFor(api)
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 3000 : null;
+        })
+        .ExcludeFromManifest();
+
     if (builder.ExecutionContext.IsPublishMode)
     {
         builder.AddNpmApp("webclient-server", "../web")
@@ -91,6 +103,16 @@ if (builder.Configuration["Destination"] == "aca")
             {
                 app.ConfigureCustomDomain(customDomain, certificateName);
             });
+
+        builder.AddNpmApp("adminclient-server", "../admin")
+            .WithReference(api)
+            .WithHttpEndpoint(targetPort: 80)
+            .WithExternalHttpEndpoints()
+            .PublishAsDockerFile()
+            .PublishAsAzureContainerApp((_, app) =>
+            {
+                app.ConfigureCustomDomain(adminCustomDomain, adminCertificateName);
+            });
     }
 }
 
@@ -101,7 +123,7 @@ if (builder.Configuration["Destination"] == "compose")
         .WithDataVolume("teamchords-pgdata")
         .WithPgAdmin(admin =>
         {
-        admin.WithHostPort(5050); 
+            admin.WithHostPort(5050); 
         })
         .ExcludeFromManifest();
 
@@ -121,6 +143,7 @@ if (builder.Configuration["Destination"] == "compose")
             c.EnvironmentVariables.Add("WebAuth0__Domain", builder.Configuration["WebAuth0:Domain"] ?? Environment.GetEnvironmentVariable("WebAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__Audience", builder.Configuration["WebAuth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("WebAuth0__ClientId", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("CustomerApp__BaseUrl", builder.Configuration["CustomerApp:BaseUrl"] ?? Environment.GetEnvironmentVariable("CustomerApp__BaseUrl") ?? "");
             c.EnvironmentVariables.Add("Chatwoot__BaseUrl", builder.Configuration["Chatwoot:BaseUrl"] ?? Environment.GetEnvironmentVariable("Chatwoot__BaseUrl") ?? "");
             c.EnvironmentVariables.Add("Chatwoot__WebsiteToken", builder.Configuration["Chatwoot:WebsiteToken"] ?? Environment.GetEnvironmentVariable("Chatwoot__WebsiteToken") ?? "");
             c.EnvironmentVariables.Add("Chatwoot__Position", builder.Configuration["Chatwoot:Position"] ?? Environment.GetEnvironmentVariable("Chatwoot__Position") ?? "right");
@@ -147,6 +170,13 @@ if (builder.Configuration["Destination"] == "compose")
         .PublishAsDockerComposeService((_, service) =>
         {
             service.Name = "frontend";
+        });
+
+    builder.AddNpmApp("adminclient-server", "../admin")
+        .WithReference(api)
+        .PublishAsDockerComposeService((_, service) =>
+        {
+            service.Name = "admin";
         });
 }
 

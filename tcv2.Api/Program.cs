@@ -5,6 +5,7 @@ using tcv2.Api.Endpoints;
 using Scalar.AspNetCore;
 using tcv2.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -49,6 +50,17 @@ builder.Services.AddAuthentication(options =>
 {
     options.Authority = $"https://{auth0Domain}/";
     options.Audience = auth0Audience;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
+        RoleClaimType = "https://teamchordsapp.io/roles",
+    };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminAccess", policy => policy.RequireRole("platform-admin", "support"));
+    options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("platform-admin"));
 });
 
 builder.AddNpgsqlDbContext<AppDbContext>("TeamChords");

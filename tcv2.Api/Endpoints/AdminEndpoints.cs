@@ -9,26 +9,17 @@ namespace tcv2.Api.Endpoints;
 
 internal static class AdminEndpoints
 {
-    private static readonly string[] PlatformAdminClaimValues =
-    [
-        "platform_admin",
-        "platform-admin",
-        "platform.admin",
-        "admin"
-    ];
-
-    private static readonly string[] PlatformAdminClaimTypes =
+    private static readonly string[] AdminRoleClaimTypes =
     [
         ClaimTypes.Role,
         "role",
         "roles",
-        "permission",
-        "permissions"
+        "https://teamchordsapp.io/roles"
     ];
 
     public static RouteGroupBuilder MapAdminEndpoints(this RouteGroupBuilder api)
     {
-        var admin = api.MapGroup("/admin");
+        var admin = api.MapGroup("/admin").RequireAuthorization("AdminAccess");
 
         admin.MapGet("/config", (IConfiguration config) =>
         {
@@ -37,13 +28,14 @@ internal static class AdminEndpoints
                 Auth0Domain = config["AdminAuth0:Domain"],
                 Auth0ClientId = config["AdminAuth0:ClientId"],
                 Auth0Audience = config["AdminAuth0:Audience"],
+                CustomerAppUrl = config["CustomerApp:BaseUrl"] ?? config["WebApp:BaseUrl"],
                 Chatwoot = new ChatwootBootstrapDto
                 {
                     Enabled = !string.IsNullOrWhiteSpace(config["Chatwoot:BaseUrl"]) && !string.IsNullOrWhiteSpace(config["Chatwoot:WebsiteToken"]),
                     BaseUrl = config["Chatwoot:BaseUrl"],
                     WebsiteToken = config["Chatwoot:WebsiteToken"],
                     Position = config["Chatwoot:Position"] ?? "right",
-                    HideMessageBubble = bool.TryParse(config["Chatwoot:HideMessageBubble"], out var hideMessageBubble) && hideMessageBubble,
+                    HideMessageBubble = bool.TryParse(config["Chatwoot:H`xideMessageBubble"], out var hideMessageBubble) && hideMessageBubble,
                     Locale = config["Chatwoot:Locale"] ?? "en"
                 }
             });
@@ -51,12 +43,12 @@ internal static class AdminEndpoints
 
         admin.MapGet("/me", async (HttpContext httpContext, AppDbContext db) =>
         {
-            if (!HasPlatformAdminAccess(httpContext.User))
-                return Results.Forbid();
-
-            var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.User.FindFirst("sub")?.Value;
             if (string.IsNullOrWhiteSpace(auth0UserId))
                 return Results.Unauthorized();
+
+            var roles = GetRoles(httpContext.User);
 
             var user = await db.Users
                 .Include(x => x.UserOrganizations)
@@ -64,13 +56,12 @@ internal static class AdminEndpoints
                 .Include(x => x.Profile)
                 .FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
 
-            if (user == null)
-                return Results.NotFound(new { message = "User not found" });
-
             return Results.Ok(new AdminMeDto
             {
-                IsPlatformAdmin = true,
-                User = user.ToDetailDto(),
+                IsPlatformAdmin = roles.Contains("platform-admin", StringComparer.OrdinalIgnoreCase),
+                IsSupport = roles.Contains("support", StringComparer.OrdinalIgnoreCase),
+                Roles = roles,
+                User = user?.ToDetailDto(),
                 Claims = httpContext.User.Claims
                     .Select(claim => new AdminClaimDto
                     {
@@ -83,9 +74,6 @@ internal static class AdminEndpoints
 
         admin.MapGet("/summary", async (HttpContext httpContext, AppDbContext db) =>
         {
-            if (!HasPlatformAdminAccess(httpContext.User))
-                return Results.Forbid();
-
             var summary = new AdminSummaryDto
             {
                 OrganizationCount = await db.Organizations.CountAsync(),
@@ -101,9 +89,6 @@ internal static class AdminEndpoints
 
         admin.MapGet("/organizations", async (HttpContext httpContext, HttpRequest req, AppDbContext db) =>
         {
-            if (!HasPlatformAdminAccess(httpContext.User))
-                return Results.Forbid();
-
             var q = db.Organizations.AsNoTracking().AsQueryable();
 
             if (req.Query.TryGetValue("name", out var name) && !string.IsNullOrWhiteSpace(name.ToString()))
@@ -138,9 +123,6 @@ internal static class AdminEndpoints
 
         admin.MapGet("/organizations/{id:guid}/members", async (Guid id, HttpContext httpContext, HttpRequest req, AppDbContext db) =>
         {
-            if (!HasPlatformAdminAccess(httpContext.User))
-                return Results.Forbid();
-
             var members = db.UserOrganizations
                 .AsNoTracking()
                 .Where(uo => uo.OrganizationId == id)
@@ -161,14 +143,14 @@ internal static class AdminEndpoints
         return api;
     }
 
-    private static bool HasPlatformAdminAccess(ClaimsPrincipal principal)
+    private static List<string> GetRoles(ClaimsPrincipal principal)
     {
-        if (principal.Identity?.IsAuthenticated != true)
-            return false;
-
-        return principal.Claims.Any(claim =>
-            PlatformAdminClaimTypes.Contains(claim.Type, StringComparer.OrdinalIgnoreCase) &&
-            PlatformAdminClaimValues.Contains(claim.Value, StringComparer.OrdinalIgnoreCase));
+        return principal.Claims
+            .Where(claim => AdminRoleClaimTypes.Contains(claim.Type, StringComparer.OrdinalIgnoreCase))
+            .Select(claim => claim.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }
 
@@ -177,6 +159,7 @@ public sealed class AdminBootstrapDto
     public string? Auth0Domain { get; set; }
     public string? Auth0ClientId { get; set; }
     public string? Auth0Audience { get; set; }
+    public string? CustomerAppUrl { get; set; }
     public ChatwootBootstrapDto Chatwoot { get; set; } = new();
 }
 
@@ -193,7 +176,9 @@ public sealed class ChatwootBootstrapDto
 public sealed class AdminMeDto
 {
     public bool IsPlatformAdmin { get; set; }
-    public UserDetailDto User { get; set; } = new();
+    public bool IsSupport { get; set; }
+    public List<string> Roles { get; set; } = new();
+    public UserDetailDto? User { get; set; }
     public List<AdminClaimDto> Claims { get; set; } = new();
 }
 
