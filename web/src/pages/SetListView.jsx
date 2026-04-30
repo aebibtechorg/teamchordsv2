@@ -4,11 +4,11 @@ import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
 import ChordSheetJS from "chordsheetjs";
 import { Key } from "chordsheetjs";
-import { Guitar, PrinterIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, Guitar, PrinterIcon, SlidersHorizontal } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
+import { AnimatePresence, motion } from "framer-motion";
 import Spinner from "../components/Spinner";
-import BluetoothPedal from "../components/BluetoothPedal";
 
 // Paper sizes in px at 96dpi
 const PAGE_SIZES = {
@@ -71,13 +71,45 @@ const ScaledPage = ({ html, pageSizeKey }) => {
     );
 };
 
+const AnimatedOutputCard = motion.div;
+
 const SetListView = () => {
     const { id } = useParams();
     const [setlist, setSetlist] = useState(null);
     const [outputs, setOutputs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [pageSize, setPageSize] = useState("letter");
-    const [showPedal, setShowPedal] = useState(false);
+    const [controlsOpen, setControlsOpen] = useState(false);
+    const controlsRef = useRef(null);
+
+    useEffect(() => {
+        if (window.innerWidth >= 1024) {
+            setControlsOpen(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!controlsOpen) return;
+
+        const handlePointerDown = (event) => {
+            if (controlsRef.current && !controlsRef.current.contains(event.target)) {
+                setControlsOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                setControlsOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown);
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("pointerdown", handlePointerDown);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [controlsOpen]);
 
     useEffect(() => {
         const signalRHub = '/hubs';
@@ -198,16 +230,6 @@ const SetListView = () => {
         };
     }, []);
 
-    useEffect(() => {
-        if (outputs.length > 0) {
-            document.querySelectorAll('.sheet h1').forEach((element) => {
-                element.style.fontWeight = 'bold';
-                element.style.textAlign = 'center';
-                element.style.fontSize = '1.5rem';
-            });
-        }
-    }, [outputs, id]);
-
     const renderChordPro = (chordProContent, originalKey, targetKey, capo) => {
         try {
             if (chordProContent) {
@@ -257,35 +279,79 @@ const SetListView = () => {
                 ))}
             </div>
 
-            {/* Toolbar */}
-            <h2 className="print:hidden text-center text-sm md:text-base lg:text-lg font-bold sticky top-0 left-0 z-10 w-full bg-gray-700 text-white py-4 shadow-md flex items-center gap-2 justify-center">
-                <span>{setlist.name}</span>
-                <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(e.target.value)}
-                    className="hidden md:flex bg-gray-500 hover:bg-gray-600 p-2 rounded font-normal text-white"
-                >
-                    {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
-                        <option key={key} value={key}>{label}</option>
-                    ))}
-                </select>
-                <button
-                    onClick={() => window.print()}
-                    className="flex items-center justify-center gap-1 bg-gray-500 hover:bg-gray-600 p-2 rounded font-normal"
-                >
-                    <PrinterIcon size={18} /> Print
-                </button>
-            </h2>
+            {/* Floating controls */}
+            <div
+                ref={controlsRef}
+                className="print:hidden fixed z-20 right-4 left-4 bottom-4 lg:left-auto lg:top-24 lg:bottom-auto lg:w-72"
+            >
+                <div className="overflow-hidden rounded-2xl bg-gray-800 text-white shadow-2xl border border-gray-700">
+                    <button
+                        type="button"
+                        onClick={() => setControlsOpen((open) => !open)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-700/80 transition-colors"
+                        aria-expanded={controlsOpen}
+                    >
+                        <span className="flex items-center gap-2 font-semibold">
+                            <SlidersHorizontal size={18} />
+                            View controls
+                        </span>
+                        {controlsOpen ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                        {controlsOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0, y: 8 }}
+                                animate={{ opacity: 1, height: "auto", y: 0 }}
+                                exit={{ opacity: 0, height: 0, y: 8 }}
+                                transition={{ duration: 0.22, ease: "easeOut" }}
+                                className="border-t border-gray-700 px-4 py-4 space-y-4"
+                            >
+                                <label className="block text-sm font-medium text-gray-200">
+                                    Page size
+                                    <select
+                                        value={pageSize}
+                                        onChange={(e) => setPageSize(e.target.value)}
+                                        className="mt-2 w-full rounded-lg bg-gray-700 px-3 py-2 text-white outline-none ring-1 ring-transparent transition focus:ring-gray-400"
+                                    >
+                                        {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
+                                            <option key={key} value={key}>{label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-500 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-600"
+                                >
+                                    <PrinterIcon size={18} />
+                                    Print set list
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
 
             {/* Scaled page previews */}
             <div className="print:hidden md:px-4">
-                {outputs.map((output) => (
-                    <ScaledPage
-                        key={output.id}
-                        html={renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo)}
-                        pageSizeKey={pageSize}
-                    />
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                    {outputs.map((output, index) => (
+                        <AnimatedOutputCard
+                            key={output.id ?? `${output.chordSheetId}-${output.order ?? index}`}
+                            layout
+                            initial={{ opacity: 0, y: 16, scale: 0.985 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -16, scale: 0.985 }}
+                            transition={{ duration: 0.24, ease: "easeOut" }}
+                        >
+                            <ScaledPage
+                                html={renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo)}
+                                pageSizeKey={pageSize}
+                            />
+                        </AnimatedOutputCard>
+                    ))}
+                </AnimatePresence>
             </div>
 
             <footer className="print:hidden text-center text-sm text-white w-full bg-gray-700 mt-8 py-2">
