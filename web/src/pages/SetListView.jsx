@@ -4,7 +4,7 @@ import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
 import ChordSheetJS from "chordsheetjs";
 import { Key } from "chordsheetjs";
-import { ChevronDown, ChevronUp, Guitar, PrinterIcon, SlidersHorizontal } from "lucide-react";
+import { Guitar, PrinterIcon, SlidersHorizontal } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import { AnimatePresence, motion } from "framer-motion";
@@ -81,12 +81,6 @@ const SetListView = () => {
     const [pageSize, setPageSize] = useState("letter");
     const [controlsOpen, setControlsOpen] = useState(false);
     const controlsRef = useRef(null);
-
-    useEffect(() => {
-        if (window.innerWidth >= 1024) {
-            setControlsOpen(true);
-        }
-    }, []);
 
     useEffect(() => {
         if (!controlsOpen) return;
@@ -269,8 +263,12 @@ const SetListView = () => {
     }
   
     return (
-        <div className="bg-gray-100 pb-8">
+        <div className="bg-gray-100">
             <style dangerouslySetInnerHTML={{__html: `@page { size: ${PAGE_SIZES[pageSize].size}; }`}} />
+
+            <h2 className="print:hidden text-center text-sm md:text-base lg:text-lg font-bold sticky top-0 left-0 z-10 w-full bg-gray-700 text-white py-4 shadow-md">
+                <span>{setlist.name}</span>
+            </h2>
 
             {/* Print-only output */}
             <div className="hidden print:block">
@@ -282,51 +280,50 @@ const SetListView = () => {
             {/* Floating controls */}
             <div
                 ref={controlsRef}
-                className="print:hidden fixed z-20 right-4 left-4 bottom-4 lg:left-auto lg:top-24 lg:bottom-auto lg:w-72"
+                className="print:hidden fixed z-20 right-3 bottom-3 lg:right-4 lg:bottom-4"
             >
-                <div className="overflow-hidden rounded-2xl bg-gray-800 text-white shadow-2xl border border-gray-700">
+                <div className="relative flex items-end justify-end">
                     <button
                         type="button"
                         onClick={() => setControlsOpen((open) => !open)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-700/80 transition-colors"
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-700 bg-gray-800 text-white shadow-2xl transition-colors hover:bg-gray-700"
                         aria-expanded={controlsOpen}
+                        aria-label="View controls"
                     >
-                        <span className="flex items-center gap-2 font-semibold">
-                            <SlidersHorizontal size={18} />
-                            View controls
-                        </span>
-                        {controlsOpen ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                        <SlidersHorizontal size={18} />
                     </button>
 
                     <AnimatePresence initial={false}>
                         {controlsOpen && (
                             <motion.div
-                                initial={{ opacity: 0, height: 0, y: 8 }}
-                                animate={{ opacity: 1, height: "auto", y: 0 }}
-                                exit={{ opacity: 0, height: 0, y: 8 }}
-                                transition={{ duration: 0.22, ease: "easeOut" }}
-                                className="border-t border-gray-700 px-4 py-4 space-y-4"
+                                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                className="absolute bottom-14 right-0 w-56 overflow-hidden rounded-2xl border border-gray-700 bg-gray-800 text-white shadow-2xl lg:w-60"
                             >
-                                <label className="block text-sm font-medium text-gray-200">
-                                    Page size
-                                    <select
-                                        value={pageSize}
-                                        onChange={(e) => setPageSize(e.target.value)}
-                                        className="mt-2 w-full rounded-lg bg-gray-700 px-3 py-2 text-white outline-none ring-1 ring-transparent transition focus:ring-gray-400"
-                                    >
-                                        {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
-                                            <option key={key} value={key}>{label}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                <div className="flex flex-col gap-2 p-3">
+                                    <label className="block text-sm font-medium text-gray-200">
+                                        Page size
+                                        <select
+                                            value={pageSize}
+                                            onChange={(e) => setPageSize(e.target.value)}
+                                            className="mt-2 w-full rounded-md bg-gray-700 px-2.5 py-2 text-sm text-white outline-none ring-1 ring-transparent transition focus:ring-gray-400"
+                                        >
+                                            {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
+                                                <option key={key} value={key}>{label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                <button
-                                    onClick={() => window.print()}
-                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-500 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-600"
-                                >
-                                    <PrinterIcon size={18} />
-                                    Print set list
-                                </button>
+                                    <button
+                                        onClick={() => window.print()}
+                                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
+                                    >
+                                        <PrinterIcon size={16} />
+                                        Print set list
+                                    </button>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
