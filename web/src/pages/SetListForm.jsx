@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Save } from "lucide-react";
 import { searchChordsheets, getChordsheet } from "../utils/chordsheets";
 import { Plus, X, Trash, Edit, Link2, Eye, MoreVertical } from "lucide-react";
-import { createOutputs, deleteOutputs, getCapoText } from "../utils/outputs";
+import { getCapoText, syncOutputs } from "../utils/outputs";
 import { handleCopyLink, handlePreview } from "../utils/setlists";
 import { v4 as uuidv4 } from 'uuid';
 import { useSongSelectionStore } from "../store/useSongSelectionStore";
@@ -19,7 +19,7 @@ import Select from "react-select";
 import AsyncSelect from "react-select/async";
 import Modal from "../components/Modal";
 
-const SongSelectionDialog = ({ onAdd, isOpen, onClose, sheetMap }) => {
+const SongSelectionDialog = ({ onAdd, isOpen, onClose }) => {
     const songStuff = useSongSelectionStore();
     const { profile } = useProfileStore();
     const orgId = profile?.orgId;
@@ -38,13 +38,13 @@ const SongSelectionDialog = ({ onAdd, isOpen, onClose, sheetMap }) => {
     };
 
     const handleAdd = () => {
-        onAdd((prevOutputs) => [...prevOutputs, { song: songStuff.selectedSong.song.value, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: uuidv4() }]);
+        onAdd((prevOutputs) => [...prevOutputs, { id: null, song: songStuff.selectedSong.song.value, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: uuidv4() }]);
         songStuff.setSelectedSong(defaultOutputValue);
         onClose();
     };
 
     const handleEdit = () => {
-        onAdd((prevOutputs) => prevOutputs.map((output) => output.index === songStuff.songId ? { song: songStuff.selectedSong.song.value, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: output.index } : output));
+        onAdd((prevOutputs) => prevOutputs.map((output) => output.index === songStuff.songId ? { ...output, id: output.id ?? null, song: songStuff.selectedSong.song.value, targetKey: songStuff.selectedSong.targetKey, capo: songStuff.selectedSong.capo, index: output.index } : output));
         songStuff.setSelectedSong(defaultOutputValue);
         songStuff.setIsEdit(false);
         onClose();
@@ -85,6 +85,15 @@ const SongSelectionDialog = ({ onAdd, isOpen, onClose, sheetMap }) => {
         </Modal>)
     );
 };
+
+const toEditorOutput = (output) => ({
+    id: output.id ?? null,
+    song: output.chordSheetId,
+    targetKey: output.targetKey,
+    capo: output.capo,
+    order: output.order,
+    index: uuidv4(),
+});
 
 const SortableSongItem = ({ output, sheet, handleDeleteSong, openEditDialog, handleDuplicateSong, handleMoveUp, handleMoveDown }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: output.index });
@@ -228,6 +237,7 @@ const SetListForm = () => {
     // sheets removed: switched to lazy search via AsyncSelect
     const [isOpen, setIsOpen] = useState(false);
     const [outputs, setOutputs] = useState([]);
+    const persistedOutputsRef = useRef([]);
     const [sheetMap, setSheetMap] = useState({}); // id -> chord sheet
     const songStuff = useSongSelectionStore();
     const [isSaving, setIsSaving] = useState(false);
@@ -252,19 +262,15 @@ const SetListForm = () => {
         if (id !== "new") {
             const fetchSetList = async () => {
                 const data = await getSetList(id);
-                if (data.orgId != profile.orgId) {
+                if (String(data.orgId) !== String(profile.orgId)) {
                     navigate('/setlists');
                 }
                 setName(data.name);
-                setOutputs(data.outputs.map(output => ({
-                    song: output.chordSheetId,
-                    targetKey: output.targetKey,
-                    capo: output.capo,
-                    order: output.order,
-                    index: uuidv4(),
-                })).sort((a, b) => a.order - b.order));
+                const mappedOutputs = (data.outputs || []).map(toEditorOutput).sort((a, b) => a.order - b.order);
+                setOutputs(mappedOutputs);
+                persistedOutputsRef.current = mappedOutputs.map(({ id, song, targetKey, capo, order }) => ({ id, song, targetKey, capo, order }));
             };
-            fetchSetList().then(() => setIsLoading(false)).catch((err) => {
+            fetchSetList().then(() => setIsLoading(false)).catch(() => {
                 toast.error("A network error has occured.");
                 setIsLoading(false);
             });
@@ -297,17 +303,26 @@ const SetListForm = () => {
     const handleSave = async () => {
         setIsSaving(true);
         const setlist = { name, orgId: profile.orgId };
+        const nextOutputs = outputs.map((output, index) => ({
+            ...output,
+            order: index,
+        }));
         try {
             if (id === "new") {
                 const newSetList = await createSetList(setlist);
                 if (newSetList) {
-                    await createOutputs(outputs.map((output, index) => ({
-                        chordSheetId: output.song,
-                        targetKey: output.targetKey,
-                        capo: output.capo,
-                        setListId: newSetList.id,
-                        order: index
-                    })));
+                    const savedOutputs = await syncOutputs(newSetList.id, nextOutputs, []);
+                    if (!savedOutputs) {
+                        toast.error("Failed to save set list songs.");
+                        return;
+                    }
+                    const hydratedOutputs = nextOutputs.map((output, index) => ({
+                        ...output,
+                        id: savedOutputs?.[index]?.id ?? output.id ?? null,
+                        order: index,
+                    }));
+                    setOutputs(hydratedOutputs);
+                    persistedOutputsRef.current = hydratedOutputs.map(({ id, song, targetKey, capo, order }) => ({ id, song, targetKey, capo, order }));
                     toast.success("Set list created!");
                     navigate(`/setlists/${newSetList.id}`);
                 } else {
@@ -315,14 +330,19 @@ const SetListForm = () => {
                 }
             } else {
                 await updateSetList(id, setlist);
-                await deleteOutputs(id);
-                await createOutputs(outputs.map((output, index) => ({
-                    chordSheetId: output.song,
-                    targetKey: output.targetKey,
-                    capo: output.capo,
-                    setListId: id,
-                    order: index
-                })));
+                const savedOutputs = await syncOutputs(id, nextOutputs, persistedOutputsRef.current);
+                if (!savedOutputs) {
+                    toast.error("Failed to save set list songs.");
+                    return;
+                }
+
+                const hydratedOutputs = nextOutputs.map((output, index) => ({
+                    ...output,
+                    id: savedOutputs?.[index]?.id ?? output.id ?? null,
+                    order: index,
+                }));
+                setOutputs(hydratedOutputs);
+                persistedOutputsRef.current = hydratedOutputs.map(({ id, song, targetKey, capo, order }) => ({ id, song, targetKey, capo, order }));
                 toast.success("Set list updated!");
             }
         } catch (error) {
@@ -345,7 +365,7 @@ const SetListForm = () => {
             const idx = prevOutputs.findIndex(o => o.index === index);
             if (idx === -1) return prevOutputs;
             const item = prevOutputs[idx];
-            const copy = { ...item, index: uuidv4() };
+            const copy = { ...item, id: null, index: uuidv4() };
             const newOutputs = [...prevOutputs];
             newOutputs.splice(idx + 1, 0, copy);
             return newOutputs;
@@ -358,8 +378,7 @@ const SetListForm = () => {
         setOutputs((prevOutputs) => {
             const idx = prevOutputs.findIndex(o => o.index === index);
             if (idx <= 0) return prevOutputs;
-            const newOutputs = arrayMove(prevOutputs, idx, idx - 1);
-            return newOutputs;
+            return arrayMove(prevOutputs, idx, idx - 1);
         });
     };
 
@@ -369,8 +388,7 @@ const SetListForm = () => {
         setOutputs((prevOutputs) => {
             const idx = prevOutputs.findIndex(o => o.index === index);
             if (idx === -1 || idx >= prevOutputs.length - 1) return prevOutputs;
-            const newOutputs = arrayMove(prevOutputs, idx, idx + 1);
-            return newOutputs;
+            return arrayMove(prevOutputs, idx, idx + 1);
         });
     };
     
