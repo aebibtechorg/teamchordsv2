@@ -5,10 +5,14 @@ import { motion } from "framer-motion";
 import MainLogo from "./components/MainLogo";
 import PricingCards from "./components/PricingCards";
 import ChatwootWidget from "./components/ChatwootWidget";
+import { LAUNCH_DISCOUNT_COPY } from "./constants/launchOffer";
 
 function App() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
+  const scrollToPricing = () => {
+    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -23,10 +27,20 @@ function App() {
   };
 
   return (
-    <div className="h-screen overflow-y-scroll snap-mandatory snap-y scroll-smooth">
+    <div className="h-screen overflow-y-scroll snap-mandatory snap-y scroll-smooth pt-10 sm:pt-12">
       <ChatwootWidget />
+      <div className="fixed top-0 left-0 z-20 w-full bg-green-600 px-4 py-2 text-center text-xs font-semibold text-white shadow-sm sm:text-sm">
+        {LAUNCH_DISCOUNT_COPY}{" "}
+        <button
+          type="button"
+          onClick={scrollToPricing}
+          className="underline decoration-white decoration-2 underline-offset-2"
+        >
+          See pricing
+        </button>
+      </div>
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 w-full flex justify-between p-3 sm:p-4 bg-gray-700 text-white shadow-md z-10">
+      <nav className="fixed top-10 left-0 w-full flex justify-between p-3 sm:top-12 sm:p-4 bg-gray-700 text-white shadow-md z-10">
         <h1 className="flex items-center text-lg sm:text-xl">
           <MainLogo size={28} className="mr-2" /> Team Chords
         </h1>

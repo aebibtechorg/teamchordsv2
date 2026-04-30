@@ -1,9 +1,9 @@
 import { apiFetch } from './api';
 
-export async function startCheckout(plan, orgId, redirectUrl) {
+export async function startCheckout(plan, orgId, redirectUrl, discountCode = null) {
     const res = await apiFetch('/api/billing/checkout', {
         method: 'POST',
-        body: JSON.stringify({ plan, orgId, redirectUrl }),
+        body: JSON.stringify({ plan, orgId, redirectUrl, discountCode }),
     });
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));

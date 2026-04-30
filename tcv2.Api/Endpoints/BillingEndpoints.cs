@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
@@ -66,6 +65,9 @@ internal static class BillingEndpoints
             var apiKey = config["Dodo:SecretKey"];
             var client = httpClientFactory.CreateClient();
             var baseUrl = config["Dodo:BaseUrl"] ?? "https://test.dodopayments.com";
+            var discountCode = !string.IsNullOrWhiteSpace(config["Dodo:LaunchDiscountCode"])
+                ? config["Dodo:LaunchDiscountCode"]
+                : request.DiscountCode;
             client.BaseAddress = new Uri(baseUrl);
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
@@ -80,7 +82,8 @@ internal static class BillingEndpoints
                 customer = (object)(org.DodoCustomerId != null
                     ? new { customer_id = org.DodoCustomerId, email = user.Email, name = user.Name ?? user.Email }
                     : new { email = user.Email, name = user.Name ?? user.Email }),
-                return_url = $"{request.redirectUrl?.TrimEnd('/')}?success=true",
+                discount_code = string.IsNullOrWhiteSpace(discountCode) ? null : discountCode,
+                return_url = $"{request.RedirectUrl?.TrimEnd('/')}?success=true",
                 metadata = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
@@ -103,10 +106,10 @@ internal static class BillingEndpoints
             }
 
             var result = await response.Content.ReadFromJsonAsync<DodoCheckoutSessionResponse>();
-            if (result?.checkout_url == null)
+            if (result?.CheckoutUrl == null)
                 return Results.BadRequest("Failed to create checkout session");
 
-            return Results.Ok(new { url = result.checkout_url });
+            return Results.Ok(new { url = result.CheckoutUrl });
         });
 
         billing.MapPost("/webhook", async (
@@ -214,9 +217,9 @@ internal static class BillingEndpoints
             // Dodo Payments POST /customers/{customer_id}/customer-portal/session
             // https://docs.dodopayments.com/api-reference/customers/customer-portal-create
             var portalUrl = $"/customers/{org.DodoCustomerId}/customer-portal/session?send_email=false";
-            if (!string.IsNullOrEmpty(request.returnUrl))
+            if (!string.IsNullOrEmpty(request.ReturnUrl))
             {
-                portalUrl += $"&return_url={Uri.EscapeDataString(request.returnUrl)}";
+                portalUrl += $"&return_url={Uri.EscapeDataString(request.ReturnUrl)}";
             }
 
             var response = await client.PostAsync(portalUrl, null);
@@ -227,10 +230,10 @@ internal static class BillingEndpoints
             }
 
             var result = await response.Content.ReadFromJsonAsync<DodoCustomerPortalResponse>();
-            if (result?.link == null)
+            if (result?.Link == null)
                 return Results.BadRequest("Failed to create customer portal session");
 
-            return Results.Ok(new { url = result.link });
+            return Results.Ok(new { url = result.Link });
         });
 
         billing.MapPost("/cancel", async (
@@ -323,18 +326,18 @@ internal static class BillingEndpoints
     }
 }
 
-public record CheckoutRequest(Plan Plan, Guid OrgId, string? redirectUrl);
+public record CheckoutRequest(Plan Plan, Guid OrgId, string? RedirectUrl, string? DiscountCode = null);
 
 /// <summary>Dodo Payments POST /checkouts (Checkout Sessions) response</summary>
 public record DodoCheckoutSessionResponse(
-    string session_id,
-    string? checkout_url);      // URL to redirect the customer to
+    [property: System.Text.Json.Serialization.JsonPropertyName("session_id")] string SessionId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("checkout_url")] string? CheckoutUrl);      // URL to redirect the customer to
 
 /// <summary>Dodo Payments webhook event envelope</summary>
 public class DodoWebhookEvent
 {
-    public string? Type { get; set; }
-    public DodoWebhookData Data { get; set; } = new();
+    public string? Type { get; init; }
+    public DodoWebhookData Data { get; init; } = new();
 }
 
 /// <summary>Customer object in Dodo webhook data</summary>
@@ -343,19 +346,19 @@ public record DodoCustomer(string? CustomerId);
 /// <summary>Common fields present in subscription webhook payloads</summary>
 public class DodoWebhookData
 {
-    public string? SubscriptionId { get; set; }
-    public DodoCustomer Customer { get; set; } = new(null);
-    public string? ProductId { get; set; }
-    public string? Status { get; set; }
-    public Dictionary<string, string>? Metadata { get; set; }
-    public DateTime? NextBillingDate { get; set; }
-    public DateTime? ExpiresAt { get; set; }
+    public string? SubscriptionId { get; init; }
+    public DodoCustomer Customer { get; init; } = new(null);
+    public string? ProductId { get; init; }
+    public string? Status { get; init; }
+    public Dictionary<string, string>? Metadata { get; init; }
+    public DateTime? NextBillingDate { get; init; }
+    public DateTime? ExpiresAt { get; init; }
 }
 
 public record CancelRequest(Guid OrgId);
 
 /// <summary>Dodo Payments POST /customers/{customer_id}/portal response</summary>
 public record DodoCustomerPortalResponse(
-    string link);    // URL to redirect the customer to the portal
+    [property: System.Text.Json.Serialization.JsonPropertyName("link")] string Link);    // URL to redirect the customer to the portal
 
-public record PortalRequest(Guid OrgId, string? returnUrl);
+public record PortalRequest(Guid OrgId, string? ReturnUrl);

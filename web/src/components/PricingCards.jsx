@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getProfile } from "../utils/common";
 import { startCheckout, cancelSubscription } from "../utils/billing";
 import ConfirmDialog from "./ConfirmDialog";
+import { LAUNCH_DISCOUNT_CODE, LAUNCH_DISCOUNT_COPY } from "../constants/launchOffer";
 
 const PENDING_PLAN_KEY = "pendingPlanCheckout";
 const PLAN_ORDER = { Free: 0, GiggingBand: 1, Organization: 2 };
@@ -57,7 +58,12 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
 
     try {
-      const { url } = await startCheckout(plan, profile.orgId, `${window.location.origin}/billing`);
+      const { url } = await startCheckout(
+        plan,
+        profile.orgId,
+        `${window.location.origin}/billing`,
+        LAUNCH_DISCOUNT_CODE,
+      );
       window.location.href = url;
     } catch (error) {
       console.error('Checkout error:', error);
@@ -138,6 +144,9 @@ const PricingCards = ({ isAuthenticated = false }) => {
         <p className="text-xl text-gray-600 text-center mb-12">
           Each account can own one organization, and invites can still add you to other organizations.
         </p>
+        <div className="mx-auto mb-8 max-w-3xl rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-800">
+          Launch special: {LAUNCH_DISCOUNT_COPY}
+        </div>
         {/*<div className="max-w-3xl mx-auto mb-12 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 text-center">*/}
         {/*  Tiering is based on chord sheet and set list capacity inside your organization.*/}
         {/*</div>*/}
@@ -167,6 +176,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
             </div>
             <h2 className="text-2xl font-bold mb-4">Gigging Band</h2>
             <p className="text-4xl font-extrabold mb-4">$5<span className="text-lg font-normal text-gray-500">/ month</span></p>
+            <p className="text-sm font-semibold text-green-600 mb-3">{LAUNCH_DISCOUNT_COPY}</p>
             <p className="text-gray-600 mb-6">For active groups that need a bigger shared library and flexible set lists.</p>
             <ul className="space-y-4 text-gray-700 mb-8 grow">
               <li><span className="font-bold">250 Chord Sheets</span></li>
@@ -184,6 +194,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
           <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
             <h2 className="text-2xl font-bold mb-4">Pro Library</h2>
             <p className="text-4xl font-extrabold mb-4">$49<span className="text-lg font-normal text-gray-500">/ month</span></p>
+            <p className="text-sm font-semibold text-green-600 mb-3">{LAUNCH_DISCOUNT_COPY}</p>
             <p className="text-gray-600 mb-6">For organizations that need the largest shared chord library and set list capacity.</p>
             <ul className="space-y-4 text-gray-700 mb-8 grow">
               <li><span className="font-bold">Unlimited Chord Sheets</span></li>
