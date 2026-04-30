@@ -137,7 +137,10 @@ function App() {
           Start Your Musical Journey Today!
         </h3>
         <p className="text-base sm:text-lg max-w-md sm:max-w-2xl">
-          Join thousands of musicians and make chord sharing effortless.
+          Built for worship teams and musicians who need reliable, real-time collaboration.
+        </p>
+        <p className="mt-3 text-sm sm:text-base max-w-md sm:max-w-2xl text-gray-200">
+          After signing up, you&apos;ll get instant access to your workspace where you can create chord sheets, build set lists, and invite your team.
         </p>
         <motion.div whileHover={{ scale: 1.05 }} className="mt-4 sm:mt-6">
           <button
@@ -165,10 +168,11 @@ function App() {
           <span className="px-2 sm:px-4">Instagram</span>
         </div>
         <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-gray-500">
-          <Link to="/pricing" className="hover:underline">Pricing</Link>
+          <a href="/#pricing" className="hover:underline">Pricing</a>
           <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
           <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
         </div>
+        <p className="mt-3 text-sm text-gray-500">Support: support@teamchords.com</p>
         <p className="mt-4 sm:mt-6 text-sm"> {new Date().getFullYear()} Team Chords. All rights reserved.</p>
       </motion.footer>
     </div>

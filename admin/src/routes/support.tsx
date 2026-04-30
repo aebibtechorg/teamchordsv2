@@ -44,7 +44,7 @@ function SupportPage() {
   const customerAppUrl = bootstrap?.customerAppUrl || customerSupportUrl
   const chatwootEnabled = bootstrap?.chatwoot.enabled ?? false
   const chatwootBaseUrl = bootstrap?.chatwoot.baseUrl || ""
-  const supportMail = "paul@aebibtech.com"
+  const supportMail = "support@teamchords.com"
 
   return (
     <AdminShell title="Support" description="Handoff operators into the customer support workflow first">

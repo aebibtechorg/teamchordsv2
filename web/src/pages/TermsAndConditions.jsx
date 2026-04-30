@@ -13,10 +13,10 @@ const TermsAndConditions = () => {
         <p className="mb-4">These Terms of Service (“Terms”, “Terms of Service”) govern your use of our website located at <strong>{window.location.origin}</strong> (together or individually “Service”) operated by <strong>Team Chords</strong>.</p>
         <p className="mb-4">Our Privacy Policy also governs your use of our Service and explains how we collect, safeguard and disclose information that results from your use of our web pages.</p>
         <p className="mb-4">Your agreement with us includes these Terms and our Privacy Policy (“Agreements”). You acknowledge that you have read and understood Agreements, and agree to be bound of them.</p>
-        <p className="mb-4">If you do not agree with (or cannot comply with) Agreements, then you may not use the Service, but please let us know by emailing at <strong>paul@aebibtech.com</strong> so we can try to find a solution. These Terms apply to all visitors, users and others who wish to access or use Service.</p>
+        <p className="mb-4">If you do not agree with (or cannot comply with) Agreements, then you may not use the Service, but please let us know by emailing at <strong>support@teamchords.com</strong> so we can try to find a solution. These Terms apply to all visitors, users and others who wish to access or use Service.</p>
 
         <h2 className="text-2xl font-semibold mb-4">2. Communications</h2>
-        <p className="mb-4">By using our Service, you agree to subscribe to newsletters, marketing or promotional materials and other information we may send. However, you may opt out of receiving any, or all, of these communications from us by following the unsubscribe link or by emailing at paul@aebibtech.com.</p>
+        <p className="mb-4">By using our Service, you agree to subscribe to newsletters, marketing or promotional materials and other information we may send. However, you may opt out of receiving any, or all, of these communications from us by following the unsubscribe link or by emailing at support@teamchords.com.</p>
 
         <h2 className="text-2xl font-semibold mb-4">3. Purchases</h2>
         <p className="mb-4">If you wish to purchase any product or service made available through Service (“Purchase”), you may be asked to supply certain information relevant to your Purchase including but not limited to, your credit or debit card number, the expiration date of your card, your billing address, and your shipping information.</p>
@@ -29,8 +29,8 @@ const TermsAndConditions = () => {
         <p className="mb-4">Any contests, sweepstakes or other promotions (collectively, “Promotions”) made available through Service may be governed by rules that are separate from these Terms of Service. If you participate in any Promotions, please review the applicable rules as well as our Privacy Policy. If the rules for a Promotion conflict with these Terms of Service, Promotion rules will apply.</p>
 
         <h2 className="text-2xl font-semibold mb-4">5. Subscriptions</h2>
-        <p className="mb-4">Some parts of Service are billed on a subscription basis ("Subscription(s)"). You will be billed in advance on a recurring and periodic basis ("Billing Cycle"). Billing cycles will be set depending on the type of subscription plan you select when purchasing a Subscription.</p>
-        <p className="mb-4">At the end of each Billing Cycle, your Subscription will automatically renew under the exact same conditions unless you cancel it or Team Chords cancels it. You may cancel your Subscription renewal either through your online account management page or by contacting paul@aebibtech.com customer support team.</p>
+        <p className="mb-4">Some parts of Service are billed on a subscription basis ("Subscription(s)"). Subscription plans are billed monthly in advance on a recurring and periodic basis ("Billing Cycle").</p>
+        <p className="mb-4">At the end of each Billing Cycle, your Subscription will automatically renew under the exact same conditions unless you cancel it or Team Chords cancels it. You may cancel your Subscription renewal at any time through your online account management page or by contacting support@teamchords.com. If you cancel, your access remains active until the end of the current billing period.</p>
         <p className="mb-4">A valid payment method is required to process the payment for your subscription. You shall provide Team Chords with accurate and complete billing information that may include but not limited to full name, address, state, postal or zip code, telephone number, and a valid payment method information. By submitting such payment information, you automatically authorize Team Chords to charge all Subscription fees incurred through your account to any such payment instruments.</p>
         <p className="mb-4">Should automatic billing fail to occur for any reason, Team Chords reserves the right to terminate your access to the Service with immediate effect.</p>
 
@@ -46,7 +46,7 @@ const TermsAndConditions = () => {
         <p className="mb-4">Your continued use of Service after Subscription fee change comes into effect constitutes your agreement to pay the modified Subscription fee amount.</p>
 
         <h2 className="text-2xl font-semibold mb-4">8. Refunds</h2>
-        <p className="mb-4">We issue refunds for Contracts within <strong>30 days</strong> of the original purchase of the Contract.</p>
+        <p className="mb-4">Subscription payments are non-refundable except where required by law.</p>
 
         <h2 className="text-2xl font-semibold mb-4">9. Content</h2>
         <p className="mb-4">Our Service allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material (“Content”). You are responsible for Content that you post on or through Service, including its legality, reliability, and appropriateness.</p>
@@ -95,7 +95,7 @@ const TermsAndConditions = () => {
 
         <h2 className="text-2xl font-semibold mb-4">15. Copyright Policy</h2>
         <p className="mb-4">We respect the intellectual property rights of others. It is our policy to respond to any claim that Content posted on Service infringes on the copyright or other intellectual property rights (“Infringement”) of any person or entity.</p>
-        <p className="mb-4">If you are a copyright owner, or authorized on behalf of one, and you believe that the copyrighted work has been copied in a way that constitutes copyright infringement, please submit your claim via email to paul@aebibtech.com, with the subject line: “Copyright Infringement” and include in your claim a detailed description of the alleged Infringement as detailed below, under “DMCA Notice and Procedure for Copyright Infringement Claims”</p>
+        <p className="mb-4">If you are a copyright owner, or authorized on behalf of one, and you believe that the copyrighted work has been copied in a way that constitutes copyright infringement, please submit your claim via email to support@teamchords.com, with the subject line: “Copyright Infringement” and include in your claim a detailed description of the alleged Infringement as detailed below, under “DMCA Notice and Procedure for Copyright Infringement Claims”</p>
         <p className="mb-4">You may be held accountable for damages (including costs and attorneys' fees) for misrepresentation or bad-faith claims on the infringement of any Content found on and/or through Service on your copyright.</p>
 
         <h2 className="text-2xl font-semibold mb-4">16. DMCA Notice and Procedure for Copyright Infringement Claims</h2>
@@ -108,10 +108,10 @@ const TermsAndConditions = () => {
           <li>a statement by you that you have a good faith belief that the disputed use is not authorized by the copyright owner, its agent, or the law;</li>
           <li>a statement by you, made under penalty of perjury, that the above information in your notice is accurate and that you are the copyright owner or authorized to act on the copyright owner's behalf.</li>
         </ol>
-        <p className="mb-4">You can contact our Copyright Agent via email at paul@aebibtech.com.</p>
+        <p className="mb-4">You can contact our Copyright Agent via email at support@teamchords.com.</p>
 
         <h2 className="text-2xl font-semibold mb-4">17. Error Reporting and Feedback</h2>
-        <p className="mb-4">You may provide us either directly at paul@aebibtech.com or via third party sites and tools with information and feedback concerning errors, suggestions for improvements, ideas, problems, complaints, and other matters related to our Service (“Feedback”). You acknowledge and agree that: (i) you shall not retain, acquire or assert any intellectual property right or other right, title or interest in or to the Feedback; (ii) Company may have development ideas similar to the Feedback; (iii) Feedback does not contain confidential information or proprietary information from you or any third party; and (iv) Company is not under any obligation of confidentiality with respect to the Feedback. In the event the transfer of the ownership to the Feedback is not possible due to applicable mandatory laws, you grant Company and its affiliates an exclusive, transferable, irrevocable, free-of-charge, sub-licensable, unlimited and perpetual right to use (including copy, modify, create derivative works, publish, distribute and commercialize) Feedback in any manner and for any purpose.</p>
+        <p className="mb-4">You may provide us either directly at support@teamchords.com or via third party sites and tools with information and feedback concerning errors, suggestions for improvements, ideas, problems, complaints, and other matters related to our Service (“Feedback”). You acknowledge and agree that: (i) you shall not retain, acquire or assert any intellectual property right or other right, title or interest in or to the Feedback; (ii) Company may have development ideas similar to the Feedback; (iii) Feedback does not contain confidential information or proprietary information from you or any third party; and (iv) Company is not under any obligation of confidentiality with respect to the Feedback. In the event the transfer of the ownership to the Feedback is not possible due to applicable mandatory laws, you grant Company and its affiliates an exclusive, transferable, irrevocable, free-of-charge, sub-licensable, unlimited and perpetual right to use (including copy, modify, create derivative works, publish, distribute and commercialize) Feedback in any manner and for any purpose.</p>
 
         <h2 className="text-2xl font-semibold mb-4">18. Links To Other Web Sites</h2>
         <p className="mb-4">Our Service may contain links to third party web sites or services that are not owned or controlled by Team Chords.</p>
@@ -154,7 +154,7 @@ const TermsAndConditions = () => {
         <p className="mb-4">BY USING SERVICE OR OTHER SERVICES PROVIDED BY US, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS OF SERVICE AND AGREE TO BE BOUND BY THEM.</p>
 
         <h2 className="text-2xl font-semibold mb-4">27. Contact Us</h2>
-        <p className="mb-4">Please send your feedback, comments, requests for technical support by email: <strong>paul@aebibtech.com</strong>.</p>
+        <p className="mb-4">Please send your feedback, comments, requests for technical support by email: <strong>support@teamchords.com</strong>.</p>
       </div>
     </PublicLayout>
   );

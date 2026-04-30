@@ -29,6 +29,7 @@ const PublicLayout = ({ children }) => {
           <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
           <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
         </div>
+        <p className="mt-2 text-sm text-gray-500">Support: support@teamchords.com</p>
         <p className="mt-2 text-sm">© {new Date().getFullYear()} Team Chords. All rights reserved.</p>
       </footer>
     </div>
