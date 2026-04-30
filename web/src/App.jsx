@@ -34,13 +34,13 @@ function App() {
           <div className="flex items-center gap-3">
             <a
               href="/#pricing"
-              className="px-3 py-2 sm:px-4 sm:py-2 rounded bg-gray-500 hover:bg-gray-600 transition text-sm sm:text-base"
+              className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"
             >
               Pricing
             </a>
             <button
               onClick={() => loginWithRedirect()}
-              className="px-3 py-2 sm:px-4 sm:py-2 rounded bg-gray-500 hover:bg-gray-600 transition text-sm sm:text-base"
+              className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"
             >
               Sign In
             </button>
