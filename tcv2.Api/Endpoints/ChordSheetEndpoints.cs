@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;
@@ -87,10 +88,13 @@ internal static class ChordSheetEndpoints
         });
 
         chordSheets.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.ChordSheets.FindAsync(id) is ChordSheet cs ? Results.Ok(cs.ToDto()) : Results.NotFound())
+        {
+            var cs = await db.ChordSheets.FindAsync(id);
+            return cs is not null ? Results.Ok(cs.ToDto()) : Results.NotFound();
+        })
             .AllowAnonymous();
 
-        chordSheets.MapPost("/", async (ChordSheetDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        chordSheets.MapPost("/", async (ChordSheetDto dto, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -130,12 +134,12 @@ internal static class ChordSheetEndpoints
             var gate = FeatureGate.CheckBulkUpload(org);
             if (gate != null) return gate;
 
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 // Create a new scope to resolve scoped services like DbContext
                 using var scope = services.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var hub = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient>>();
+                var scopedDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var hub = scope.ServiceProvider.GetRequiredService<IHubContext<SetListHub, ISetListClient>>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
                 var total = request.Dtos.Length;
@@ -155,8 +159,8 @@ internal static class ChordSheetEndpoints
 
                     var cs = dto.ToEntity();
                     cs.Id = Guid.NewGuid();
-                    db.ChordSheets.Add(cs);
-                    await db.SaveChangesAsync();
+                    scopedDb.ChordSheets.Add(cs);
+                    await scopedDb.SaveChangesAsync();
                     await hub.Clients.All.ChordSheetCreated(cs);
                 }
 
@@ -166,7 +170,7 @@ internal static class ChordSheetEndpoints
             return Results.Accepted(value: new { message = "Bulk upload started." });
         });
 
-        chordSheets.MapPut("/{id}", async (Guid id, ChordSheetDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        chordSheets.MapPut("/{id}", async (Guid id, ChordSheetDto dto, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -178,7 +182,7 @@ internal static class ChordSheetEndpoints
             return Results.NoContent();
         });
 
-        chordSheets.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        chordSheets.MapDelete("/{id}", async (Guid id, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var existing = await db.ChordSheets.FindAsync(id);
             if (existing == null) return Results.NotFound();

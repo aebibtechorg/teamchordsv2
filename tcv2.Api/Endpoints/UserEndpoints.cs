@@ -1,13 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Linq;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
@@ -62,7 +57,10 @@ internal static class UserEndpoints
         });
 
         users.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>
-            await db.Users.FindAsync(id) is User u ? Results.Ok(u.ToDto()) : Results.NotFound());
+        {
+            var user = await db.Users.FindAsync(id);
+            return user is not null ? Results.Ok(user.ToDto()) : Results.NotFound();
+        });
 
         users.MapGet("/me", async (HttpRequest req, AppDbContext db) =>
         {
@@ -92,6 +90,7 @@ internal static class UserEndpoints
             await db.SaveChangesAsync();
 
             var updatedUser = await db.Users.Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Id == user.Id);
+            if (updatedUser is null) return Results.NotFound();
             return Results.Ok(updatedUser.ToDetailDto());
         });
 
@@ -158,6 +157,11 @@ internal static class UserEndpoints
                         .Include(x => x.Profile)
                         .FirstOrDefaultAsync(x => x.Id == u.Id);
 
+                    if (user is null)
+                    {
+                        return Results.BadRequest(new { message = "Failed to reload created user" });
+                    }
+
                     return Results.Created($"/api/users/{u.Id}", user.ToDetailDto());
                 }
                 catch (DbUpdateException ex)
@@ -191,18 +195,6 @@ internal static class UserEndpoints
                 await using var tx = await db.Database.BeginTransactionAsync();
                 string? createdAuth0UserId = null;
                 string? createdAuth0Picture = null;
-
-                async Task RollbackSafelyAsync()
-                {
-                    try
-                    {
-                        await tx.RollbackAsync();
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        // Transaction may already be completed; keep the original error intact.
-                    }
-                }
 
                 try
                 {
@@ -337,12 +329,27 @@ internal static class UserEndpoints
                 }
                 catch (DbUpdateException ex)
                 {
-                    await RollbackSafelyAsync();
+                    try
+                    {
+                        await tx.RollbackAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Transaction may already be completed; keep the original error intact.
+                    }
+
                     return EndpointHelpers.HandleDbUpdateException(ex);
                 }
                 catch (Exception ex)
                 {
-                    await RollbackSafelyAsync();
+                    try
+                    {
+                        await tx.RollbackAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Transaction may already be completed; keep the original error intact.
+                    }
 
                     // cleanup Auth0 user if it was created
                     if (!string.IsNullOrWhiteSpace(createdAuth0UserId))
@@ -382,7 +389,10 @@ internal static class UserEndpoints
                                     await http.SendAsync(delReq);
                                 }
                             }
-                            catch { }
+                            catch (Exception cleanupEx)
+                            {
+                                _ = cleanupEx;
+                            }
                         });
                     }
 
