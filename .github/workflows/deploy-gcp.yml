@@ -90,6 +90,10 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET}" \
             -backend-config="prefix=gcp"
 
+      - name: Create Artifact Registry repository
+        working-directory: infra/gcp
+        run: terraform apply -target=google_artifact_registry_repository.containers -auto-approve
+
       - name: Configure Docker auth for Artifact Registry
         run: gcloud auth configure-docker "${GAR_HOST}" --quiet
 
