@@ -24,6 +24,7 @@ jobs:
       TF_VAR_region: asia-southeast1
       TF_VAR_github_owner: ${{ github.repository_owner }}
       TF_VAR_github_repo: ${{ github.event.repository.name }}
+      TF_VAR_manage_github_identity: "false"
       TF_VAR_teamchords_connection_string: ${{ secrets.NEON_POSTGRES_CS }}
       TF_VAR_redis_connection_string: ${{ secrets.UPSTASH_REDIS_CS }}
       TF_VAR_auth0_domain: ${{ secrets.AUTH0_DOMAIN }}

@@ -36,13 +36,17 @@ resource "google_firebase_project" "default" {
 }
 
 resource "google_iam_workload_identity_pool" "github" {
+  count = var.manage_github_identity ? 1 : 0
+
   workload_identity_pool_id = "github-actions"
   display_name              = "GitHub Actions"
   description               = "OIDC federation for TeamChords GitHub Actions"
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  count = var.manage_github_identity ? 1 : 0
+
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github[0].workload_identity_pool_id
   workload_identity_pool_provider_id = "github-provider"
   display_name                       = "GitHub repository provider"
   description                        = "Allow TeamChords GitHub Actions to impersonate the deployer service account"
@@ -59,32 +63,42 @@ resource "google_iam_workload_identity_pool_provider" "github" {
 }
 
 resource "google_service_account" "github_deployer" {
+  count = var.manage_github_identity ? 1 : 0
+
   account_id   = "tcv2-github-deployer"
   display_name = "TeamChords GitHub deployer"
 }
 
 resource "google_project_iam_member" "github_run_admin" {
+  count = var.manage_github_identity ? 1 : 0
+
   project = var.project_id
   role    = "roles/run.admin"
-  member  = "serviceAccount:${google_service_account.github_deployer.email}"
+  member  = "serviceAccount:${google_service_account.github_deployer[0].email}"
 }
 
 resource "google_project_iam_member" "github_artifact_writer" {
+  count = var.manage_github_identity ? 1 : 0
+
   project = var.project_id
   role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${google_service_account.github_deployer.email}"
+  member  = "serviceAccount:${google_service_account.github_deployer[0].email}"
 }
 
 resource "google_project_iam_member" "github_serviceusage" {
+  count = var.manage_github_identity ? 1 : 0
+
   project = var.project_id
   role    = "roles/serviceusage.serviceUsageConsumer"
-  member  = "serviceAccount:${google_service_account.github_deployer.email}"
+  member  = "serviceAccount:${google_service_account.github_deployer[0].email}"
 }
 
 resource "google_service_account_iam_member" "github_wif" {
-  service_account_id = google_service_account.github_deployer.name
+  count = var.manage_github_identity ? 1 : 0
+
+  service_account_id = google_service_account.github_deployer[0].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${local.github_repository}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.repository/${local.github_repository}"
 }
 
 resource "google_service_account" "api_runtime" {
@@ -98,15 +112,19 @@ resource "google_service_account" "admin_runtime" {
 }
 
 resource "google_service_account_iam_member" "api_runtime_user" {
+  count = var.manage_github_identity ? 1 : 0
+
   service_account_id = google_service_account.api_runtime.name
   role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_deployer.email}"
+  member             = "serviceAccount:${google_service_account.github_deployer[0].email}"
 }
 
 resource "google_service_account_iam_member" "admin_runtime_user" {
+  count = var.manage_github_identity ? 1 : 0
+
   service_account_id = google_service_account.admin_runtime.name
   role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_deployer.email}"
+  member             = "serviceAccount:${google_service_account.github_deployer[0].email}"
 }
 
 resource "google_cloud_run_v2_service" "api" {
@@ -280,7 +298,6 @@ resource "google_cloud_run_v2_service" "api" {
   depends_on = [
     google_project_service.required,
     google_artifact_registry_repository.containers,
-    google_service_account_iam_member.api_runtime_user,
   ]
 }
 
@@ -317,7 +334,6 @@ resource "google_cloud_run_v2_service" "admin" {
   depends_on = [
     google_project_service.required,
     google_artifact_registry_repository.containers,
-    google_service_account_iam_member.admin_runtime_user,
     google_cloud_run_v2_service.api,
   ]
 }
