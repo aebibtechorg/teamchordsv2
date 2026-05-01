@@ -111,7 +111,7 @@ const PrivacyPolicy = () => {
         <h2 className="text-2xl font-semibold mb-4">10. Your Data Protection Rights Under General Data Protection Regulation (GDPR)</h2>
         <p className="mb-4">If you are a resident of the European Union (EU) and European Economic Area (EEA), you have certain data protection rights, covered by GDPR.</p>
         <p className="mb-4">We aim to take reasonable steps to allow you to correct, amend, delete, or limit the use of your Personal Data.</p>
-        <p className="mb-4">If you wish to be informed what Personal Data we hold about you and if you want it to be removed from our systems, please email us at <strong>paul@aebibtech.com</strong>.</p>
+        <p className="mb-4">If you wish to be informed what Personal Data we hold about you and if you want it to be removed from our systems, please email us at <strong>support@teamchords.com</strong>.</p>
         <p className="mb-4">In certain circumstances, you have the following data protection rights:</p>
         <ol className="list-decimal list-inside mb-4 ml-4">
           <li>the right to access, update or to delete the information we have on you;</li>
@@ -131,7 +131,7 @@ const PrivacyPolicy = () => {
           <li>users can visit our site anonymously;</li>
           <li>our Privacy Policy link includes the word "Privacy", and can easily be found on the home page of our website;</li>
           <li>users will be notified of any privacy policy changes on our Privacy Policy Page;</li>
-          <li>users are able to change their personal information by emailing us at <strong>paul@aebibtech.com</strong>.</li>
+          <li>users are able to change their personal information by emailing us at <strong>support@teamchords.com</strong>.</li>
         </ol>
         <p className="mb-4">Our Policy on "Do Not Track" Signals:</p>
         <p className="mb-4">We honor Do Not Track signals and do not track, plant cookies, or use advertising when a Do Not Track browser mechanism is in place. Do Not Track is a preference you can set in your web browser to inform websites that you do not want to be tracked.</p>
@@ -159,7 +159,7 @@ const PrivacyPolicy = () => {
         </ol>
         <p className="mb-4">If you submit a request to stop selling your personal information, we will stop making such transfers.</p>
         <p className="mb-4">Please note, if you ask us to delete or stop selling your data, it may impact your experience with us, and you may not be able to participate in certain programs or membership services which require the usage of your personal information to function. But in no circumstances, we will discriminate against you for exercising your rights.</p>
-        <p className="mb-4">To exercise your California data protection rights described above, please send your request(s) by email: <strong>paul@aebibtech.com</strong>.</p>
+        <p className="mb-4">To exercise your California data protection rights described above, please send your request(s) by email: <strong>support@teamchords.com</strong>.</p>
         <p className="mb-4">Your data protection rights, described above, are covered by the CCPA, short for the California Consumer Privacy Act. To find out more, visit the official California Legislative Information website. The CCPA took effect on 01/01/2020.</p>
 
         <h2 className="text-2xl font-semibold mb-4">13. Service Providers</h2>
@@ -194,7 +194,7 @@ const PrivacyPolicy = () => {
         <p className="mb-4">You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
 
         <h2 className="text-2xl font-semibold mb-4">21. Contact Us</h2>
-        <p className="mb-4">If you have any questions about this Privacy Policy, please contact us by email: <strong>paul@aebibtech.com</strong>.</p>
+        <p className="mb-4">If you have any questions about this Privacy Policy, please contact us by email: <strong>support@teamchords.com</strong>.</p>
       </div>
     </PublicLayout>
   );

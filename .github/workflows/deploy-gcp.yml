@@ -1,0 +1,118 @@
+name: Deploy TeamChords to Google Cloud
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-gcp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: asia-southeast1
+      ARTIFACT_REPOSITORY: tcv2-containers
+      TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region: asia-southeast1
+      TF_VAR_github_owner: ${{ github.repository_owner }}
+      TF_VAR_github_repo: ${{ github.event.repository.name }}
+      TF_VAR_teamchords_connection_string: ${{ secrets.NEON_POSTGRES_CS }}
+      TF_VAR_redis_connection_string: ${{ secrets.UPSTASH_REDIS_CS }}
+      TF_VAR_auth0_domain: ${{ secrets.AUTH0_DOMAIN }}
+      TF_VAR_auth0_audience: ${{ secrets.AUTH0_AUDIENCE }}
+      TF_VAR_auth0_client_id: ${{ secrets.AUTH0_CLIENT_ID }}
+      TF_VAR_auth0_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET }}
+      TF_VAR_web_auth0_domain: ${{ secrets.WEB_AUTH0_DOMAIN }}
+      TF_VAR_web_auth0_client_id: ${{ secrets.WEB_AUTH0_CLIENT_ID }}
+      TF_VAR_web_auth0_audience: ${{ secrets.WEB_AUTH0_AUDIENCE }}
+      TF_VAR_admin_auth0_domain: ${{ secrets.ADMIN_AUTH0_DOMAIN }}
+      TF_VAR_admin_auth0_client_id: ${{ secrets.ADMIN_AUTH0_CLIENT_ID }}
+      TF_VAR_admin_auth0_audience: ${{ secrets.ADMIN_AUTH0_AUDIENCE }}
+      TF_VAR_customer_app_base_url: ${{ secrets.CUSTOMER_APP_BASE_URL }}
+      TF_VAR_web_app_base_url: ${{ secrets.WEB_APP_BASE_URL }}
+      TF_VAR_dodo_secret_key: ${{ secrets.DODO_SECRET_KEY }}
+      TF_VAR_dodo_base_url: ${{ secrets.DODO_BASE_URL }}
+      TF_VAR_dodo_webhook_secret: ${{ secrets.DODO_WEBHOOK_SECRET }}
+      TF_VAR_dodo_launch_discount_code: LAUNCH20
+      TF_VAR_chatwoot_base_url: ${{ secrets.CHATWOOT_BASE_URL }}
+      TF_VAR_chatwoot_website_token: ${{ secrets.CHATWOOT_WEBSITE_TOKEN }}
+      TF_VAR_chatwoot_position: right
+      TF_VAR_chatwoot_hide_message_bubble: "false"
+      TF_VAR_chatwoot_locale: en
+      TF_VAR_zeptomail_api_key: ${{ secrets.ZEPTOMAIL_API_KEY }}
+      TF_VAR_zeptomail_template_key: ${{ secrets.ZEPTOMAIL_TEMPLATE_KEY }}
+      TF_VAR_zeptomail_from_email_address: ${{ secrets.ZEPTOMAIL_FROM_EMAIL_ADDRESS }}
+      TF_VAR_zeptomail_from_name: ${{ secrets.ZEPTOMAIL_FROM_NAME }}
+      TF_VAR_zeptomail_base_url: ${{ secrets.ZEPTOMAIL_BASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Prepare image URIs
+        run: |
+          echo "TF_STATE_BUCKET=${PROJECT_ID}-tcv2-tfstate" >> "$GITHUB_ENV"
+          echo "GAR_HOST=${REGION}-docker.pkg.dev" >> "$GITHUB_ENV"
+          echo "API_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-api:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "WEB_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-web:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "ADMIN_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "TF_VAR_api_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-api:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "TF_VAR_web_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-web:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "TF_VAR_admin_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Ensure Terraform state bucket exists
+        run: |
+          if ! gsutil ls -b "gs://${TF_STATE_BUCKET}" >/dev/null 2>&1; then
+            gsutil mb -p "${PROJECT_ID}" -l "${REGION}" "gs://${TF_STATE_BUCKET}"
+            gsutil versioning set on "gs://${TF_STATE_BUCKET}"
+          fi
+
+      - name: Initialize Terraform
+        working-directory: infra/gcp
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="prefix=gcp"
+
+      - name: Configure Docker auth for Artifact Registry
+        run: gcloud auth configure-docker "${GAR_HOST}" --quiet
+
+      - name: Build and push container images
+        run: |
+          docker build -t "${API_IMAGE_URI}" -f tcv2.Api/Dockerfile .
+          docker push "${API_IMAGE_URI}"
+
+          docker build -t "${WEB_IMAGE_URI}" -f web/Dockerfile web
+          docker push "${WEB_IMAGE_URI}"
+
+          docker build -t "${ADMIN_IMAGE_URI}" -f admin/Dockerfile admin
+          docker push "${ADMIN_IMAGE_URI}"
+
+      - name: Plan Terraform
+        working-directory: infra/gcp
+        run: terraform plan -out=tfplan
+
+      - name: Apply Terraform
+        working-directory: infra/gcp
+        run: terraform apply -auto-approve tfplan
+
+
+

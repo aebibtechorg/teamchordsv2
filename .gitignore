@@ -5,6 +5,7 @@
 
 # dotenv files
 .env
+gcp-sa-key.json
 
 # User-specific files
 *.rsuser
@@ -485,3 +486,10 @@ $RECYCLE.BIN/
 *.swp
 
 node_modules
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+

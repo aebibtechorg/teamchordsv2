@@ -5,10 +5,14 @@ import { motion } from "framer-motion";
 import MainLogo from "./components/MainLogo";
 import PricingCards from "./components/PricingCards";
 import ChatwootWidget from "./components/ChatwootWidget";
+import { LAUNCH_DISCOUNT_COPY } from "./constants/launchOffer";
 
 function App() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
+  const scrollToPricing = () => {
+    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -23,10 +27,20 @@ function App() {
   };
 
   return (
-    <div className="h-screen overflow-y-scroll snap-mandatory snap-y scroll-smooth">
+    <div className="h-screen overflow-y-scroll snap-mandatory snap-y scroll-smooth pt-10 sm:pt-12">
       <ChatwootWidget />
+      <div className="fixed top-0 left-0 z-20 w-full bg-green-600 px-4 py-2 text-center text-xs font-semibold text-white shadow-sm sm:text-sm">
+        {LAUNCH_DISCOUNT_COPY}{" "}
+        <button
+          type="button"
+          onClick={scrollToPricing}
+          className="underline decoration-white decoration-2 underline-offset-2"
+        >
+          See pricing
+        </button>
+      </div>
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 w-full flex justify-between p-3 sm:p-4 bg-gray-700 text-white shadow-md z-10">
+      <nav className="fixed top-10 left-0 w-full flex justify-between p-3 sm:top-12 sm:p-4 bg-gray-700 text-white shadow-md z-10">
         <h1 className="flex items-center text-lg sm:text-xl">
           <MainLogo size={28} className="mr-2" /> Team Chords
         </h1>
@@ -123,7 +137,10 @@ function App() {
           Start Your Musical Journey Today!
         </h3>
         <p className="text-base sm:text-lg max-w-md sm:max-w-2xl">
-          Join thousands of musicians and make chord sharing effortless.
+          Built for worship teams and musicians who need reliable, real-time collaboration.
+        </p>
+        <p className="mt-3 text-sm sm:text-base max-w-md sm:max-w-2xl text-gray-200">
+          After signing up, you&apos;ll get instant access to your workspace where you can create chord sheets, build set lists, and invite your team.
         </p>
         <motion.div whileHover={{ scale: 1.05 }} className="mt-4 sm:mt-6">
           <button
@@ -151,10 +168,11 @@ function App() {
           <span className="px-2 sm:px-4">Instagram</span>
         </div>
         <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-gray-500">
-          <Link to="/pricing" className="hover:underline">Pricing</Link>
+          <a href="/#pricing" className="hover:underline">Pricing</a>
           <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
           <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
         </div>
+        <p className="mt-3 text-sm text-gray-500">Support: support@teamchords.com</p>
         <p className="mt-4 sm:mt-6 text-sm"> {new Date().getFullYear()} Team Chords. All rights reserved.</p>
       </motion.footer>
     </div>
