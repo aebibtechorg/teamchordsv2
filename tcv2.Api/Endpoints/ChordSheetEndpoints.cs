@@ -207,7 +207,7 @@ internal static class ChordSheetEndpoints
 
             if (cs.OrgId.HasValue)
             {
-                await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs);
+                await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs.ToDto());
             }
 
             return Results.Created($"/api/chordsheets/{cs.Id}", cs.ToDto());
@@ -369,12 +369,12 @@ internal static class ChordSheetEndpoints
 
             if (existing.OrgId.HasValue)
             {
-                await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).ChordSheetUpdated(existing);
+                await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).ChordSheetUpdated(existing.ToDto());
             }
 
             foreach (var setListId in relatedSetListIds)
             {
-                await hub.Clients.Group(HubGroupNames.SetList(setListId)).ChordSheetUpdated(existing);
+                await hub.Clients.Group(HubGroupNames.SetList(setListId)).ChordSheetUpdated(existing.ToDto());
             }
 
             return Results.NoContent();

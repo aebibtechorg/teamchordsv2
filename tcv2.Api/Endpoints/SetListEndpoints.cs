@@ -117,7 +117,7 @@ internal static class SetListEndpoints
                 await db.SaveChangesAsync();
                 if (s.OrgId.HasValue)
                 {
-                    await hub.Clients.Group(HubGroupNames.Organization(s.OrgId.Value)).SetListCreated(s);
+                    await hub.Clients.Group(HubGroupNames.Organization(s.OrgId.Value)).SetListCreated(s.ToDto());
                 }
                 return Results.Created($"/api/setlists/{s.Id}", s.ToDto());
             }
@@ -153,10 +153,10 @@ internal static class SetListEndpoints
                 await db.SaveChangesAsync();
                 if (existing.OrgId.HasValue)
                 {
-                    await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).SetListUpdated(existing);
+                    await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).SetListUpdated(existing.ToDto());
                 }
 
-                await hub.Clients.Group(HubGroupNames.SetList(existing.Id)).SetListUpdated(existing);
+                await hub.Clients.Group(HubGroupNames.SetList(existing.Id)).SetListUpdated(existing.ToDto());
                 return Results.NoContent();
             }
             catch (DbUpdateException ex)
