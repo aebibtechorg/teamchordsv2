@@ -1,7 +1,6 @@
 locals {
   github_repository  = "${var.github_owner}/${var.github_repo}"
   api_service_name   = "tcv2-api"
-  web_service_name   = "tcv2-web"
   admin_service_name = "tcv2-admin"
 }
 
@@ -12,6 +11,8 @@ resource "google_project_service" "required" {
     "iamcredentials.googleapis.com",
     "run.googleapis.com",
     "sts.googleapis.com",
+    "firebase.googleapis.com",
+    "firebasehosting.googleapis.com"
   ])
 
   project = var.project_id
@@ -23,6 +24,13 @@ resource "google_artifact_registry_repository" "containers" {
   repository_id = var.artifact_registry_repository_id
   format        = "DOCKER"
   description   = "TeamChords container images"
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_firebase_project" "default" {
+  provider = google-beta
+  project  = var.project_id
 
   depends_on = [google_project_service.required]
 }
@@ -84,11 +92,6 @@ resource "google_service_account" "api_runtime" {
   display_name = "TeamChords API runtime"
 }
 
-resource "google_service_account" "web_runtime" {
-  account_id   = "tcv2-web-runtime"
-  display_name = "TeamChords web runtime"
-}
-
 resource "google_service_account" "admin_runtime" {
   account_id   = "tcv2-admin-runtime"
   display_name = "TeamChords admin runtime"
@@ -96,12 +99,6 @@ resource "google_service_account" "admin_runtime" {
 
 resource "google_service_account_iam_member" "api_runtime_user" {
   service_account_id = google_service_account.api_runtime.name
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_deployer.email}"
-}
-
-resource "google_service_account_iam_member" "web_runtime_user" {
-  service_account_id = google_service_account.web_runtime.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.github_deployer.email}"
 }
@@ -295,44 +292,6 @@ resource "google_cloud_run_v2_service_iam_member" "api_public" {
   member   = "allUsers"
 }
 
-resource "google_cloud_run_v2_service" "web" {
-  name     = local.web_service_name
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
-
-  template {
-    service_account = google_service_account.web_runtime.email
-
-    containers {
-      image = var.web_image
-
-      ports {
-        container_port = 80
-      }
-
-      env {
-        name  = "API_BASE_URL"
-        value = google_cloud_run_v2_service.api.uri
-      }
-    }
-  }
-
-  depends_on = [
-    google_project_service.required,
-    google_artifact_registry_repository.containers,
-    google_service_account_iam_member.web_runtime_user,
-    google_cloud_run_v2_service.api,
-  ]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "web_public" {
-  project  = var.project_id
-  location = google_cloud_run_v2_service.web.location
-  name     = google_cloud_run_v2_service.web.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
-
 resource "google_cloud_run_v2_service" "admin" {
   name     = local.admin_service_name
   location = var.region
@@ -370,4 +329,3 @@ resource "google_cloud_run_v2_service_iam_member" "admin_public" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
-

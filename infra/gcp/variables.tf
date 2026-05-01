@@ -31,12 +31,6 @@ variable "api_image" {
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
 
-variable "web_image" {
-  description = "Container image URI for the public web app"
-  type        = string
-  default     = "us-docker.pkg.dev/cloudrun/container/hello"
-}
-
 variable "admin_image" {
   description = "Container image URI for the admin app"
   type        = string
@@ -201,4 +195,3 @@ variable "zeptomail_base_url" {
   type        = string
   default     = ""
 }
-

@@ -72,10 +72,8 @@ jobs:
           echo "TF_STATE_BUCKET=${PROJECT_ID}-tcv2-tfstate" >> "$GITHUB_ENV"
           echo "GAR_HOST=${REGION}-docker.pkg.dev" >> "$GITHUB_ENV"
           echo "API_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-api:${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "WEB_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-web:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "ADMIN_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "TF_VAR_api_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-api:${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "TF_VAR_web_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-web:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "TF_VAR_admin_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Ensure Terraform state bucket exists
@@ -100,9 +98,6 @@ jobs:
           docker build -t "${API_IMAGE_URI}" -f tcv2.Api/Dockerfile .
           docker push "${API_IMAGE_URI}"
 
-          docker build -t "${WEB_IMAGE_URI}" -f web/Dockerfile web
-          docker push "${WEB_IMAGE_URI}"
-
           docker build -t "${ADMIN_IMAGE_URI}" -f admin/Dockerfile admin
           docker push "${ADMIN_IMAGE_URI}"
 
@@ -114,5 +109,12 @@ jobs:
         working-directory: infra/gcp
         run: terraform apply -auto-approve tfplan
 
+      - name: Build web app
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
 
-
+      - name: Deploy to Firebase Hosting
+        working-directory: web
+        run: npx firebase-tools deploy --only hosting --project "$PROJECT_ID"
