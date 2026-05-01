@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using tcv2.Api.Data;
+using tcv2.Api.Data.Entities;
 
 namespace tcv2.Api.Endpoints;
 
@@ -102,5 +103,62 @@ internal static class EndpointHelpers
             }
         }
         return Results.StatusCode(500);
+    }
+
+    // --- Authorization helpers ---
+    public static string? GetAuth0UserId(HttpRequest req)
+    {
+        return req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    public static async Task<User?> GetCallerAsync(HttpRequest req, AppDbContext db)
+    {
+        var auth0UserId = GetAuth0UserId(req);
+        if (string.IsNullOrWhiteSpace(auth0UserId)) return null;
+        return await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+    }
+
+    public static bool IsPlatformAdminOrSupport(HttpRequest req)
+    {
+        var user = req.HttpContext.User;
+        try
+        {
+            if (user.IsInRole("platform-admin")) return true;
+            if (user.IsInRole("support")) return true;
+        }
+        catch
+        {
+            // If role claims are missing or not mapped, fall back to false
+        }
+        return false;
+    }
+
+    // Ensures the caller is a member of the organization (or platform-admin/support).
+    // Returns null when the caller is authorized, otherwise an IResult indicating the failure.
+    public static async Task<IResult?> RequireOrgMember(HttpRequest req, AppDbContext db, Guid orgId)
+    {
+        if (IsPlatformAdminOrSupport(req)) return null;
+        var caller = await GetCallerAsync(req, db);
+        if (caller == null) return Results.Unauthorized();
+
+        var membership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == orgId && uo.UserId == caller.Id);
+        if (membership == null) return Results.Forbid();
+        return null;
+    }
+
+    // Ensures the caller is an admin of the organization or the organization owner (or platform-admin/support).
+    public static async Task<IResult?> RequireOrgAdminOrOwner(HttpRequest req, AppDbContext db, Guid orgId)
+    {
+        if (IsPlatformAdminOrSupport(req)) return null;
+        var caller = await GetCallerAsync(req, db);
+        if (caller == null) return Results.Unauthorized();
+
+        var org = await db.Organizations.FindAsync(orgId);
+        if (org == null) return Results.NotFound();
+
+        var membership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == orgId && uo.UserId == caller.Id);
+        if (membership == null && org.OwnerUserId != caller.Id) return Results.Forbid();
+        if (membership != null && membership.Role != OrgRole.Admin && org.OwnerUserId != caller.Id) return Results.Forbid();
+        return null;
     }
 }

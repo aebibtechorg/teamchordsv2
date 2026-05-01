@@ -40,7 +40,7 @@ internal static class InviteEndpoints
             };
 
             return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
-        }).WithOpenApi(operation =>
+        }).RequireAuthorization("AdminAccess").WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
             {
@@ -55,10 +55,22 @@ internal static class InviteEndpoints
             return operation;
         });
 
-        invites.MapGet("/{id}", async (Guid id, AppDbContext db) =>
+        invites.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
         {
             var invite = await db.Invites.FindAsync(id);
-            return invite is not null ? Results.Ok(invite.ToDto()) : Results.NotFound();
+            if (invite == null) return Results.NotFound();
+
+            if (invite.OrganizationId != null)
+            {
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, invite.OrganizationId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
+
+            return Results.Ok(invite.ToDto());
         });
 
         invites.MapPost("/", async (InviteDto dto, AppDbContext db, IHttpClientFactory httpFactory, IServiceProvider provider, HttpRequest req) =>
@@ -79,6 +91,18 @@ internal static class InviteEndpoints
             i.CreatedAt = DateTimeOffset.UtcNow;
             i.ExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
             
+            // Require organization admin/owner for invites tied to an organization.
+            if (i.OrganizationId != null)
+            {
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, i.OrganizationId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                // Invites without an organization are restricted to platform-admin/support
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
+
             db.Invites.Add(i);
             try
             {
@@ -203,12 +227,22 @@ internal static class InviteEndpoints
             });
         }).AllowAnonymous();
 
-        invites.MapPut("/{id}", async (Guid id, InviteDto dto, AppDbContext db) =>
+        invites.MapPut("/{id}", async (Guid id, InviteDto dto, HttpRequest req, AppDbContext db) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
             var existing = await db.Invites.FindAsync(id);
             if (existing == null) return Results.NotFound();
+            // Require org admin/owner if invite is tied to an organization, otherwise platform-admin/support
+            if (existing.OrganizationId != null)
+            {
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrganizationId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
             
             existing.UpdateFromDto(dto);
             
@@ -223,10 +257,21 @@ internal static class InviteEndpoints
             }
         });
 
-        invites.MapDelete("/{id}", async (Guid id, AppDbContext db) =>
+        invites.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
         {
             var existing = await db.Invites.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            if (existing.OrganizationId != null)
+            {
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrganizationId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
+
             db.Invites.Remove(existing);
             await db.SaveChangesAsync();
             return Results.NoContent();

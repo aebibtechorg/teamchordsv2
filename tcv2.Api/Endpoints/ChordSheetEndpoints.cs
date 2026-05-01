@@ -10,6 +10,7 @@ using tcv2.Api.Data.Mappers;
 using tcv2.Api.Data.Entities;
 using tcv2.Api.Hubs;
 using tcv2.Api.Services;
+using tcv2.Api.Data.Entities;
 
 namespace tcv2.Api.Endpoints;
 
@@ -88,6 +89,10 @@ internal static class ChordSheetEndpoints
                 return Results.BadRequest("orgId is required.");
             }
 
+            // Require membership
+            var auth = await EndpointHelpers.RequireOrgMember(req, db, og);
+            if (auth != null) return auth;
+
             q = q.Where(x => x.OrgId == og);
             if (req.Query.TryGetValue("title", out var title)) q = q.Where(x => EF.Functions.ILike(x.Title!, $"%{title}%"));
             if (req.Query.TryGetValue("artist", out var artist)) q = q.Where(x => EF.Functions.ILike(x.Artist!, $"%{artist}%"));
@@ -129,6 +134,10 @@ internal static class ChordSheetEndpoints
                 return Results.BadRequest("orgId is required.");
             }
 
+            // Require org admin/owner for backup exports
+            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, og);
+            if (auth != null) return auth;
+
             var org = await db.Organizations.FindAsync(og);
             if (org == null) return Results.NotFound("Organization not found");
 
@@ -146,24 +155,49 @@ internal static class ChordSheetEndpoints
             return Results.File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", fileName);
         });
 
-        chordSheets.MapGet("/{id}", async (Guid id, AppDbContext db) =>
+        chordSheets.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
         {
             var cs = await db.ChordSheets.FindAsync(id);
-            return cs is not null ? Results.Ok(cs.ToDto()) : Results.NotFound();
-        })
-            .AllowAnonymous();
+            if (cs == null) return Results.NotFound();
 
-        chordSheets.MapPost("/", async (ChordSheetDto dto, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
+            // if (cs.OrgId.HasValue)
+            // {
+            //     var auth = await EndpointHelpers.RequireOrgMember(req, db, cs.OrgId.Value);
+            //     if (auth != null) return auth;
+            // }
+            // else
+            // {
+            //     if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            // }
+
+            return Results.Ok(cs.ToDto());
+        }).AllowAnonymous();
+
+        chordSheets.MapPost("/", async (ChordSheetDto dto, HttpRequest req, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
 
-            var org = await db.Organizations.FindAsync(dto.OrgId);
-            if (org == null) return Results.NotFound("Organization not found");
+            Organization? org = null;
+            if (dto.OrgId.HasValue)
+            {
+                org = await db.Organizations.FindAsync(dto.OrgId);
+                if (org == null) return Results.NotFound("Organization not found");
 
-            var currentChordSheetCount = await db.ChordSheets.CountAsync(c => c.OrgId == dto.OrgId);
-            var gate = FeatureGate.CheckLimits(org, currentChordSheetCount + 1, 0, 0, 0);
-            if (gate != null) return gate;
+                var auth = await EndpointHelpers.RequireOrgMember(req, db, dto.OrgId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
+
+            var currentChordSheetCount = dto.OrgId.HasValue ? await db.ChordSheets.CountAsync(c => c.OrgId == dto.OrgId) : 0;
+            if (org != null)
+            {
+                var gate = FeatureGate.CheckLimits(org, currentChordSheetCount + 1, 0, 0, 0);
+                if (gate != null) return gate;
+            }
 
             var cs = dto.ToEntity();
             cs.Id = Guid.NewGuid();
@@ -179,7 +213,7 @@ internal static class ChordSheetEndpoints
             return Results.Created($"/api/chordsheets/{cs.Id}", cs.ToDto());
         });
 
-        chordSheets.MapPost("/bulk", async ([FromBody] BulkChordSheetRequestDto request, [FromServices] IServiceProvider services, AppDbContext db) =>
+        chordSheets.MapPost("/bulk", async ([FromBody] BulkChordSheetRequestDto request, [FromServices] IServiceProvider services, HttpRequest req, AppDbContext db) =>
         {
             if (string.IsNullOrEmpty(request.ConnectionId))
             {
@@ -200,6 +234,10 @@ internal static class ChordSheetEndpoints
             var uploadDtos = request.Dtos.ToArray();
             var connectionId = request.ConnectionId;
             var targetOrgId = orgId.Value;
+
+            // Require org admin/owner for bulk upload
+            var auth = await EndpointHelpers.RequireOrgMember(req, db, targetOrgId);
+            if (auth != null) return auth;
 
             var org = await db.Organizations.FindAsync(targetOrgId);
             if (org == null) return Results.NotFound("Organization not found");
@@ -308,12 +346,22 @@ internal static class ChordSheetEndpoints
             return Results.Accepted(value: new { message = "Bulk upload started." });
         });
 
-        chordSheets.MapPut("/{id}", async (Guid id, ChordSheetDto dto, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
+        chordSheets.MapPut("/{id}", async (Guid id, ChordSheetDto dto, HttpRequest req, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
             var existing = await db.ChordSheets.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            if (existing.OrgId.HasValue)
+            {
+                var auth = await EndpointHelpers.RequireOrgMember(req, db, existing.OrgId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
 
             var relatedSetListIds = await GetRelatedSetListIds(db, existing.Id);
             existing.UpdateFromDto(dto);
@@ -332,10 +380,20 @@ internal static class ChordSheetEndpoints
             return Results.NoContent();
         });
 
-        chordSheets.MapDelete("/{id}", async (Guid id, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
+        chordSheets.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db, IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var existing = await db.ChordSheets.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            if (existing.OrgId.HasValue)
+            {
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrgId.Value);
+                if (auth != null) return auth;
+            }
+            else
+            {
+                if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
+            }
 
             var orgId = existing.OrgId;
             var relatedSetListIds = await GetRelatedSetListIds(db, existing.Id);
