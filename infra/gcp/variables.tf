@@ -127,11 +127,6 @@ variable "dodo_webhook_secret" {
   sensitive   = true
 }
 
-variable "dodo_launch_discount_code" {
-  description = "Discount code to apply during launch"
-  type        = string
-  default     = "LAUNCH20"
-}
 
 variable "chatwoot_base_url" {
   description = "Chatwoot base URL"

@@ -43,7 +43,6 @@ jobs:
       TF_VAR_dodo_secret_key: ${{ secrets.DODO_SECRET_KEY }}
       TF_VAR_dodo_base_url: ${{ secrets.DODO_BASE_URL }}
       TF_VAR_dodo_webhook_secret: ${{ secrets.DODO_WEBHOOK_SECRET }}
-      TF_VAR_dodo_launch_discount_code: LAUNCH20
       TF_VAR_chatwoot_base_url: ${{ secrets.CHATWOOT_BASE_URL }}
       TF_VAR_chatwoot_website_token: ${{ secrets.CHATWOOT_WEBSITE_TOKEN }}
       TF_VAR_chatwoot_position: right

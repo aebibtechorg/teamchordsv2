@@ -227,10 +227,6 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.dodo_webhook_secret
       }
 
-      env {
-        name  = "Dodo__LaunchDiscountCode"
-        value = var.dodo_launch_discount_code
-      }
 
       dynamic "env" {
         for_each = trimspace(var.chatwoot_base_url) == "" ? [] : [1]

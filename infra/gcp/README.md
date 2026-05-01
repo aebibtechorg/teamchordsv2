@@ -43,7 +43,6 @@ Optional values:
 - `web_image`
 - `admin_image`
 - `dodo_base_url`
-- `dodo_launch_discount_code`
 - `chatwoot_base_url`
 - `chatwoot_website_token`
 - `chatwoot_position`

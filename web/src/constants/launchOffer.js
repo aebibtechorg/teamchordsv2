@@ -1,6 +1,1 @@
-export const LAUNCH_DISCOUNT_CODE = "LAUNCH20"
-export const LAUNCH_DISCOUNT_PERCENT = 20
-export const LAUNCH_DISCOUNT_CYCLES = 3
-
-export const LAUNCH_DISCOUNT_COPY = `${LAUNCH_DISCOUNT_PERCENT}% off your first ${LAUNCH_DISCOUNT_CYCLES} months with code ${LAUNCH_DISCOUNT_CODE}`
-
+export {}

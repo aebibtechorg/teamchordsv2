@@ -65,9 +65,6 @@ internal static class BillingEndpoints
             var apiKey = config["Dodo:SecretKey"];
             var client = httpClientFactory.CreateClient();
             var baseUrl = config["Dodo:BaseUrl"] ?? "https://test.dodopayments.com";
-            var discountCode = !string.IsNullOrWhiteSpace(config["Dodo:LaunchDiscountCode"])
-                ? config["Dodo:LaunchDiscountCode"]
-                : request.DiscountCode;
             client.BaseAddress = new Uri(baseUrl);
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
@@ -82,7 +79,6 @@ internal static class BillingEndpoints
                 customer = (object)(org.DodoCustomerId != null
                     ? new { customer_id = org.DodoCustomerId, email = user.Email, name = user.Name ?? user.Email }
                     : new { email = user.Email, name = user.Name ?? user.Email }),
-                discount_code = string.IsNullOrWhiteSpace(discountCode) ? null : discountCode,
                 return_url = $"{request.RedirectUrl?.TrimEnd('/')}?success=true",
                 metadata = new Dictionary<string, string>
                 {
@@ -326,7 +322,7 @@ internal static class BillingEndpoints
     }
 }
 
-public record CheckoutRequest(Plan Plan, Guid OrgId, string? RedirectUrl, string? DiscountCode = null);
+public record CheckoutRequest(Plan Plan, Guid OrgId, string? RedirectUrl);
 
 /// <summary>Dodo Payments POST /checkouts (Checkout Sessions) response</summary>
 public record DodoCheckoutSessionResponse(
