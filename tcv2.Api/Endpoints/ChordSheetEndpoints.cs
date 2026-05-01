@@ -146,7 +146,11 @@ internal static class ChordSheetEndpoints
                 return Results.BadRequest("All chord sheets in a bulk upload must belong to the same organization.");
             }
 
-            var org = await db.Organizations.FindAsync(orgId);
+            var uploadDtos = request.Dtos.ToArray();
+            var connectionId = request.ConnectionId;
+            var targetOrgId = orgId.Value;
+
+            var org = await db.Organizations.FindAsync(targetOrgId);
             if (org == null) return Results.NotFound("Organization not found");
 
             var gate = FeatureGate.CheckBulkUpload(org);
@@ -160,33 +164,65 @@ internal static class ChordSheetEndpoints
                 var hub = scope.ServiceProvider.GetRequiredService<IHubContext<SetListHub, ISetListClient>>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-                var total = request.Dtos.Length;
-                var processedCount = 0;
-
-                foreach (var dto in request.Dtos)
+                try
                 {
-                    processedCount++;
-                    var progressMessage = $"Processing '{dto.Title}'...";
-                    await hub.Clients.Client(request.ConnectionId).BulkUploadProgress(processedCount, total, progressMessage);
+                    var total = uploadDtos.Length;
+                    var processedCount = 0;
 
-                    if (EndpointHelpers.Validate(dto) != null)
+                    foreach (var dto in uploadDtos)
                     {
-                        logger.LogWarning("Validation failed for a chordsheet in bulk upload. Title: {Title}", dto.Title);
-                        continue; // Skip invalid DTOs
-                    }
+                        processedCount++;
 
-                    var cs = dto.ToEntity();
-                    cs.Id = Guid.NewGuid();
-                    scopedDb.ChordSheets.Add(cs);
-                    await scopedDb.SaveChangesAsync();
+                        try
+                        {
+                            var progressMessage = $"Processing '{dto.Title}'...";
+                            await hub.Clients.Client(connectionId).BulkUploadProgress(processedCount, total, progressMessage);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Failed to send bulk upload progress for chord sheet {Title}.", dto.Title);
+                        }
 
-                    if (cs.OrgId.HasValue)
-                    {
-                        await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs);
+                        var validation = EndpointHelpers.Validate(dto);
+                        if (validation != null)
+                        {
+                            logger.LogWarning("Validation failed for a chordsheet in bulk upload. Title: {Title}", dto.Title);
+                            continue;
+                        }
+
+                        try
+                        {
+                            var cs = dto.ToEntity();
+                            cs.Id = Guid.NewGuid();
+                            scopedDb.ChordSheets.Add(cs);
+                            await scopedDb.SaveChangesAsync();
+
+                            if (cs.OrgId.HasValue)
+                            {
+                                await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Failed to import chord sheet {Title} during bulk upload.", dto.Title);
+                        }
                     }
                 }
-
-                await hub.Clients.Client(request.ConnectionId).BulkUploadFinished();
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unexpected error while processing bulk chord sheet upload for organization {OrgId}.", targetOrgId);
+                }
+                finally
+                {
+                    try
+                    {
+                        await hub.Clients.Client(connectionId).BulkUploadFinished();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to send bulk upload finished notification for connection {ConnectionId}.", connectionId);
+                    }
+                }
             });
 
             return Results.Accepted(value: new { message = "Bulk upload started." });

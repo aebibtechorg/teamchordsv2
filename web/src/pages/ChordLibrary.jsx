@@ -181,20 +181,6 @@ const ChordLibrary = () => {
     }
   }, [connection]);
 
-  useEffect(() => {
-    if (!connection) return;
-
-    const handleFinished = () => {
-      setIsUploadDialogOpen(false);
-      fetchData().catch(() => toast.error("A network error has occured."));
-    };
-
-    connection.on("BulkUploadFinished", handleFinished);
-
-    return () => {
-      connection.off("BulkUploadFinished", handleFinished);
-    };
-  }, [connection, currentCursor, debouncedSearchTerm, orgId, pageSize]);
 
   if (isLoading) {
     return (
