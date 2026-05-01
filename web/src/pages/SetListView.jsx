@@ -9,6 +9,7 @@ import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import { AnimatePresence, motion } from "framer-motion";
 import Spinner from "../components/Spinner";
+import { getSignalRHubUrl } from "../utils/signalr";
 
 // Paper sizes in px at 96dpi
 const PAGE_SIZES = {
@@ -106,8 +107,6 @@ const SetListView = () => {
     }, [controlsOpen]);
 
     useEffect(() => {
-        const signalRHub = '/hubs';
-
         const fetchSet = async () => {
             const setlistData = await getSetList(id);
             const outputData = await getOutputs(id);
@@ -121,7 +120,7 @@ const SetListView = () => {
         });
 
         const setlistConn = new HubConnectionBuilder()
-            .withUrl(`${signalRHub}/setlists`)
+            .withUrl(getSignalRHubUrl("/hubs/setlists"))
             .withAutomaticReconnect()
             .build();
 

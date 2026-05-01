@@ -27,6 +27,7 @@ jobs:
       TF_VAR_region: asia-southeast1
       TF_VAR_teamchords_connection_string: ${{ secrets.NEON_POSTGRES_CS }}
       TF_VAR_redis_connection_string: ${{ secrets.UPSTASH_REDIS_CS }}
+      TF_VAR_azure_signalr_connection_string: ${{ secrets.AZURE_SIGNALR_CONNECTION_STRING }}
       TF_VAR_auth0_domain: ${{ secrets.AUTH0_DOMAIN }}
       TF_VAR_auth0_audience: ${{ secrets.AUTH0_AUDIENCE }}
       TF_VAR_auth0_client_id: ${{ secrets.AUTH0_CLIENT_ID }}
@@ -123,6 +124,9 @@ jobs:
       - name: Apply Terraform
         working-directory: infra/gcp
         run: terraform apply -auto-approve tfplan
+
+      - name: Export frontend API base URL
+        run: echo "VITE_API_BASE_URL=$(cd infra/gcp && terraform output -raw api_url)" >> "$GITHUB_ENV"
 
       - name: Build web app
         working-directory: web

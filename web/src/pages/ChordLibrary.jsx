@@ -11,6 +11,7 @@ import Spinner from "../components/Spinner";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { hasOrgMembership, startLibraryTour } from "../utils/onboardingTours";
+import { getSignalRHubUrl } from "../utils/signalr";
 
 const ChordLibrary = () => {
   const [chordSheets, setChordSheets] = useState([]);
@@ -152,7 +153,7 @@ const ChordLibrary = () => {
   // Initialize and manage SignalR connection
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
-      .withUrl("/hubs/setlists")
+      .withUrl(getSignalRHubUrl("/hubs/setlists"))
       .withAutomaticReconnect()
       .build();
 

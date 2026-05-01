@@ -148,6 +148,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "ConnectionStrings__AzureSignalR"
+        value = var.azure_signalr_connection_string
+      }
+
+      env {
         name  = "Auth0__Domain"
         value = var.auth0_domain
       }

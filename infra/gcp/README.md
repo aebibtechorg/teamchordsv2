@@ -18,6 +18,7 @@ Set these values through `TF_VAR_*` environment variables, a `.tfvars` file, or 
 - `github_repo`
 - `teamchords_connection_string`
 - `redis_connection_string`
+- `azure_signalr_connection_string`
 - `auth0_domain`
 - `auth0_audience`
 - `auth0_client_id`
@@ -57,6 +58,7 @@ Optional values:
 2. Create the Terraform state bucket if it does not exist.
 3. Initialize Terraform with the GCS backend.
 4. Apply the stack.
+5. Capture `terraform output -raw api_url` and provide it to the web build as `VITE_API_BASE_URL` so the SignalR client can connect to the API origin directly.
 
 ## GitHub secrets bootstrap
 
@@ -81,6 +83,7 @@ export TF_VAR_github_owner="your-github-org-or-user"
 export TF_VAR_github_repo="teamchordsv2"
 export TF_VAR_teamchords_connection_string="..."
 export TF_VAR_redis_connection_string="..."
+export TF_VAR_azure_signalr_connection_string="..."
 export TF_VAR_auth0_domain="..."
 export TF_VAR_auth0_audience="..."
 export TF_VAR_auth0_client_id="..."
@@ -104,7 +107,16 @@ export TF_VAR_zeptomail_base_url="..."
 
 terraform init -backend-config="bucket=your-project-id-tcv2-tfstate" -backend-config="prefix=gcp"
 terraform apply
+terraform output -raw api_url
 ```
+
+### Azure SignalR
+
+Provision an Azure SignalR Service instance manually and copy its connection string into `TF_VAR_azure_signalr_connection_string` / the `AZURE_SIGNALR_CONNECTION_STRING` GitHub secret used by the deploy workflow.
+
+The API prefers Azure SignalR when that connection string is present, then falls back to Redis, then finally in-memory SignalR.
+
+The web client reads `VITE_API_BASE_URL` at build time so the SignalR browser client can negotiate against the API origin directly, which keeps Firebase Hosting out of the WebSocket path.
 
 ## GitHub Actions
 
