@@ -1,10 +1,10 @@
-using tcv2.Api.Data.Entities;
+using tcv2.Api.Data.Dto;
 
 namespace tcv2.Api.Hubs;
 
 public interface IOutputClient
 {
-    Task OutputCreated(object output);
-    Task OutputUpdated(object output);
+    Task OutputCreated(OutputDetailDto output);
+    Task OutputUpdated(OutputDetailDto output);
     Task OutputDeleted(Guid outputId);
 }

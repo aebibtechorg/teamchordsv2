@@ -48,7 +48,7 @@ internal static class ProfileEndpoints
                 new OpenApiParameter { Name = "sortDir", In = ParameterLocation.Query, Description = "Sort direction (asc|desc)", Schema = new OpenApiSchema { Type = "string" } }
             };
             return operation;
-        });
+        }).RequireAuthorization("AdminAccess");
 
         profiles.MapGet("/{id}", async (Guid id, AppDbContext db) =>
             await db.Profiles.FindAsync(id) is { } p ? Results.Ok(p.ToDto()) : Results.NotFound());
@@ -65,12 +65,21 @@ internal static class ProfileEndpoints
             return Results.Created($"/api/profiles/{p.Id}", p.ToDto());
         });
 
-        profiles.MapPut("/{id}", async (Guid id, ProfileDto dto, AppDbContext db) =>
+        profiles.MapPut("/{id}", async (Guid id, ProfileDto dto, AppDbContext db, HttpRequest req) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
             var existing = await db.Profiles.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            var auth0UserId = EndpointHelpers.GetAuth0UserId(req);
+            var user =  await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            if (user == null) return Results.Unauthorized();
+            if (existing.UserId != user.Id && !EndpointHelpers.IsPlatformAdminOrSupport(req))
+            {
+                return Results.Forbid();
+            }
+
             existing.UpdateFromDto(dto);
             await db.SaveChangesAsync();
             return Results.NoContent();
@@ -83,7 +92,7 @@ internal static class ProfileEndpoints
             db.Profiles.Remove(existing);
             await db.SaveChangesAsync();
             return Results.NoContent();
-        });
+        }).RequireAuthorization("AdminAccess");
 
         return api;
     }

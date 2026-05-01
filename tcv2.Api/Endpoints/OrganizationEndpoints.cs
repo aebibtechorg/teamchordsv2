@@ -35,7 +35,7 @@ internal static class OrganizationEndpoints
             };
 
             return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
-        }).WithOpenApi(operation =>
+        }).RequireAuthorization("AdminAccess").WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
             {
@@ -50,10 +50,15 @@ internal static class OrganizationEndpoints
             return operation;
         });
 
-        orgs.MapGet("/{id}", async (Guid id, AppDbContext db) =>
+        orgs.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
         {
             var o = await db.Organizations.FindAsync(id);
-            return o is not null ? Results.Ok(o.ToDto()) : Results.NotFound();
+            if (o == null) return Results.NotFound();
+
+            var auth = await EndpointHelpers.RequireOrgMember(req, db, id);
+            if (auth != null) return auth;
+
+            return Results.Ok(o.ToDto());
         });
 
         orgs.MapPost("/", async (HttpRequest req, OrganizationDto dto, AppDbContext db) =>
@@ -120,12 +125,14 @@ internal static class OrganizationEndpoints
             });
         });
 
-        orgs.MapPut("/{id}", async (Guid id, OrganizationDto dto, AppDbContext db) =>
+        orgs.MapPut("/{id}", async (Guid id, OrganizationDto dto, HttpRequest req, AppDbContext db) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
             var existing = await db.Organizations.FindAsync(id);
             if (existing == null) return Results.NotFound();
+            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, id);
+            if (auth != null) return auth;
             if (!string.IsNullOrWhiteSpace(dto.Name) && dto.Name != existing.Name && await db.Organizations.AnyAsync(x => x.Name == dto.Name))
             {
                 return Results.Conflict(new { message = "Organization name already exists" });
@@ -143,10 +150,12 @@ internal static class OrganizationEndpoints
             }
         });
 
-        orgs.MapDelete("/{id}", async (Guid id, AppDbContext db) =>
+        orgs.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
         {
             var existing = await db.Organizations.FindAsync(id);
             if (existing == null) return Results.NotFound();
+            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, id);
+            if (auth != null) return auth;
             await using var tx = await db.Database.BeginTransactionAsync();
 
             var setListIds = await db.SetLists.Where(s => s.OrgId == id).Select(s => s.Id).ToListAsync();
