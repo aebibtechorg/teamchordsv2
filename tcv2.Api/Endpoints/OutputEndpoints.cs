@@ -11,6 +11,19 @@ namespace tcv2.Api.Endpoints;
 
 internal static class OutputEndpoints
 {
+    private static async Task<Guid?> GetOrganizationIdForSetList(AppDbContext db, Guid? setListId)
+    {
+        if (!setListId.HasValue)
+        {
+            return null;
+        }
+
+        return await db.SetLists
+            .Where(s => s.Id == setListId.Value)
+            .Select(s => s.OrgId)
+            .FirstOrDefaultAsync();
+    }
+
     public static RouteGroupBuilder MapOutputEndpoints(this RouteGroupBuilder api)
     {
         var outputs = api.MapGroup("/outputs");
@@ -53,9 +66,9 @@ internal static class OutputEndpoints
         }).AllowAnonymous();
 
         outputs.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Outputs.FindAsync(id) is Output o ? Results.Ok(o.ToDto()) : Results.NotFound());
+            await db.Outputs.FindAsync(id) is { } o ? Results.Ok(o.ToDto()) : Results.NotFound());
 
-        outputs.MapPost("/", async (OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        outputs.MapPost("/", async (OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -67,12 +80,22 @@ internal static class OutputEndpoints
 
             o.ChordSheet = await db.ChordSheets.FindAsync(o.ChordSheetId);
             var payload = o.ToDetailDto();
+            var orgId = await GetOrganizationIdForSetList(db, o.SetListId);
 
-            await hub.Clients.All.OutputCreated(payload);
+            if (orgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(orgId.Value)).OutputCreated(payload);
+            }
+
+            if (o.SetListId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.SetList(o.SetListId.Value)).OutputCreated(payload);
+            }
+
             return Results.Created($"/api/outputs/{o.Id}", payload);
         });
 
-        outputs.MapPut("/{id}", async (Guid id, OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        outputs.MapPut("/{id}", async (Guid id, OutputDto dto, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -84,18 +107,41 @@ internal static class OutputEndpoints
 
             existing.ChordSheet = await db.ChordSheets.FindAsync(existing.ChordSheetId);
             var payload = existing.ToDetailDto();
+            var orgId = await GetOrganizationIdForSetList(db, existing.SetListId);
             
-            await hub.Clients.All.OutputUpdated(payload);
+            if (orgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(orgId.Value)).OutputUpdated(payload);
+            }
+
+            if (existing.SetListId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.SetList(existing.SetListId.Value)).OutputUpdated(payload);
+            }
+
             return Results.NoContent();
         });
 
-        outputs.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<tcv2.Api.Hubs.SetListHub, tcv2.Api.Hubs.ISetListClient> hub) =>
+        outputs.MapDelete("/{id}", async (Guid id, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
         {
             var existing = await db.Outputs.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            var setListId = existing.SetListId;
+            var orgId = await GetOrganizationIdForSetList(db, setListId);
             db.Outputs.Remove(existing);
             await db.SaveChangesAsync();
-            await hub.Clients.All.OutputDeleted(existing.Id);
+
+            if (orgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(orgId.Value)).OutputDeleted(existing.Id);
+            }
+
+            if (setListId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.SetList(setListId.Value)).OutputDeleted(existing.Id);
+            }
+
             return Results.NoContent();
         });
 

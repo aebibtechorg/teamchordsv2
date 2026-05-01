@@ -6,7 +6,6 @@ using Microsoft.OpenApi.Models;
 using System.Text.Json;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
-using tcv2.Api.Data.Entities;
 using tcv2.Api.Data.Mappers;
 using tcv2.Api.Hubs;
 using tcv2.Api.Services;
@@ -15,6 +14,15 @@ namespace tcv2.Api.Endpoints;
 
 internal static class ChordSheetEndpoints
 {
+    private static async Task<List<Guid>> GetRelatedSetListIds(AppDbContext db, Guid chordSheetId)
+    {
+        return await db.Outputs
+            .Where(o => o.ChordSheetId == chordSheetId && o.SetListId.HasValue)
+            .Select(o => o.SetListId!.Value)
+            .Distinct()
+            .ToListAsync();
+    }
+
     public static RouteGroupBuilder MapChordSheetEndpoints(this RouteGroupBuilder api)
     {
         var chordSheets = api.MapGroup("/chordsheets");
@@ -111,7 +119,12 @@ internal static class ChordSheetEndpoints
             
             db.ChordSheets.Add(cs);
             await db.SaveChangesAsync();
-            await hub.Clients.All.ChordSheetCreated(cs);
+
+            if (cs.OrgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs);
+            }
+
             return Results.Created($"/api/chordsheets/{cs.Id}", cs.ToDto());
         });
 
@@ -128,6 +141,11 @@ internal static class ChordSheetEndpoints
             }
 
             var orgId = request.Dtos[0].OrgId;
+            if (!orgId.HasValue || request.Dtos.Any(dto => dto.OrgId != orgId))
+            {
+                return Results.BadRequest("All chord sheets in a bulk upload must belong to the same organization.");
+            }
+
             var org = await db.Organizations.FindAsync(orgId);
             if (org == null) return Results.NotFound("Organization not found");
 
@@ -161,7 +179,11 @@ internal static class ChordSheetEndpoints
                     cs.Id = Guid.NewGuid();
                     scopedDb.ChordSheets.Add(cs);
                     await scopedDb.SaveChangesAsync();
-                    await hub.Clients.All.ChordSheetCreated(cs);
+
+                    if (cs.OrgId.HasValue)
+                    {
+                        await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs);
+                    }
                 }
 
                 await hub.Clients.Client(request.ConnectionId).BulkUploadFinished();
@@ -176,9 +198,21 @@ internal static class ChordSheetEndpoints
             if (validation != null) return validation;
             var existing = await db.ChordSheets.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            var relatedSetListIds = await GetRelatedSetListIds(db, existing.Id);
             existing.UpdateFromDto(dto);
             await db.SaveChangesAsync();
-            await hub.Clients.All.ChordSheetUpdated(existing);
+
+            if (existing.OrgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).ChordSheetUpdated(existing);
+            }
+
+            foreach (var setListId in relatedSetListIds)
+            {
+                await hub.Clients.Group(HubGroupNames.SetList(setListId)).ChordSheetUpdated(existing);
+            }
+
             return Results.NoContent();
         });
 
@@ -186,9 +220,22 @@ internal static class ChordSheetEndpoints
         {
             var existing = await db.ChordSheets.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            var orgId = existing.OrgId;
+            var relatedSetListIds = await GetRelatedSetListIds(db, existing.Id);
             db.ChordSheets.Remove(existing);
             await db.SaveChangesAsync();
-            await hub.Clients.All.ChordSheetDeleted(existing.Id);
+
+            if (orgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(orgId.Value)).ChordSheetDeleted(existing.Id);
+            }
+
+            foreach (var setListId in relatedSetListIds)
+            {
+                await hub.Clients.Group(HubGroupNames.SetList(setListId)).ChordSheetDeleted(existing.Id);
+            }
+
             return Results.NoContent();
         });
 

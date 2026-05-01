@@ -107,27 +107,41 @@ const SetListView = () => {
     }, [controlsOpen]);
 
     useEffect(() => {
+        if (!id) {
+            setSetlist(null);
+            setOutputs([]);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+
         const fetchSet = async () => {
             const setlistData = await getSetList(id);
             const outputData = await getOutputs(id);
             setSetlist(setlistData);
-            setOutputs(outputData);
-            document.title = `Team Chords - ${setlistData.name}`;
+            setOutputs(outputData ?? []);
+            document.title = setlistData?.name ? `Team Chords - ${setlistData.name}` : "Team Chords";
         };
+
         fetchSet().then(() => setIsLoading(false)).catch(() => {
             toast.error(`An error has occured.`);
             setIsLoading(false);
         });
+    }, [id]);
+
+    useEffect(() => {
+        if (!id) return;
 
         const setlistConn = new HubConnectionBuilder()
-            .withUrl(getSignalRHubUrl("/hubs/setlists"))
+            .withUrl(getSignalRHubUrl("/hubs/setlists", { setListId: id }))
             .withAutomaticReconnect()
             .build();
 
         setlistConn.on("SetListUpdated", (sl) => {
-            if (String(sl.id) === String(id)) {
+            if (String(sl.id ?? sl.Id) === String(id)) {
                 setSetlist(prevSetlist => ({
-                    ...prevSetlist,
+                    ...(prevSetlist ?? {}),
                     name: sl.name ?? sl.Name,
                     updatedAt: sl.updatedAt ?? sl.UpdatedAt
                 }));
@@ -135,7 +149,7 @@ const SetListView = () => {
         });
 
         setlistConn.on("SetListDeleted", (sid) => {
-            if (String(sid) === String(id)) {
+            if (String(sid?.id ?? sid?.Id ?? sid) === String(id)) {
                 setSetlist(null);
                 setOutputs([]);
             }
@@ -158,6 +172,7 @@ const SetListView = () => {
                 setOutputs(prevOutputs => [...prevOutputs, newOutput].sort((a, b) => a.order - b.order));
             }
         });
+
         setlistConn.on("OutputUpdated", (o) => {
             const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
             const outputId = o?.id ?? o?.Id;
@@ -176,6 +191,7 @@ const SetListView = () => {
                 setOutputs(prevOutputs => prevOutputs.map(prevOutput => String(prevOutput.id) === String(outputId) ? updatedOutput : prevOutput).sort((a, b) => a.order - b.order));
             }
         });
+
         setlistConn.on("OutputDeleted", (outputId) => {
             const oid = outputId?.id ?? outputId?.Id ?? outputId;
             setOutputs(prevOutputs => prevOutputs.filter(p => String(p.id) !== String(oid)).sort((a, b) => a.order - b.order));
@@ -189,9 +205,9 @@ const SetListView = () => {
                         return {
                             ...output,
                             chordsheets: {
-                                ...output.chordsheets,
-                                key: cs.key,
-                                content: cs.content
+                                ...(output.chordsheets ?? {}),
+                                key: cs.key ?? cs.Key,
+                                content: cs.content ?? cs.Content
                             }
                         };
                     }
@@ -199,11 +215,12 @@ const SetListView = () => {
                 }).sort((a, b) => a.order - b.order);
             });
         });
+
         setlistConn.on("ChordSheetDeleted", (csId) => {
             const deletedCsId = csId?.id ?? csId?.Id ?? csId;
             setOutputs(prevOutputs => {
                 return prevOutputs.map(output => {
-                    if (output.chordSheetId === deletedCsId) {
+                    if (String(output.chordSheetId) === String(deletedCsId)) {
                         return {
                             ...output,
                             chordsheets: null
@@ -214,14 +231,12 @@ const SetListView = () => {
             });
         });
 
-        // Start connections
         setlistConn.start().catch((err) => console.error("SetList SignalR Connection Error: ", err));
 
-        // Cleanup on unmount — stop connections
         return () => {
             try { setlistConn.stop().catch(() => {}); } catch (e) {}
         };
-    }, []);
+    }, [id]);
 
     const renderChordPro = (chordProContent, originalKey, targetKey, capo) => {
         try {

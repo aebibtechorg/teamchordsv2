@@ -152,29 +152,49 @@ const ChordLibrary = () => {
 
   // Initialize and manage SignalR connection
   useEffect(() => {
+    if (!orgId) {
+      setConnection(null);
+      return;
+    }
+
     const newConnection = new HubConnectionBuilder()
-      .withUrl(getSignalRHubUrl("/hubs/setlists"))
+      .withUrl(getSignalRHubUrl("/hubs/setlists", { orgId }))
       .withAutomaticReconnect()
       .build();
 
     setConnection(newConnection);
 
     return () => {
+      setConnection((current) => current === newConnection ? null : current);
       newConnection.stop().catch(() => {});
     };
-  }, []);
+  }, [orgId]);
 
-  // Listen for SignalR events once connection is established
+  // Start the SignalR connection once it is created
   useEffect(() => {
     if (connection) {
       connection.start()
         .then(() => {
           console.log('SignalR Connected!');
-          connection.on("BulkUploadFinished", handleUploadComplete);
         })
         .catch(e => console.error('SignalR Connection failed: ', e));
     }
   }, [connection]);
+
+  useEffect(() => {
+    if (!connection) return;
+
+    const handleFinished = () => {
+      setIsUploadDialogOpen(false);
+      fetchData().catch(() => toast.error("A network error has occured."));
+    };
+
+    connection.on("BulkUploadFinished", handleFinished);
+
+    return () => {
+      connection.off("BulkUploadFinished", handleFinished);
+    };
+  }, [connection, currentCursor, debouncedSearchTerm, orgId, pageSize]);
 
   if (isLoading) {
     return (

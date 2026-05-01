@@ -86,7 +86,10 @@ internal static class SetListEndpoints
             try
             {
                 await db.SaveChangesAsync();
-                await hub.Clients.All.SetListCreated(s);
+                if (s.OrgId.HasValue)
+                {
+                    await hub.Clients.Group(HubGroupNames.Organization(s.OrgId.Value)).SetListCreated(s);
+                }
                 return Results.Created($"/api/setlists/{s.Id}", s.ToDto());
             }
             catch (DbUpdateException ex)
@@ -110,7 +113,12 @@ internal static class SetListEndpoints
             try
             {
                 await db.SaveChangesAsync();
-                await hub.Clients.All.SetListUpdated(existing);
+                if (existing.OrgId.HasValue)
+                {
+                    await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).SetListUpdated(existing);
+                }
+
+                await hub.Clients.Group(HubGroupNames.SetList(existing.Id)).SetListUpdated(existing);
                 return Results.NoContent();
             }
             catch (DbUpdateException ex)
@@ -123,9 +131,17 @@ internal static class SetListEndpoints
         {
             var existing = await db.SetLists.FindAsync(id);
             if (existing == null) return Results.NotFound();
+
+            var orgId = existing.OrgId;
             db.SetLists.Remove(existing);
             await db.SaveChangesAsync();
-            await hub.Clients.All.SetListDeleted(existing.Id);
+
+            if (orgId.HasValue)
+            {
+                await hub.Clients.Group(HubGroupNames.Organization(orgId.Value)).SetListDeleted(existing.Id);
+            }
+
+            await hub.Clients.Group(HubGroupNames.SetList(existing.Id)).SetListDeleted(existing.Id);
             return Results.NoContent();
         });
 

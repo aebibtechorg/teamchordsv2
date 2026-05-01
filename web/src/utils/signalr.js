@@ -8,12 +8,29 @@ const getBaseUrl = () => {
     }
     return '';
 };
-function getSignalRHubUrl(hubPath) {
+function getSignalRHubUrl(hubPath, queryParams = {}) {
     const baseUrl = getBaseUrl();
     const normalizedPath = hubPath.startsWith('/') ? hubPath : `/${hubPath}`;
-    if (!baseUrl) {
+
+    if (!baseUrl && (!queryParams || Object.keys(queryParams).length === 0)) {
         return normalizedPath;
     }
-    return new URL(normalizedPath, `${baseUrl}/`).toString();
+
+    const fallbackOrigin = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'http://localhost';
+    const url = new URL(normalizedPath, `${baseUrl || fallbackOrigin}/`);
+
+    Object.entries(queryParams).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+            url.searchParams.set(key, value);
+        }
+    });
+
+    if (!baseUrl && typeof window !== 'undefined' && window.location?.origin === url.origin) {
+        return `${url.pathname}${url.search}`;
+    }
+
+    return url.toString();
 }
 export { getSignalRHubUrl };
