@@ -86,7 +86,8 @@ builder.Services.AddAuthentication(options =>
     {
         NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
         RoleClaimType = "https://teamchordsapp.io/roles",
-        ValidateIssuer = false
+        ValidateIssuer = false,
+        ValidateAudience = false
     };
 });
 
