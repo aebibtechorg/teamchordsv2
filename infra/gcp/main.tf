@@ -1,5 +1,4 @@
 locals {
-  github_repository  = "${var.github_owner}/${var.github_repo}"
   api_service_name   = "tcv2-api"
   admin_service_name = "tcv2-admin"
 }
@@ -35,70 +34,61 @@ resource "google_firebase_project" "default" {
   depends_on = [google_project_service.required]
 }
 
-resource "google_iam_workload_identity_pool" "github" {
-  count = var.manage_github_identity ? 1 : 0
+// Stop managing one-time GitHub bootstrap resources in the routine deploy state.
+removed {
+  from = google_iam_workload_identity_pool.github
 
-  workload_identity_pool_id = "github-actions"
-  display_name              = "GitHub Actions"
-  description               = "OIDC federation for TeamChords GitHub Actions"
-}
-
-resource "google_iam_workload_identity_pool_provider" "github" {
-  count = var.manage_github_identity ? 1 : 0
-
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github[0].workload_identity_pool_id
-  workload_identity_pool_provider_id = "github-provider"
-  display_name                       = "GitHub repository provider"
-  description                        = "Allow TeamChords GitHub Actions to impersonate the deployer service account"
-  attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.repository" = "assertion.repository"
-    "attribute.owner"      = "assertion.repository_owner"
-    "attribute.ref"        = "assertion.ref"
-  }
-  attribute_condition = "assertion.repository_owner == '${var.github_owner}' && assertion.repository == '${local.github_repository}'"
-  oidc {
-    issuer_uri = "https://token.actions.githubusercontent.com"
+  lifecycle {
+    destroy = false
   }
 }
 
-resource "google_service_account" "github_deployer" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_iam_workload_identity_pool_provider.github
 
-  account_id   = "tcv2-github-deployer"
-  display_name = "TeamChords GitHub deployer"
+  lifecycle {
+    destroy = false
+  }
 }
 
-resource "google_project_iam_member" "github_run_admin" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_service_account.github_deployer
 
-  project = var.project_id
-  role    = "roles/run.admin"
-  member  = "serviceAccount:${google_service_account.github_deployer[0].email}"
+  lifecycle {
+    destroy = false
+  }
 }
 
-resource "google_project_iam_member" "github_artifact_writer" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_project_iam_member.github_run_admin
 
-  project = var.project_id
-  role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${google_service_account.github_deployer[0].email}"
+  lifecycle {
+    destroy = false
+  }
 }
 
-resource "google_project_iam_member" "github_serviceusage" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_project_iam_member.github_artifact_writer
 
-  project = var.project_id
-  role    = "roles/serviceusage.serviceUsageConsumer"
-  member  = "serviceAccount:${google_service_account.github_deployer[0].email}"
+  lifecycle {
+    destroy = false
+  }
 }
 
-resource "google_service_account_iam_member" "github_wif" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_project_iam_member.github_serviceusage
 
-  service_account_id = google_service_account.github_deployer[0].name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.repository/${local.github_repository}"
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_service_account_iam_member.github_wif
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 resource "google_service_account" "api_runtime" {
@@ -111,20 +101,20 @@ resource "google_service_account" "admin_runtime" {
   display_name = "TeamChords admin runtime"
 }
 
-resource "google_service_account_iam_member" "api_runtime_user" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_service_account_iam_member.api_runtime_user
 
-  service_account_id = google_service_account.api_runtime.name
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_deployer[0].email}"
+  lifecycle {
+    destroy = false
+  }
 }
 
-resource "google_service_account_iam_member" "admin_runtime_user" {
-  count = var.manage_github_identity ? 1 : 0
+removed {
+  from = google_service_account_iam_member.admin_runtime_user
 
-  service_account_id = google_service_account.admin_runtime.name
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_deployer[0].email}"
+  lifecycle {
+    destroy = false
+  }
 }
 
 resource "google_cloud_run_v2_service" "api" {

@@ -9,21 +9,6 @@ variable "region" {
   default     = "us-central1"
 }
 
-variable "github_owner" {
-  description = "GitHub organization or user that owns the repository"
-  type        = string
-}
-
-variable "github_repo" {
-  description = "GitHub repository name"
-  type        = string
-}
-
-variable "manage_github_identity" {
-  description = "Whether Terraform should manage GitHub OIDC bootstrap resources and deployer IAM bindings"
-  type        = bool
-  default     = true
-}
 
 variable "artifact_registry_repository_id" {
   description = "Artifact Registry repository ID for container images"

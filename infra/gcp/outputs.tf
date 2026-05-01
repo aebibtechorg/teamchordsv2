@@ -3,15 +3,15 @@ output "artifact_registry_repository" {
 }
 
 output "github_workload_identity_pool" {
-  value = var.manage_github_identity ? google_iam_workload_identity_pool.github[0].name : null
+  value = null
 }
 
 output "github_workload_identity_provider" {
-  value = var.manage_github_identity ? google_iam_workload_identity_pool_provider.github[0].name : null
+  value = null
 }
 
 output "github_deployer_service_account" {
-  value = var.manage_github_identity ? google_service_account.github_deployer[0].email : null
+  value = null
 }
 
 output "api_url" {

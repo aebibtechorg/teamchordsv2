@@ -1,5 +1,8 @@
 name: Deploy TeamChords to Google Cloud
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   push:
     branches:
@@ -22,9 +25,6 @@ jobs:
       ARTIFACT_REPOSITORY: tcv2-containers
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
       TF_VAR_region: asia-southeast1
-      TF_VAR_github_owner: ${{ github.repository_owner }}
-      TF_VAR_github_repo: ${{ github.event.repository.name }}
-      TF_VAR_manage_github_identity: "false"
       TF_VAR_teamchords_connection_string: ${{ secrets.NEON_POSTGRES_CS }}
       TF_VAR_redis_connection_string: ${{ secrets.UPSTASH_REDIS_CS }}
       TF_VAR_auth0_domain: ${{ secrets.AUTH0_DOMAIN }}
@@ -91,9 +91,19 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET}" \
             -backend-config="prefix=gcp"
 
-      - name: Create Artifact Registry repository
+      - name: Ensure Artifact Registry repository exists
         working-directory: infra/gcp
-        run: terraform apply -target=google_artifact_registry_repository.containers -auto-approve
+        run: |
+          if ! gcloud artifacts repositories describe "${ARTIFACT_REPOSITORY}" --location "${REGION}" >/dev/null 2>&1; then
+            gcloud artifacts repositories create "${ARTIFACT_REPOSITORY}" \
+              --repository-format=docker \
+              --location="${REGION}" \
+              --description="TeamChords container images"
+          fi
+
+          if ! terraform state show google_artifact_registry_repository.containers >/dev/null 2>&1; then
+            terraform import google_artifact_registry_repository.containers "projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY}"
+          fi
 
       - name: Configure Docker auth for Artifact Registry
         run: gcloud auth configure-docker "${GAR_HOST}" --quiet
