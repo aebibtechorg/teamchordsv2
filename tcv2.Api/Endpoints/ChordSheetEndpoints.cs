@@ -7,6 +7,7 @@ using System.Text.Json;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Mappers;
+using tcv2.Api.Data.Entities;
 using tcv2.Api.Hubs;
 using tcv2.Api.Services;
 
@@ -21,6 +22,56 @@ internal static class ChordSheetEndpoints
             .Select(o => o.SetListId!.Value)
             .Distinct()
             .ToListAsync();
+    }
+
+    // Batch size used for saving during bulk imports. Adjust for performance/memory tradeoffs.
+    private const int BulkUploadBatchSize = 50;
+
+    private static async Task<List<Guid>> FlushBulkUploadBatchAsync(AppDbContext db, IHubContext<SetListHub, ISetListClient> hub, ILogger logger, List<ChordSheet> pendingBatch)
+    {
+        var createdIds = new List<Guid>();
+        if (pendingBatch.Count == 0) return createdIds;
+
+        try
+        {
+            db.ChordSheets.AddRange(pendingBatch);
+            await db.SaveChangesAsync();
+
+            // Notify clients for each created chordsheet
+            foreach (var cs in pendingBatch)
+            {
+                createdIds.Add(cs.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Bulk save failed for {Count} chord sheets, falling back to single-item saves.", pendingBatch.Count);
+
+            // Clear tracked entities so we can try single-item saves
+            try { db.ChangeTracker.Clear(); } catch (Exception clearEx) { logger.LogDebug(clearEx, "ChangeTracker.Clear failed during bulk fallback cleanup."); }
+
+            foreach (var cs in pendingBatch)
+            {
+                try
+                {
+                    db.ChordSheets.Add(cs);
+                    await db.SaveChangesAsync();
+                    createdIds.Add(cs.Id);
+                }
+                catch (Exception itemEx)
+                {
+                    logger.LogError(itemEx, "Failed to import chord sheet {Title} during bulk fallback.", cs.Title);
+                    try { db.ChangeTracker.Clear(); } catch (Exception clearEx) { logger.LogDebug(clearEx, "ChangeTracker.Clear failed during per-item fallback."); }
+                }
+            }
+        }
+        finally
+        {
+            pendingBatch.Clear();
+            try { db.ChangeTracker.Clear(); } catch (Exception clearEx) { logger.LogDebug(clearEx, "ChangeTracker.Clear failed during bulk finally cleanup."); }
+        }
+
+        return createdIds;
     }
 
     public static RouteGroupBuilder MapChordSheetEndpoints(this RouteGroupBuilder api)
@@ -156,7 +207,7 @@ internal static class ChordSheetEndpoints
             var gate = FeatureGate.CheckBulkUpload(org);
             if (gate != null) return gate;
 
-            _ = Task.Run(async () =>
+            async Task DoBulkImportAsync()
             {
                 // Create a new scope to resolve scoped services like DbContext
                 using var scope = services.CreateScope();
@@ -164,18 +215,20 @@ internal static class ChordSheetEndpoints
                 var hub = scope.ServiceProvider.GetRequiredService<IHubContext<SetListHub, ISetListClient>>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
+                var total = uploadDtos.Length;
+                var processedCount = 0;
+                var pendingBatch = new List<ChordSheet>(BulkUploadBatchSize);
+                var allCreatedIds = new List<Guid>();
+
                 try
                 {
-                    var total = uploadDtos.Length;
-                    var processedCount = 0;
-
                     foreach (var dto in uploadDtos)
                     {
                         processedCount++;
 
                         try
                         {
-                            var progressMessage = $"Processing '{dto.Title}'...";
+                            var progressMessage = $"Queueing '{dto.Title}'...";
                             await hub.Clients.Client(connectionId).BulkUploadProgress(processedCount, total, progressMessage);
                         }
                         catch (Exception ex)
@@ -194,19 +247,23 @@ internal static class ChordSheetEndpoints
                         {
                             var cs = dto.ToEntity();
                             cs.Id = Guid.NewGuid();
-                            scopedDb.ChordSheets.Add(cs);
-                            await scopedDb.SaveChangesAsync();
+                            pendingBatch.Add(cs);
 
-                            if (cs.OrgId.HasValue)
+                            if (pendingBatch.Count >= BulkUploadBatchSize)
                             {
-                                await hub.Clients.Group(HubGroupNames.Organization(cs.OrgId.Value)).ChordSheetCreated(cs);
+                                var created = await FlushBulkUploadBatchAsync(scopedDb, hub, logger, pendingBatch);
+                                if (created.Count > 0) allCreatedIds.AddRange(created);
                             }
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "Failed to import chord sheet {Title} during bulk upload.", dto.Title);
+                            logger.LogError(ex, "Failed to prepare chord sheet {Title} during bulk upload.", dto.Title);
                         }
                     }
+
+                    // Flush any remaining items
+                    var lastCreated = await FlushBulkUploadBatchAsync(scopedDb, hub, logger, pendingBatch);
+                    if (lastCreated.Count > 0) allCreatedIds.AddRange(lastCreated);
                 }
                 catch (Exception ex)
                 {
@@ -214,16 +271,39 @@ internal static class ChordSheetEndpoints
                 }
                 finally
                 {
+                    using var scope2 = services.CreateScope();
+                    var hub2 = scope2.ServiceProvider.GetRequiredService<IHubContext<SetListHub, ISetListClient>>();
+                    var logger2 = scope2.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
                     try
                     {
-                        await hub.Clients.Client(connectionId).BulkUploadFinished();
+                        // Send a summary to organization group (single notification)
+                        try
+                        {
+                            var summary = new BulkUploadSummaryDto
+                            {
+                                CreatedIds = allCreatedIds.ToArray(),
+                                TotalProcessed = total,
+                                Successful = allCreatedIds.Count,
+                                Failed = total - allCreatedIds.Count
+                            };
+                            await hub2.Clients.Group(HubGroupNames.Organization(targetOrgId)).BulkUploadSummary(summary);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger2.LogWarning(ex, "Failed to send bulk upload summary for org {OrgId}.", targetOrgId);
+                        }
+
+                        await hub2.Clients.Client(connectionId).BulkUploadFinished();
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning(ex, "Failed to send bulk upload finished notification for connection {ConnectionId}.", connectionId);
+                        logger2.LogWarning(ex, "Failed to send bulk upload finished notification for connection {ConnectionId}.", connectionId);
                     }
                 }
-            });
+            }
+
+            _ = Task.Run((Func<Task>)DoBulkImportAsync);
 
             return Results.Accepted(value: new { message = "Bulk upload started." });
         });

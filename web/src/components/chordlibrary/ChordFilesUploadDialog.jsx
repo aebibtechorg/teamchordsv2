@@ -60,9 +60,21 @@ const ChordFilesUploadDialog = ({ connection, close, onUploadComplete }) => {
       notifyFinishedIfComplete();
     };
 
+    let handleSummary;
     if (connection && hasBulkJson) {
       connection.on("BulkUploadProgress", handleProgress);
       connection.on("BulkUploadFinished", handleFinished);
+      handleSummary = (summary) => {
+        // support camelCase or PascalCase coming from SignalR serialization
+        const createdIds = summary?.createdIds ?? summary?.CreatedIds ?? [];
+        const total = summary?.totalProcessed ?? summary?.TotalProcessed ?? 0;
+        const successful = summary?.successful ?? summary?.Successful ?? (createdIds ? createdIds.length : 0);
+        setUploadProgress({ processed: successful, total, message: `Imported ${successful} of ${total} songs` });
+        // decrement pending count for this bulk file and attempt to finish
+        if (pendingBulkUploadsRef.current > 0) pendingBulkUploadsRef.current -= 1;
+        notifyFinishedIfComplete();
+      };
+      connection.on("BulkUploadSummary", handleSummary);
     }
 
     try {
@@ -112,9 +124,10 @@ const ChordFilesUploadDialog = ({ connection, close, onUploadComplete }) => {
 
       notifyFinishedIfComplete();
     } finally {
-      if (!hasBulkJson && connection) {
+      if (connection && hasBulkJson) {
         connection.off("BulkUploadProgress", handleProgress);
         connection.off("BulkUploadFinished", handleFinished);
+        if (handleSummary) connection.off("BulkUploadSummary", handleSummary);
       }
     }
   }
