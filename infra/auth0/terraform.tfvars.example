@@ -1,0 +1,10 @@
+auth0_domain                    = "your-tenant.us.auth0.com"
+auth0_management_client_id      = "your-management-m2m-client-id"
+auth0_management_client_secret  = "your-management-m2m-client-secret"
+api_audience                    = "https://api.teamchords.com"
+api_base_url                    = "https://api-tc2.aebibtech.com"
+customer_app_base_url           = "https://teamchords.com"
+admin_app_base_url              = "https://admin.teamchords.com"
+google_oauth_client_id          = "your-google-client-id"
+google_oauth_client_secret      = "your-google-client-secret"
+

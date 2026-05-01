@@ -1,0 +1,135 @@
+name: Deploy TeamChords Auth0
+
+on:
+  pull_request:
+    paths:
+      - "infra/auth0/**"
+      - ".github/workflows/deploy-auth0.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/auth0/**"
+      - ".github/workflows/deploy-auth0.yml"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply Terraform changes after planning"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-auth0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  terraform:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: asia-southeast1
+      TF_VAR_auth0_domain: ${{ secrets.AUTH0_DOMAIN }}
+      TF_VAR_auth0_management_client_id: ${{ secrets.AUTH0_MANAGEMENT_CLIENT_ID }}
+      TF_VAR_auth0_management_client_secret: ${{ secrets.AUTH0_MANAGEMENT_CLIENT_SECRET }}
+      TF_VAR_api_audience: ${{ secrets.AUTH0_AUDIENCE }}
+      TF_VAR_api_base_url: ${{ secrets.API_BASE_URL }}
+      TF_VAR_customer_app_base_url: ${{ secrets.CUSTOMER_APP_BASE_URL }}
+      TF_VAR_admin_app_base_url: ${{ secrets.ADMIN_APP_BASE_URL }}
+      TF_VAR_google_oauth_client_id: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      TF_VAR_google_oauth_client_secret: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Prepare Terraform state bucket
+        run: echo "TF_STATE_BUCKET=${PROJECT_ID}-tcv2-tfstate" >> "$GITHUB_ENV"
+
+      - name: Ensure Terraform state bucket exists
+        run: |
+          if ! gsutil ls -b "gs://${TF_STATE_BUCKET}" >/dev/null 2>&1; then
+            gsutil mb -p "${PROJECT_ID}" -l "${REGION}" "gs://${TF_STATE_BUCKET}"
+            gsutil versioning set on "gs://${TF_STATE_BUCKET}"
+          fi
+
+      - name: Check Terraform formatting
+        working-directory: infra/auth0
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform
+        working-directory: infra/auth0
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="prefix=auth0"
+
+      - name: Validate Terraform
+        working-directory: infra/auth0
+        run: terraform validate -no-color
+
+      - name: Plan Terraform
+        working-directory: infra/auth0
+        run: terraform plan -out=tfplan -no-color
+
+      - name: Apply Terraform
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.apply) }}
+        working-directory: infra/auth0
+        run: terraform apply -auto-approve tfplan
+
+      - name: Sync Auth0 outputs to GitHub secrets
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.apply) }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_SECRETS_ADMIN_TOKEN }}
+        run: |
+          python3 scripts/push-auth0-outputs-to-github-secrets.py \
+            --auth0-dir infra/auth0 \
+            --repo "${{ github.repository }}"
+
+      - name: Build sanitized Auth0 review artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.apply) }}
+        run: |
+          python3 scripts/export-auth0-review-artifact.py \
+            --auth0-dir infra/auth0 \
+            --output-dir auth0-review-artifact
+
+      - name: Upload Auth0 review artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.apply) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth0-review-artifact-${{ github.run_id }}
+          path: auth0-review-artifact/
+          if-no-files-found: error
+
+      - name: Summarize outputs refresh
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.apply) }}
+        run: |
+          {
+            echo "## Auth0 Terraform applied"
+            echo
+            echo "Runtime Auth0 GitHub secrets were updated automatically for this repository."
+            echo
+            echo "A non-sensitive review artifact was uploaded for this run: domains, audiences, client IDs, connection names, and role IDs."
+            echo
+            echo "If you also want to refresh your local \`.env\`, run:"
+            echo
+            echo '```bash'
+            echo 'scripts/sync-auth0-outputs.sh'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+

@@ -10,6 +10,8 @@ This Terraform stack provisions the Google Cloud resources TeamChords needs to r
 
 ## Required inputs
 
+Most Auth0-related inputs can now come from the separate [`infra/auth0`](../auth0/README.md) Terraform stack. Apply that stack first, then feed its outputs into the variables below.
+
 Set these values through `TF_VAR_*` environment variables, a `.tfvars` file, or your CI pipeline:
 
 - `project_id`
@@ -65,11 +67,12 @@ The repo root contains a local `.env` template with the values used by the deplo
 
 ```bash
 gh auth login
+chmod +x scripts/sync-auth0-outputs.sh
 chmod +x scripts/setup-github-secrets.sh
-scripts/setup-github-secrets.sh -r <owner>/<repo>
+scripts/setup-github-secrets.sh --sync-auth0 -r <owner>/<repo>
 ```
 
-If you prefer to target a different `.env` or key file, pass `--env-file` and `--key-file`.
+If you prefer to target a different `.env`, key file, or Auth0 stack path, pass `--env-file`, `--key-file`, and `--auth0-dir`.
 
 Example:
 
@@ -83,16 +86,16 @@ export TF_VAR_github_repo="teamchordsv2"
 export TF_VAR_teamchords_connection_string="..."
 export TF_VAR_redis_connection_string="..."
 export TF_VAR_azure_signalr_connection_string="..."
-export TF_VAR_auth0_domain="..."
-export TF_VAR_auth0_audience="..."
-export TF_VAR_auth0_client_id="..."
-export TF_VAR_auth0_client_secret="..."
-export TF_VAR_web_auth0_domain="..."
-export TF_VAR_web_auth0_client_id="..."
-export TF_VAR_web_auth0_audience="..."
-export TF_VAR_admin_auth0_domain="..."
-export TF_VAR_admin_auth0_client_id="..."
-export TF_VAR_admin_auth0_audience="..."
+export TF_VAR_auth0_domain="$(cd ../auth0 && terraform output -raw auth0_domain)"
+export TF_VAR_auth0_audience="$(cd ../auth0 && terraform output -raw auth0_audience)"
+export TF_VAR_auth0_client_id="$(cd ../auth0 && terraform output -raw auth0_client_id)"
+export TF_VAR_auth0_client_secret="$(cd ../auth0 && terraform output -raw auth0_client_secret)"
+export TF_VAR_web_auth0_domain="$(cd ../auth0 && terraform output -raw web_auth0_domain)"
+export TF_VAR_web_auth0_client_id="$(cd ../auth0 && terraform output -raw web_auth0_client_id)"
+export TF_VAR_web_auth0_audience="$(cd ../auth0 && terraform output -raw web_auth0_audience)"
+export TF_VAR_admin_auth0_domain="$(cd ../auth0 && terraform output -raw admin_auth0_domain)"
+export TF_VAR_admin_auth0_client_id="$(cd ../auth0 && terraform output -raw admin_auth0_client_id)"
+export TF_VAR_admin_auth0_audience="$(cd ../auth0 && terraform output -raw admin_auth0_audience)"
 export TF_VAR_customer_app_base_url="..."
 export TF_VAR_web_app_base_url="..."
 export TF_VAR_dodo_secret_key="..."
@@ -120,4 +123,8 @@ The web client reads `VITE_API_BASE_URL` at build time so the SignalR browser cl
 ## GitHub Actions
 
 The deployment workflow uses the same Terraform stack to provision and update the runtime resources, while GitHub Actions builds and pushes the container images first.
+
+If you also want Auth0 managed from CI, run or enable the dedicated workflow at [`.github/workflows/deploy-auth0.yml`](../../.github/workflows/deploy-auth0.yml) first so the Auth0 applications, roles, connections, and Actions are in place before the GCP deployment consumes their outputs.
+
+When the Auth0 workflow applies successfully, it also syncs the runtime Auth0 GitHub secrets automatically, so the next GCP deployment can consume the updated values without a manual local secret upload.
 
