@@ -21,3 +21,12 @@ output "api_url" {
 output "admin_url" {
   value = google_cloud_run_v2_service.admin.uri
 }
+
+output "help_firebase_site" {
+  value = google_firebase_hosting_site.help.site_id
+}
+
+output "help_firebase_default_url" {
+  value = "https://${google_firebase_hosting_site.help.site_id}.web.app"
+}
+

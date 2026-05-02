@@ -92,6 +92,17 @@ if (builder.Configuration["Destination"] == "aca")
         })
         .ExcludeFromManifest();
 
+    // Help center (Docusaurus) - local dev served by the Docusaurus dev server
+    _ = builder.AddNpmApp("helpclient", "../help")
+        .WithReference(api)
+        .WaitFor(api)
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            // Docusaurus default dev port (use 3001 to avoid colliding with admin dev port 3000)
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 3001 : null;
+        })
+        .ExcludeFromManifest();
+
     if (builder.ExecutionContext.IsPublishMode)
     {
         builder.AddNpmApp("webclient-server", "../web")

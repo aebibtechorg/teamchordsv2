@@ -40,6 +40,12 @@ function App() {
             >
               Pricing
             </a>
+            <a
+              href="/help"
+              className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"
+            >
+              Help
+            </a>
             <button
               onClick={() => loginWithRedirect()}
               className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"

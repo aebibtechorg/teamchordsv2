@@ -187,3 +187,16 @@ variable "zeptomail_base_url" {
   type        = string
   default     = ""
 }
+
+variable "help_firebase_site" {
+  description = "Optional Firebase Hosting site id for the help center; defaults to <project_id>-help when empty"
+  type        = string
+  default     = ""
+}
+
+variable "help_image" {
+  description = "Container image URI for the help site (optional, used if deploying as container)"
+  type        = string
+  default     = ""
+}
+
