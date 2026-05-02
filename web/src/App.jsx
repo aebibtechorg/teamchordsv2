@@ -14,7 +14,7 @@ function App() {
     if (!isLoading && isAuthenticated) {
       navigate("/library");
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   // Animation Variants
   const fadeInUp = {
@@ -23,10 +23,12 @@ function App() {
   };
 
   return (
-    <div className="h-screen overflow-y-scroll snap-mandatory snap-y scroll-smooth pt-10 sm:pt-12">
+    // Use a flexible min-height container and allow auto scrolling.
+    // This avoids stacking many full-height sections that push content off-screen on small viewports.
+    <div className="min-h-screen overflow-x-hidden overflow-y-auto snap-mandatory snap-y scroll-smooth">
       <ChatwootWidget />
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 z-10 w-full flex justify-between bg-gray-700 p-3 text-white shadow-md sm:p-4">
+      <nav className="fixed top-0 left-0 z-10 w-full flex justify-between items-center bg-gray-700 bg-opacity-95 p-3 text-white shadow-md sm:p-4 h-14 sm:h-16">
         <h1 className="flex items-center text-lg sm:text-xl">
           <MainLogo size={28} className="mr-2" /> Team Chords
         </h1>
@@ -53,7 +55,8 @@ function App() {
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="h-screen snap-center flex flex-col items-center justify-center bg-gray-700 text-white text-center px-2 sm:px-4"
+        // Make hero smaller on mobile while keeping a full-screen feel on larger viewports
+        className="min-h-[70vh] sm:min-h-screen snap-start flex flex-col items-center justify-center bg-gray-700 text-white text-center px-2 sm:px-4"
       >
         <h2 className="text-3xl sm:text-5xl font-bold mb-3 sm:mb-4">
           Your Team&apos;s Ultimate Chord Sharing Hub
@@ -77,7 +80,8 @@ function App() {
         whileInView="visible"
         viewport={{ once: true }}
         variants={fadeInUp}
-        className="h-screen snap-center flex flex-col items-center justify-center text-center bg-gray-100 px-2 sm:px-4"
+        // Don't force a full viewport height for features; allow content to flow naturally on small screens
+        className="min-h-[60vh] sm:min-h-screen snap-start flex flex-col items-center justify-center text-center bg-gray-100 px-2 sm:px-4"
       >
         <h3 className="text-2xl sm:text-4xl font-semibold mb-4 sm:mb-6">Why Use Team Chords?</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full max-w-6xl">
@@ -106,7 +110,7 @@ function App() {
         whileInView="visible"
         viewport={{ once: true }}
         variants={fadeInUp}
-        className="min-h-screen snap-center flex flex-col items-center justify-center bg-gray-100 px-2 sm:px-4"
+        className="min-h-[70vh] sm:min-h-screen snap-start flex flex-col items-center justify-center bg-gray-100 px-2 sm:px-4"
       >
         <PricingCards isAuthenticated={isAuthenticated} />
       </motion.section>
@@ -117,7 +121,7 @@ function App() {
         whileInView="visible"
         viewport={{ once: true }}
         variants={fadeInUp}
-        className="h-screen snap-center flex flex-col items-center justify-center bg-gray-700 text-white text-center px-2 sm:px-4"
+        className="min-h-[65vh] sm:min-h-screen snap-start flex flex-col items-center justify-center bg-gray-700 text-white text-center px-2 sm:px-4"
       >
         <h3 className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6">
           Start Your Musical Journey Today!
@@ -144,7 +148,8 @@ function App() {
         whileInView="visible"
         viewport={{ once: true }}
         variants={fadeInUp}
-        className="h-screen snap-center flex flex-col items-center justify-center text-gray-600 bg-gray-200 text-center px-2 sm:px-4"
+        // Footer should size to content instead of filling the viewport on mobile
+        className="py-12 snap-end flex flex-col items-center justify-center text-gray-600 bg-gray-200 text-center px-2 sm:px-4"
       >
         <h3 className="text-2xl sm:text-3xl font-semibold mb-3 sm:mb-4">Stay Connected</h3>
         <p className="text-base sm:text-lg">Follow us on social media and keep up with the latest updates.</p>
