@@ -136,7 +136,8 @@ const PricingCards = ({ isAuthenticated = false }) => {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    // Avoid forcing a full-screen min-height here and ensure the component respects parent width.
+    <div className="bg-gray-100 w-full">
       <div className="container mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold text-center mb-4">Find the Right Plan for Your Library</h1>
         <p className="text-xl text-gray-600 text-center mb-12">
@@ -171,7 +172,8 @@ const PricingCards = ({ isAuthenticated = false }) => {
 
           {/* Tier 2: Gigging Band */}
           <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col border-4 border-blue-500 relative">
-            <div className="absolute top-0 -translate-y-1/2 bg-blue-500 text-white font-bold py-1 px-4 rounded-full">
+            {/* center the badge to avoid horizontal overflow on small screens */}
+            <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white font-bold py-1 px-4 rounded-full">
               Most Popular
             </div>
             <div className="mb-3 inline-flex w-fit rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-700">
@@ -267,12 +269,12 @@ const PricingCards = ({ isAuthenticated = false }) => {
                   <td className="py-4 px-6 text-center font-bold">Global Sync</td>
                   <td className="py-4 px-6 text-center font-bold">Global Sync</td>
                 </tr>
-                <tr>
-                  <td className="py-4 px-6 font-semibold">Library Sharing</td>
-                  <td className="py-4 px-6 text-center">No</td>
-                  <td className="py-4 px-6 text-center">No</td>
-                  <td className="py-4 px-6 text-center font-bold">Cross-Org</td>
-                </tr>
+                {/*<tr>*/}
+                {/*  <td className="py-4 px-6 font-semibold">Library Sharing</td>*/}
+                {/*  <td className="py-4 px-6 text-center">No</td>*/}
+                {/*  <td className="py-4 px-6 text-center">No</td>*/}
+                {/*  <td className="py-4 px-6 text-center font-bold">Cross-Org</td>*/}
+                {/*</tr>*/}
               </tbody>
             </table>
           </div>
