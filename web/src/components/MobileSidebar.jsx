@@ -30,7 +30,7 @@ const MobileSidebar = () => {
         <MobileNavItem to="/team" icon={<Users size={16} />} label="Team" />
         <MobileNavItem to="/profile" icon={<User size={16} />} label="Profile" />
         <MobileNavItem to="/billing" icon={<CreditCard size={16} />} label="Billing" />
-        <MobileNavItem onClick={handleSignOut} icon={<Power size={16} />} />
+        <MobileNavItem onClick={handleSignOut} icon={<Power size={16} />} label="Logout" />
       </div>
     </nav>
   );
