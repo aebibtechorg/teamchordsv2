@@ -53,6 +53,7 @@ jobs:
       TF_VAR_zeptomail_from_email_address: ${{ secrets.ZEPTOMAIL_FROM_EMAIL_ADDRESS }}
       TF_VAR_zeptomail_from_name: ${{ secrets.ZEPTOMAIL_FROM_NAME }}
       TF_VAR_zeptomail_base_url: ${{ secrets.ZEPTOMAIL_BASE_URL }}
+      TF_VAR_help_firebase_site: ${{ secrets.HELP_FIREBASE_SITE }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,6 +77,8 @@ jobs:
           echo "ADMIN_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "TF_VAR_api_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-api:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "TF_VAR_admin_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "HELP_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-help:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "TF_VAR_help_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-help:${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Ensure Terraform state bucket exists
         run: |
@@ -127,11 +130,26 @@ jobs:
       - name: Export frontend API base URL
         run: echo "VITE_API_BASE_URL=$(cd infra/gcp && terraform output -raw api_url)" >> "$GITHUB_ENV"
 
+      - name: Export help hosting site id
+        run: echo "HELP_FIREBASE_SITE_ID=$(cd infra/gcp && terraform output -raw help_firebase_site)" >> "$GITHUB_ENV"
+
       - name: Build web app
         working-directory: web
         run: |
           npm ci
           npm run build
+
+      - name: Build help site
+        working-directory: help
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy help to Firebase Hosting (uses GCP SA credentials)
+        working-directory: help
+        run: |
+          npx firebase-tools target:apply hosting help "$HELP_FIREBASE_SITE_ID" --project "$PROJECT_ID"
+          npx firebase-tools deploy --only hosting:help --project "$PROJECT_ID"
 
       - name: Deploy to Firebase Hosting
         working-directory: web

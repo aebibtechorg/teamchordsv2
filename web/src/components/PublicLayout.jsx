@@ -11,10 +11,13 @@ const PublicLayout = ({ children }) => {
             <MainLogo size={28} className="mr-2" /> Team Chords
           </Link>
         </h1>
-        <div>
+        <div className="flex items-center gap-2">
           <Link to="/" className="px-3 py-2 sm:px-4 sm:py-2 rounded bg-gray-500 hover:bg-gray-600 transition text-sm sm:text-base">
             Back to Home
           </Link>
+          <a href="/help" className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base">
+            Help
+          </a>
         </div>
       </nav>
 
@@ -28,6 +31,7 @@ const PublicLayout = ({ children }) => {
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-gray-500 justify-center">
           <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
           <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
+          <a href="/help" className="hover:underline">Help</a>
         </div>
         <p className="mt-2 text-sm text-gray-500">Support: support@teamchords.com</p>
         <p className="mt-2 text-sm">© {new Date().getFullYear()} Team Chords. All rights reserved.</p>
