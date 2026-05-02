@@ -1,39 +1,101 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
+const SUPPORT_EMAIL = 'support@teamchords.com';
+
+function Section({ title, children }) {
+  return (
+    <section
+      style={{
+        marginBottom: 24,
+        background: '#fff',
+        border: '1px solid #e5e7eb',
+        borderRadius: 12,
+        padding: 20,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      }}
+    >
+      <h2 style={{ marginTop: 0, marginBottom: 12 }}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function BulletList({ items }) {
+  return (
+    <ul style={{ paddingLeft: 20, margin: 0 }}>
+      {items.map((item) => (
+        <li key={item} style={{ marginBottom: 8 }}>
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function SupportPage() {
   const [loading, setLoading] = useState(true);
   const [chatwoot, setChatwoot] = useState(null);
+  const [chatReady, setChatReady] = useState(false);
+  const [configError, setConfigError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     const boot = async () => {
       setLoading(true);
+      setConfigError('');
+
       try {
-        // Try relative API first (production behind same origin or proxy)
         let res = await fetch('/api/config');
+
         if (!res.ok) {
-          // fallback to local API during dev
-          try { res = await fetch('http://localhost:5000/api/config'); } catch (e) { /* ignore */ }
+          try {
+            res = await fetch('http://localhost:5000/api/config');
+          } catch {
+            // ignore fallback failure here
+          }
         }
+
+        if (!res.ok) {
+          throw new Error('Could not load support configuration.');
+        }
+
         const cfg = await res.json();
         const chat = cfg?.Chatwoot || cfg?.chatwoot;
-        if (!cancelled) setChatwoot(chat);
+
+        if (!cancelled) {
+          setChatwoot(chat);
+        }
 
         if (!cancelled && chat?.Enabled && chat?.BaseUrl && chat?.WebsiteToken) {
           const baseUrl = String(chat.BaseUrl).replace(/\/$/, '');
           const websiteToken = String(chat.WebsiteToken);
 
-          // inject script if not present
+          window.chatwootSettings = {
+            hideMessageBubble: Boolean(chat.HideMessageBubble ?? chat.hideMessageBubble),
+            position: chat.Position || chat.position || 'right',
+            locale: chat.Locale || chat.locale || 'en',
+            launcherTitle: 'Chat with support',
+          };
+
           const existing = document.getElementById('teamchords-chatwoot-sdk');
+
           const runChatwoot = () => {
-            if (window.chatwootSDK?.run) {
-              try { window.chatwootSDK.run({ websiteToken, baseUrl }); } catch (e) { console.warn(e); }
+            if (!window.chatwootSDK?.run) return;
+            try {
+              window.chatwootSDK.run({ websiteToken, baseUrl });
+              setChatReady(true);
+            } catch (e) {
+              console.warn(e);
             }
           };
 
           if (existing) {
-            existing.addEventListener('load', runChatwoot, { once: true });
+            if (window.chatwootSDK?.run) {
+              runChatwoot();
+            } else {
+              existing.addEventListener('load', runChatwoot, { once: true });
+            }
           } else {
             const script = document.createElement('script');
             script.id = 'teamchords-chatwoot-sdk';
@@ -45,40 +107,141 @@ export default function SupportPage() {
         }
       } catch (e) {
         console.warn('Failed to load config for support', e);
+        if (!cancelled) {
+          setConfigError('Live chat is temporarily unavailable. You can still email support.');
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     void boot();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const canChat = useMemo(() => {
+    return Boolean(
+      chatwoot?.Enabled &&
+      chatwoot?.BaseUrl &&
+      chatwoot?.WebsiteToken
+    );
+  }, [chatwoot]);
 
   const openChat = () => {
     try {
-      if (window.chatwootSDK?.open) return window.chatwootSDK.open();
-      if (window.chatwootSDK?.run) return window.chatwootSDK.run();
-    } catch (e) { console.warn(e); }
-    alert('Chat not available. You can email support@teamchords.com');
+      if (window.$chatwoot?.toggle) {
+        window.$chatwoot.toggle('open');
+        return;
+      }
+
+      if (window.chatwootSDK?.popup) {
+        window.chatwootSDK.popup('open');
+        return;
+      }
+
+      if (window.chatwootSDK?.open) {
+        window.chatwootSDK.open();
+        return;
+      }
+
+      if (window.chatwootSDK?.run) {
+        window.chatwootSDK.run();
+        return;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    window.location.href = `mailto:${SUPPORT_EMAIL}`;
   };
 
   return (
-    <main style={{ maxWidth: 900, margin: '32px auto', padding: 16 }}>
-      <h1>Support</h1>
-      <p className="paragraph">Start a chat with our support team or email us for escalations.</p>
+    <main style={{ maxWidth: 980, margin: '32px auto', padding: '0 16px 40px' }}>
+      <header style={{ marginBottom: 24 }}>
+        <h1 style={{ marginBottom: 8 }}>Support</h1>
+        <p style={{ color: '#4b5563', margin: 0 }}>
+          Need help with Team Chords? Start a live chat for the fastest response, or email us if chat is unavailable.
+        </p>
+      </header>
 
-      <section style={{ marginBottom: 16 }}>
-        <h2>Live chat (recommended)</h2>
-        <p>We recommend starting a chat so we can see your account context and help quickly.</p>
-        <button className="button button--primary" onClick={openChat} disabled={loading}>
-          {loading ? 'Loading…' : 'Open Chat'}
-        </button>
-      </section>
+      <Section title="Start live chat">
+        <p style={{ marginTop: 0 }}>
+          Live chat is the fastest way to get help because it lets us guide you while you are in the product.
+        </p>
 
-      <section>
-        <h2>Email support</h2>
-        <p>If you prefer email, contact <a href="mailto:support@teamchords.com">support@teamchords.com</a> with as much detail as possible.</p>
-      </section>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+          <button
+            className="button button--primary"
+            onClick={openChat}
+            disabled={loading || !canChat}
+            style={{ minWidth: 160 }}
+          >
+            {loading ? 'Loading…' : chatReady ? 'Open Chat' : 'Launch Support Chat'}
+          </button>
+
+          <a
+            className="button button--secondary"
+            href={`mailto:${SUPPORT_EMAIL}`}
+            style={{ textDecoration: 'none' }}
+          >
+            Email Support
+          </a>
+        </div>
+
+        {configError && (
+          <p style={{ marginTop: 12, color: '#b45309' }}>
+            {configError}
+          </p>
+        )}
+
+        {!loading && !canChat && !configError && (
+          <p style={{ marginTop: 12, color: '#6b7280' }}>
+            Chat is not enabled in this environment. Please use email support instead.
+          </p>
+        )}
+      </Section>
+
+      <Section title="Before you contact support">
+        <p>Including the right details helps us resolve issues much faster.</p>
+        <BulletList
+          items={[
+            'Your organization name',
+            'The page or feature you were using',
+            'What you expected to happen',
+            'What actually happened',
+            'Any exact error message you saw',
+            'Whether the issue affects one user or the whole team',
+          ]}
+        />
+      </Section>
+
+      <Section title="Common topics we can help with">
+        <BulletList
+          items={[
+            'Trouble creating or joining an organization',
+            'Chord sheet import and conversion problems',
+            'Set list sharing or preview issues',
+            'Live output or print layout questions',
+            'Billing, upgrades, or cancellations',
+            'Invite, access, or account problems',
+          ]}
+        />
+      </Section>
+
+      <Section title="Email support">
+        <p style={{ marginTop: 0 }}>
+          If live chat is unavailable or you prefer email, contact us at{' '}
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+        </p>
+        <p style={{ marginBottom: 0, color: '#4b5563' }}>
+          For the fastest reply, include the support checklist above and, if possible, a short description of the exact steps that caused the issue.
+        </p>
+      </Section>
     </main>
   );
 }

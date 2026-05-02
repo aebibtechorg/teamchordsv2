@@ -35,10 +35,10 @@ module.exports = {
   themeConfig: {
     navbar: {
       title: 'Team Chords',
-      items: [
-        { to: '/', label: 'Docs', position: 'left' },
-        { to: '/support', label: 'Support', position: 'right' },
-      ],
+        items: [
+          { to: '/', label: 'Help Center', position: 'left' },
+          { to: '/support', label: 'Support', position: 'right' },
+        ],
     },
     footer: {
       style: 'light',
