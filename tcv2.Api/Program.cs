@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using tcv2.Api.Data;
 using tcv2.Api.Hubs;
 using tcv2.Api.Endpoints;
+using tcv2.Api.Services;
 using Scalar.AspNetCore;
 using tcv2.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -119,6 +120,7 @@ else
 }
 
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<DodoProductCatalogService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

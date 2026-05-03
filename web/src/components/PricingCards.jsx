@@ -1,23 +1,30 @@
+/* eslint-disable react/prop-types */
 import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { getProfile } from "../utils/common";
-import { startCheckout, cancelSubscription } from "../utils/billing";
+import { startCheckout, changePlan, previewPlanChange, cancelSubscription } from "../utils/billing";
 import ConfirmDialog from "./ConfirmDialog";
+import PlanChangePreviewDialog from "./PlanChangePreviewDialog";
 
 const PENDING_PLAN_KEY = "pendingPlanCheckout";
 const PLAN_ORDER = { Free: 0, GiggingBand: 1, Organization: 2 };
+const REFRESH_RETRY_DELAY_MS = 1;
 
 const PricingCards = ({ isAuthenticated = false }) => {
   const { profile, setUserProfile } = useProfileStore();
   const { loginWithRedirect } = useAuth0();
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [planPreview, setPlanPreview] = useState(null);
+  const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Derive current plan from active org
   const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
-  const currentPlan = activeOrg?.plan || 'Free';
+  const currentPlan = activeOrg?.plan ||  'Free';
 
   useEffect(() => {
     const handleCheckoutRedirect = async () => {
@@ -41,10 +48,15 @@ const PricingCards = ({ isAuthenticated = false }) => {
   const handleCheckout = async (plan) => {
     setIsLoading(true);
     setCheckoutError(null);
+    setSuccessMessage(null);
 
     if (!isAuthenticated) {
-      // Unauthenticated flow: save plan then send to Auth0 login
-      localStorage.setItem(PENDING_PLAN_KEY, plan);
+      // Unauthenticated flow: only paid plans need to resume into checkout after login.
+      if (plan !== 'Free') {
+        localStorage.setItem(PENDING_PLAN_KEY, plan);
+      } else {
+        localStorage.removeItem(PENDING_PLAN_KEY);
+      }
       await loginWithRedirect();
       return;
     }
@@ -70,6 +82,85 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
   };
 
+  const closePlanPreview = (force = false) => {
+    if (isLoading && !force) {
+      return;
+    }
+
+    setShowPlanPreview(false);
+    setPlanPreview(null);
+    setSelectedPlan(null);
+  };
+
+  const handlePaidPlanPreview = async (plan) => {
+    setIsLoading(true);
+    setCheckoutError(null);
+    setSuccessMessage(null);
+    setSelectedPlan(plan);
+
+    if (!profile?.orgId) {
+      setCheckoutError('No active organization selected.');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const preview = await previewPlanChange(plan, profile.orgId);
+      setPlanPreview(preview);
+      setShowPlanPreview(true);
+    } catch (error) {
+      console.error('Plan preview error:', error);
+      setCheckoutError(error.message || 'An error occurred while previewing the plan change. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmPlanChange = async () => {
+    if (!selectedPlan || !profile?.orgId) {
+      setCheckoutError('No active organization selected.');
+      return;
+    }
+
+    setIsLoading(true);
+    setCheckoutError(null);
+    setSuccessMessage(null);
+
+    const beforePlan = currentPlan;
+    const beforeStatus = activeOrg?.subscriptionStatus ?? 'None';
+    const beforeExpiresAt = activeOrg?.planExpiresAt ?? null;
+
+    try {
+      const result = await changePlan(selectedPlan, profile.orgId);
+      const freshProfile = await getProfile();
+      if (freshProfile) {
+        setUserProfile(freshProfile);
+
+        const freshOrg = freshProfile?.organizations?.find(o => o.id === freshProfile?.orgId || o.Id === freshProfile?.orgId);
+        const isStillStale =
+          (freshOrg?.plan ?? 'Free') === beforePlan &&
+          (freshOrg?.subscriptionStatus ?? 'None') === beforeStatus &&
+          (freshOrg?.planExpiresAt ?? null) === beforeExpiresAt;
+
+        if (isStillStale) {
+          await new Promise(resolve => setTimeout(resolve, REFRESH_RETRY_DELAY_MS));
+          const retriedProfile = await getProfile();
+          if (retriedProfile) {
+            setUserProfile(retriedProfile);
+          }
+        }
+      }
+
+      setSuccessMessage(result?.message || 'Your plan change was submitted.');
+      closePlanPreview(true);
+    } catch (error) {
+      console.error('Plan change error:', error);
+      setCheckoutError(error.message || 'An error occurred while changing plans. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCancel = async () => {
     if (!profile?.orgId) {
       setCheckoutError('No active organization selected.');
@@ -77,12 +168,15 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
 
     try {
+      setCheckoutError(null);
+      setSuccessMessage(null);
       await cancelSubscription(profile.orgId);
       // Re-fetch profile to update plan
       const freshProfile = await getProfile();
       if (freshProfile) {
         setUserProfile(freshProfile);
       }
+      setSuccessMessage('Your subscription cancellation has been scheduled. Access continues until the end of the billing period.');
     } catch (error) {
       console.error('Cancel error:', error);
       setCheckoutError(error.message || 'An error occurred while canceling.');
@@ -113,23 +207,34 @@ const PricingCards = ({ isAuthenticated = false }) => {
           Current Plan
         </button>
       );
-    } else if (cardRank > currentRank) {
+    } else if (currentPlan === 'Free') {
       return (
         <button
           onClick={() => handleCheckout(cardPlan)}
           className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
         >
-          Upgrade
+          {cardPlan === 'Free' ? 'Current Plan' : 'Choose Plan'}
         </button>
       );
     } else {
-      // cardRank < currentRank, only possible for Free card
+      if (cardPlan === 'Free') {
+        return (
+          <button
+            onClick={() => setShowCancelConfirm(true)}
+            className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition duration-300"
+          >
+            Cancel Plan
+          </button>
+        );
+      }
+
       return (
         <button
-          onClick={() => setShowCancelConfirm(true)}
-          className="w-full bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition duration-300"
+          onClick={() => handlePaidPlanPreview(cardPlan)}
+          disabled={isLoading}
+          className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
         >
-          Cancel Plan
+          {cardRank > currentRank ? 'Upgrade' : 'Downgrade'}
         </button>
       );
     }
@@ -186,7 +291,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li><span className="font-bold">250 Chord Sheets</span></li>
               <li><span className="font-bold">Unlimited</span> Set Lists</li>
               <li><span className="font-bold">Unlimited</span> Team Members</li>
-              <li><span className="font-bold text-blue-600">Real-Time "Live Mode"</span></li>
+              <li><span className="font-bold text-blue-600">Real-Time &quot;Live Mode&quot;</span></li>
               <li>Transposition Tools</li>
               <li>PDF Export/Print</li>
               <li>Offline Mode</li>
@@ -218,12 +323,26 @@ const PricingCards = ({ isAuthenticated = false }) => {
           </div>
         )}
 
+        {successMessage && (
+          <div className="mt-8 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            {successMessage}
+          </div>
+        )}
+
         {isLoading && (
           <div className="mt-8 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            <p className="mt-2 text-gray-600">Processing checkout...</p>
+            <p className="mt-2 text-gray-600">Processing billing change...</p>
           </div>
         )}
+
+        <PlanChangePreviewDialog
+          isOpen={showPlanPreview}
+          onClose={closePlanPreview}
+          onConfirm={handleConfirmPlanChange}
+          preview={planPreview}
+          isSubmitting={isLoading}
+        />
 
         {/* Feature Gating Matrix */}
         <div className="mt-16">

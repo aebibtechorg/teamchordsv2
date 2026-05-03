@@ -63,6 +63,16 @@ If your organization is on the free plan, you can upgrade from:
 
 Checkout uses the current organization context, so make sure the correct organization is active first.
 
+Paid plan upgrades and downgrades now show a preview before they are submitted. The preview highlights:
+
+- the immediate charge amount, if any
+- when the plan change takes effect
+- whether a downgrade produces an immediate charge or credit
+
+This helps admins confirm both the price impact and timing before committing the change.
+
+For downgrades, the preview and submitted change now reflect immediate prorated settlement, which may result in a credit instead of a charge.
+
 ## Billing portal
 
 Paid plans can open the billing portal.

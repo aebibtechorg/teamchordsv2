@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useRef } from 'react';
 
-export default function Modal({ children, onClose }) {
+export default function Modal({ children, onClose, className = 'fixed inset-0 w-full max-w-md mx-auto my-20 rounded-lg shadow-lg bg-white backdrop:bg-black/50' }) {
   const dialogRef = useRef();
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function Modal({ children, onClose }) {
   return createPortal(
     <dialog 
       ref={dialogRef}
-      className="fixed inset-0 w-full max-w-md mx-auto my-20 rounded-lg shadow-lg bg-white backdrop:bg-black/50"
+      className={className}
       onClick={(e) => {
         // Close modal when clicking outside
         if (e.target === dialogRef.current) {
