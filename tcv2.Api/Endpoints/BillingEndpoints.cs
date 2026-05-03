@@ -2,9 +2,12 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using tcv2.Api.Data;
+using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Hubs;
 using tcv2.Api.Services;
 using Plan = tcv2.Api.Data.Entities.Plan;
 
@@ -286,7 +289,8 @@ internal static class BillingEndpoints
             HttpContext httpContext,
             AppDbContext db,
             IConfiguration config,
-            DodoProductCatalogService catalog) =>
+            DodoProductCatalogService catalog,
+            IHubContext<BillingHub, IBillingClient> billingHub) =>
         {
             var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync();
             var secret = config["Dodo:WebhookSecret"] ?? string.Empty;
@@ -344,6 +348,7 @@ internal static class BillingEndpoints
                     org.PlanExpiresAt = data.NextBillingDate;
                     org.UpdatedAt = DateTime.UtcNow;
                     await db.SaveChangesAsync();
+                    await NotifyBillingUpdatedAsync(billingHub, org, dodoEvent.Type);
                 }
             }
             else if (dodoEvent.Type is "subscription.cancelled" or "subscription.failed" or "subscription.expired")
@@ -361,6 +366,7 @@ internal static class BillingEndpoints
                     org.PlanExpiresAt = data.ExpiresAt ?? data.NextBillingDate;
                     org.UpdatedAt = DateTime.UtcNow;
                     await db.SaveChangesAsync();
+                    await NotifyBillingUpdatedAsync(billingHub, org, dodoEvent.Type);
                 }
             }
 
@@ -497,6 +503,23 @@ internal static class BillingEndpoints
         return metadata is not null && metadata.TryGetValue(key, out var value)
             ? value
             : null;
+    }
+
+    private static Task NotifyBillingUpdatedAsync(
+        IHubContext<BillingHub, IBillingClient> billingHub,
+        Organization org,
+        string eventType)
+    {
+        return billingHub.Clients
+            .Group(HubGroupNames.Organization(org.Id))
+            .BillingUpdated(new BillingPlanChangedNotificationDto(
+                org.Id,
+                eventType,
+                org.Plan.ToString(),
+                org.SubscriptionStatus.ToString(),
+                org.PlanExpiresAt,
+                org.UpdatedAt ?? DateTime.UtcNow,
+                org.DodoSubscriptionId));
     }
 
     private static HttpClient CreateDodoClient(IConfiguration config, IHttpClientFactory httpClientFactory)

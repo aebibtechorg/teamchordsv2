@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, ArrowUpCircle, XCircle } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useProfileStore } from '../store/useProfileStore';
 import { getProfile } from '../utils/common';
 import { cancelSubscription, openBillingPortal } from '../utils/billing';
+import { getSignalRHubUrl } from '../utils/signalr';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const PLAN_LABELS = {
@@ -92,6 +94,39 @@ export default function Billing() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [refreshProfile]);
+
+  useEffect(() => {
+    if (!orgId) {
+      return undefined;
+    }
+
+    let disposed = false;
+    const connection = new HubConnectionBuilder()
+      .withUrl(getSignalRHubUrl('/hubs/billing', { orgId }))
+      .withAutomaticReconnect()
+      .build();
+
+    const handleBillingUpdated = async (notification) => {
+      const notificationOrgId = notification?.orgId ?? notification?.OrgId;
+
+      if (disposed || !notification || notificationOrgId !== orgId) {
+        return;
+      }
+
+      await refreshProfile({ retryOnce: true });
+    };
+
+    connection.on('BillingUpdated', handleBillingUpdated);
+    connection.start().catch((err) => {
+      console.error('Billing SignalR connection failed:', err);
+    });
+
+    return () => {
+      disposed = true;
+      connection.off('BillingUpdated', handleBillingUpdated);
+      connection.stop().catch(() => {});
+    };
+  }, [orgId, refreshProfile]);
 
   const handlePortal = async () => {
     setPortalLoading(true);

@@ -155,6 +155,7 @@ api.RequireAuthorization();
 
 // SignalR hubs
 // app.MapHub<ChordSheetHub>("/hubs/chordsheets");
+app.MapHub<BillingHub>("/hubs/billing");
 app.MapHub<SetListHub>("/hubs/setlists");
 // app.MapHub<OutputHub>("/hubs/outputs");
 
