@@ -338,7 +338,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li><span className="font-bold">250 Chord Sheets</span></li>
               <li><span className="font-bold">Unlimited</span> Set Lists</li>
               <li><span className="font-bold">Unlimited</span> Team Members</li>
-              <li><span className="font-bold text-blue-600">Real-Time Live Mode</span> plus musician-local key overrides</li>
+              <li>Everything in Jam Session</li>
               <li>Transposition Tools</li>
               <li>Offline access for previously opened live views</li>
               <li>PDF Export / Print</li>
@@ -406,19 +406,31 @@ const PricingCards = ({ isAuthenticated = false }) => {
               </thead>
               <tbody>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Real-Time Live Mode</td>
+                  <td className="py-4 px-6 font-semibold">Real-Time Live Mode for shared set list updates</td>
                   <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
                   <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
                   <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Musician-local key overrides</td>
-                  <td className="py-4 px-6 text-center">Shared key only</td>
+                  <td className="py-4 px-6 font-semibold">Basic ChordPro Editor</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
                   <td className="py-4 px-6 text-center font-bold">Yes</td>
                   <td className="py-4 px-6 text-center font-bold">Yes</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Offline access</td>
+                  <td className="py-4 px-6 font-semibold">Read-only public sharing</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Transposition Tools</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Offline access for previously opened live views</td>
                   <td className="py-4 px-6 text-center">No</td>
                   <td className="py-4 px-6 text-center font-bold">Yes</td>
                   <td className="py-4 px-6 text-center font-bold">Yes</td>
@@ -446,6 +458,12 @@ const PricingCards = ({ isAuthenticated = false }) => {
                   <td className="py-4 px-6 text-center">3</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Priority Support</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
                 </tr>
                 {/*<tr>*/}
                 {/*  <td className="py-4 px-6 font-semibold">Library Sharing</td>*/}

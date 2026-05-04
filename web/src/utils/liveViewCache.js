@@ -1,5 +1,6 @@
 const SNAPSHOT_PREFIX = 'teamchords:live-view:snapshot:';
 const OVERRIDES_PREFIX = 'teamchords:live-view:overrides:';
+const BANNER_DISMISSAL_PREFIX = 'teamchords:live-view:banner-dismissed:v1:';
 
 const getStorage = (type) => {
   if (typeof window === 'undefined') {
@@ -110,6 +111,34 @@ export const clearLiveViewOverrides = (setListId) => {
   } catch {
     // Ignore storage failures.
   }
+};
+
+const getBannerDismissalStorageKey = (mode) => {
+  if (!mode) {
+    return null;
+  }
+
+  return `${BANNER_DISMISSAL_PREFIX}${mode}`;
+};
+
+export const loadLiveViewBannerDismissal = (mode) => {
+  const storageKey = getBannerDismissalStorageKey(mode);
+  if (!storageKey) {
+    return false;
+  }
+
+  const storage = getStorage('localStorage');
+  return readJson(storage, storageKey, false) === true;
+};
+
+export const saveLiveViewBannerDismissal = (mode, dismissed = true) => {
+  const storageKey = getBannerDismissalStorageKey(mode);
+  if (!storageKey) {
+    return;
+  }
+
+  const storage = getStorage('localStorage');
+  writeJson(storage, storageKey, Boolean(dismissed));
 };
 
 

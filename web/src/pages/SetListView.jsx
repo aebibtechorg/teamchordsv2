@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
 import { keys } from "../constants";
-import { clearLiveViewOverrides, clearLiveViewSnapshot, loadLiveViewOverrides, loadLiveViewSnapshot, saveLiveViewOverrides, saveLiveViewSnapshot } from "../utils/liveViewCache";
+import { clearLiveViewOverrides, clearLiveViewSnapshot, loadLiveViewBannerDismissal, loadLiveViewOverrides, loadLiveViewSnapshot, saveLiveViewBannerDismissal, saveLiveViewOverrides, saveLiveViewSnapshot } from "../utils/liveViewCache";
 import ChordSheetJS from "chordsheetjs";
 import { Key } from "chordsheetjs";
-import { Guitar, PrinterIcon, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { Guitar, PrinterIcon, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import { AnimatePresence, motion } from "framer-motion";
@@ -85,10 +85,21 @@ const ScaledPage = ({ html, pageSizeKey }) => {
 const AnimatedOutputCard = motion.div;
 
 const SHARED_KEY_LABEL = "Use shared key";
+const LIVE_VIEW_BANNER_MODE = "live";
+const OFFLINE_VIEW_BANNER_MODE = "offline";
 
 const getOutputStorageKey = (output, index) => String(output?.id ?? output?.chordSheetId ?? output?.order ?? index);
 
-const getResolvedKey = (output, overrides, index) => {
+const normalizeSetList = (value) => ({
+    ...value,
+    canUsePaidControls: Boolean(value?.canUsePaidControls),
+});
+
+const getResolvedKey = (output, overrides, index, canUsePaidControls) => {
+    if (!canUsePaidControls) {
+        return output?.targetKey || output?.chordsheets?.key || "";
+    }
+
     const storageKey = getOutputStorageKey(output, index);
     return overrides?.[storageKey] || output?.targetKey || output?.chordsheets?.key || "";
 };
@@ -102,7 +113,14 @@ const SetListView = () => {
     const [controlsOpen, setControlsOpen] = useState(false);
     const [personalKeyOverrides, setPersonalKeyOverrides] = useState({});
     const [isOfflineView, setIsOfflineView] = useState(false);
+    const [bannerDismissals, setBannerDismissals] = useState(() => ({
+        [LIVE_VIEW_BANNER_MODE]: loadLiveViewBannerDismissal(LIVE_VIEW_BANNER_MODE),
+        [OFFLINE_VIEW_BANNER_MODE]: loadLiveViewBannerDismissal(OFFLINE_VIEW_BANNER_MODE),
+    }));
     const controlsRef = useRef(null);
+    const canUsePaidControls = Boolean(setlist?.canUsePaidControls);
+    const bannerMode = isOfflineView ? OFFLINE_VIEW_BANNER_MODE : LIVE_VIEW_BANNER_MODE;
+    const isBannerDismissed = bannerDismissals[bannerMode];
 
     useEffect(() => {
         if (!controlsOpen) return;
@@ -128,6 +146,13 @@ const SetListView = () => {
     }, [controlsOpen]);
 
     useEffect(() => {
+        if (!canUsePaidControls) {
+            setControlsOpen(false);
+            setPersonalKeyOverrides({});
+        }
+    }, [canUsePaidControls]);
+
+    useEffect(() => {
         if (!id) {
             setSetlist(null);
             setOutputs([]);
@@ -137,7 +162,7 @@ const SetListView = () => {
             return;
         }
 
-        setPersonalKeyOverrides(loadLiveViewOverrides(id));
+        setPersonalKeyOverrides({});
         setIsLoading(true);
         setIsOfflineView(false);
 
@@ -147,19 +172,28 @@ const SetListView = () => {
                 const outputData = await getOutputs(id);
 
                 if (setlistData && outputData !== null) {
-                    setSetlist(setlistData);
+                    const normalizedSetList = normalizeSetList(setlistData);
+                    setSetlist(normalizedSetList);
                     setOutputs(outputData ?? []);
                     setIsOfflineView(false);
+                    setPersonalKeyOverrides(normalizedSetList.canUsePaidControls ? loadLiveViewOverrides(id) : {});
+                    if (!normalizedSetList.canUsePaidControls) {
+                        clearLiveViewOverrides(id);
+                        clearLiveViewSnapshot(id);
+                    }
                     document.title = setlistData?.name ? `Team Chords - ${setlistData.name}` : "Team Chords";
-                    saveLiveViewSnapshot(id, {
-                        setlist: {
-                            id: setlistData?.id ?? id,
-                            name: setlistData?.name ?? "",
-                            updatedAt: setlistData?.updatedAt ?? null,
-                        },
-                        outputs: outputData ?? [],
-                        savedAt: new Date().toISOString(),
-                    });
+                    if (normalizedSetList.canUsePaidControls) {
+                        saveLiveViewSnapshot(id, {
+                            setlist: {
+                                id: setlistData?.id ?? id,
+                                name: setlistData?.name ?? "",
+                                updatedAt: setlistData?.updatedAt ?? null,
+                                canUsePaidControls: true,
+                            },
+                            outputs: outputData ?? [],
+                            savedAt: new Date().toISOString(),
+                        });
+                    }
                     return;
                 }
             } catch (error) {
@@ -167,9 +201,11 @@ const SetListView = () => {
             }
 
             const cachedView = loadLiveViewSnapshot(id);
-            if (cachedView?.setlist) {
-                setSetlist(cachedView.setlist);
+            if (cachedView?.setlist?.canUsePaidControls) {
+                const cachedSetlist = normalizeSetList(cachedView.setlist);
+                setSetlist(cachedSetlist);
                 setOutputs(cachedView.outputs ?? []);
+                setPersonalKeyOverrides(loadLiveViewOverrides(id));
                 setIsOfflineView(true);
                 document.title = cachedView.setlist?.name ? `Team Chords - ${cachedView.setlist.name}` : "Team Chords";
                 toast.success("Loaded the last saved live view for offline use.");
@@ -189,24 +225,29 @@ const SetListView = () => {
             return;
         }
 
-        saveLiveViewOverrides(id, personalKeyOverrides);
-    }, [id, personalKeyOverrides]);
+        if (canUsePaidControls) {
+            saveLiveViewOverrides(id, personalKeyOverrides);
+        }
+    }, [canUsePaidControls, id, personalKeyOverrides]);
 
     useEffect(() => {
         if (!id || !setlist) {
             return;
         }
 
-        saveLiveViewSnapshot(id, {
-            setlist: {
-                id: setlist?.id ?? id,
-                name: setlist?.name ?? "",
-                updatedAt: setlist?.updatedAt ?? null,
-            },
-            outputs,
-            savedAt: new Date().toISOString(),
-        });
-    }, [id, setlist, outputs]);
+        if (canUsePaidControls) {
+            saveLiveViewSnapshot(id, {
+                setlist: {
+                    id: setlist?.id ?? id,
+                    name: setlist?.name ?? "",
+                    updatedAt: setlist?.updatedAt ?? null,
+                    canUsePaidControls: true,
+                },
+                outputs,
+                savedAt: new Date().toISOString(),
+            });
+        }
+    }, [canUsePaidControls, id, setlist, outputs]);
 
     useEffect(() => {
         if (!id) return;
@@ -355,24 +396,43 @@ const SetListView = () => {
                 <span>{setlist.name}</span>
             </h2>
 
-            <div className="print:hidden mx-auto mt-4 max-w-4xl px-4">
-                <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${isOfflineView ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <p className="font-semibold">{isOfflineView ? 'Offline snapshot' : 'Live Mode'}</p>
-                            <p className="mt-1 text-sm">
-                                {isOfflineView
-                                    ? 'This view was loaded from a previously opened live set list and can be used offline.'
-                                    : 'Shared updates appear in real time when the creator changes the set list.'}
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
-                            <span className="rounded-full bg-white/70 px-3 py-1">{isOfflineView ? 'Offline ready' : 'Real-time sync'}</span>
-                            <span className="rounded-full bg-white/70 px-3 py-1">Personal transpose is local only</span>
+            {!isBannerDismissed && (
+                <div className="print:hidden mx-auto mt-4 max-w-4xl px-4">
+                    <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${isOfflineView ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <p className="font-semibold">{isOfflineView ? 'Offline snapshot' : 'Live Mode'}</p>
+                                <p className="mt-1 text-sm">
+                                    {isOfflineView
+                                        ? 'This view was loaded from a previously opened live set list and can be used offline.'
+                                        : 'Shared updates appear in real time when the creator changes the set list.'}
+                                </p>
+                                {canUsePaidControls && <p>Transposition tools are available for this set list.</p>}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                                {/*<span className="rounded-full bg-white/70 px-3 py-1">{isOfflineView ? 'Offline ready' : 'Real-time sync'}</span>*/}
+                                {/*{canUsePaidControls && (*/}
+                                {/*    <span className="rounded-full bg-white/70 px-3 py-1">Personal transpose is local only</span>*/}
+                                {/*)}*/}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setBannerDismissals((prev) => {
+                                            const next = { ...prev, [bannerMode]: true };
+                                            saveLiveViewBannerDismissal(bannerMode, true);
+                                            return next;
+                                        });
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-gray-700 transition hover:bg-white"
+                                    aria-label={`Dismiss ${isOfflineView ? 'offline snapshot' : 'live mode'} note`}
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <div className="hidden print:block">
                 {outputs.map((output) => (
@@ -380,60 +440,62 @@ const SetListView = () => {
                 ))}
             </div>
 
-            <div ref={controlsRef} className="print:hidden fixed z-20 right-3 bottom-3 lg:right-4 lg:bottom-4">
-                <div className="relative flex items-end justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setControlsOpen((open) => !open)}
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-700 bg-gray-800 text-white shadow-2xl transition-colors hover:bg-gray-700"
-                        aria-expanded={controlsOpen}
-                        aria-label="View controls"
-                    >
-                        <SlidersHorizontal size={18} />
-                    </button>
+            {canUsePaidControls && (
+                <div ref={controlsRef} className="print:hidden fixed z-20 right-3 bottom-3 lg:right-4 lg:bottom-4">
+                    <div className="relative flex items-end justify-end">
+                        <button
+                            type="button"
+                            onClick={() => setControlsOpen((open) => !open)}
+                            className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-700 bg-gray-800 text-white shadow-2xl transition-colors hover:bg-gray-700"
+                            aria-expanded={controlsOpen}
+                            aria-label="View controls"
+                        >
+                            <SlidersHorizontal size={18} />
+                        </button>
 
-                    <AnimatePresence initial={false}>
-                        {controlsOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                                transition={{ duration: 0.2, ease: 'easeOut' }}
-                                className="absolute bottom-14 right-0 w-56 overflow-hidden rounded-2xl border border-gray-700 bg-gray-800 text-white shadow-2xl lg:w-60"
-                            >
-                                <div className="flex flex-col gap-2 p-3">
-                                    <label className="block text-sm font-medium text-gray-200">
-                                        Page size
-                                        <select
-                                            value={pageSize}
-                                            onChange={(e) => setPageSize(e.target.value)}
-                                            className="mt-2 w-full rounded-md bg-gray-700 px-2.5 py-2 text-sm text-white outline-none ring-1 ring-transparent transition focus:ring-gray-400"
+                        <AnimatePresence initial={false}>
+                            {controlsOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                                    className="absolute bottom-14 right-0 w-56 overflow-hidden rounded-2xl border border-gray-700 bg-gray-800 text-white shadow-2xl lg:w-60"
+                                >
+                                    <div className="flex flex-col gap-2 p-3">
+                                        <label className="block text-sm font-medium text-gray-200">
+                                            Page size
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => setPageSize(e.target.value)}
+                                                className="mt-2 w-full rounded-md bg-gray-700 px-2.5 py-2 text-sm text-white outline-none ring-1 ring-transparent transition focus:ring-gray-400"
+                                            >
+                                                {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
+                                                    <option key={key} value={key}>{label}</option>
+                                                ))}
+                                            </select>
+                                        </label>
+
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
                                         >
-                                            {Object.entries(PAGE_SIZES).map(([key, { label }]) => (
-                                                <option key={key} value={key}>{label}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <button
-                                        onClick={() => window.print()}
-                                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
-                                    >
-                                        <PrinterIcon size={16} />
-                                        Print / Save PDF
-                                    </button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                            <PrinterIcon size={16} />
+                                            Print / Save PDF
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="print:hidden md:px-4">
                 <AnimatePresence initial={false} mode="popLayout">
                     {outputs.map((output, index) => {
                         const outputStorageKey = getOutputStorageKey(output, index);
-                        const overrideKey = personalKeyOverrides[outputStorageKey] ?? '';
+                        const overrideKey = canUsePaidControls ? personalKeyOverrides[outputStorageKey] ?? '' : '';
 
                         return (
                             <AnimatedOutputCard
@@ -453,58 +515,60 @@ const SetListView = () => {
                                             </p>
                                         </div>
 
-                                        <div className="flex flex-wrap items-end gap-3">
-                                            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                Personal transpose
-                                                <select
-                                                    value={overrideKey}
-                                                    onChange={(e) => {
-                                                        const nextValue = e.target.value;
+                                        {canUsePaidControls && (
+                                            <div className="flex flex-wrap items-end gap-3">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                    Personal transpose
+                                                    <select
+                                                        value={overrideKey}
+                                                        onChange={(e) => {
+                                                            const nextValue = e.target.value;
+                                                            setPersonalKeyOverrides((prev) => {
+                                                                const next = { ...prev };
+                                                                if (nextValue) {
+                                                                    next[outputStorageKey] = nextValue;
+                                                                } else {
+                                                                    delete next[outputStorageKey];
+                                                                }
+                                                                return next;
+                                                            });
+                                                        }}
+                                                        className="mt-1 w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 outline-none transition focus:border-gray-500"
+                                                    >
+                                                        <option value="">{SHARED_KEY_LABEL}</option>
+                                                        {keys.map((key) => (
+                                                            <option key={key} value={key}>{key}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
                                                         setPersonalKeyOverrides((prev) => {
-                                                            const next = { ...prev };
-                                                            if (nextValue) {
-                                                                next[outputStorageKey] = nextValue;
-                                                            } else {
-                                                                delete next[outputStorageKey];
+                                                            if (!(outputStorageKey in prev)) {
+                                                                return prev;
                                                             }
+                                                            const next = { ...prev };
+                                                            delete next[outputStorageKey];
                                                             return next;
                                                         });
                                                     }}
-                                                    className="mt-1 w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 outline-none transition focus:border-gray-500"
+                                                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                                    disabled={!overrideKey}
                                                 >
-                                                    <option value="">{SHARED_KEY_LABEL}</option>
-                                                    {keys.map((key) => (
-                                                        <option key={key} value={key}>{key}</option>
-                                                    ))}
-                                                </select>
-                                            </label>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setPersonalKeyOverrides((prev) => {
-                                                        if (!(outputStorageKey in prev)) {
-                                                            return prev;
-                                                        }
-                                                        const next = { ...prev };
-                                                        delete next[outputStorageKey];
-                                                        return next;
-                                                    });
-                                                }}
-                                                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                                                disabled={!overrideKey}
-                                            >
-                                                <RefreshCw size={14} />
-                                                Reset
-                                            </button>
-                                        </div>
+                                                    <RefreshCw size={14} />
+                                                    Reset
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <ScaledPage
                                         html={renderChordPro(
                                             output.chordsheets?.content,
                                             output.chordsheets?.key,
-                                            getResolvedKey(output, personalKeyOverrides, index),
+                                            getResolvedKey(output, personalKeyOverrides, index, canUsePaidControls),
                                             output.capo,
                                         )}
                                         pageSizeKey={pageSize}
@@ -516,14 +580,14 @@ const SetListView = () => {
                 </AnimatePresence>
             </div>
 
-            <footer className="print:hidden text-center text-sm text-white w-full bg-gray-700 mt-8 py-2">
-                <p>
-                    Generated by{' '}
-                    <a href={window.location.origin} target="_blank" rel="noopener noreferrer">
-                        <Guitar className="inline-block" /> Team Chords
-                    </a>
-                </p>
-            </footer>
+            {/*<footer className="print:hidden text-center text-sm text-white w-full bg-gray-700 mt-8 py-2">*/}
+            {/*    <p>*/}
+            {/*        Generated by{' '}*/}
+            {/*        <a href={window.location.origin} target="_blank" rel="noopener noreferrer">*/}
+            {/*            <Guitar className="inline-block" /> Team Chords*/}
+            {/*        </a>*/}
+            {/*    </p>*/}
+            {/*</footer>*/}
         </div>
     );
 };
