@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useProfileStore } from "../store/useProfileStore";
+import Protected from "../components/Protected.jsx";
 
 const Logout= () => {
     const { logout } = useAuth0();
@@ -14,7 +15,7 @@ const Logout= () => {
         }
     }, [clearUserProfile, logout]);
 
-    return <div>Logging out…</div>;
+    return <Protected><div>Logging out…</div></Protected>;
 };
 
 export default Logout;

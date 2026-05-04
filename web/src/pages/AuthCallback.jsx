@@ -4,6 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { getProfile } from '../utils/common'
 import { useProfileStore } from '../store/useProfileStore'
 import Spinner from '../components/Spinner'
+import ErrorBoundary from "../components/ErrorBoundary.jsx";
 
 const AuthCallback = () => {
   const navigate = useNavigate()
@@ -38,9 +39,11 @@ const AuthCallback = () => {
   }, [clearUserProfile, isAuthenticated, isLoading, navigate, setUserProfile, user?.sub])
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <Spinner />
-    </div>
+    <ErrorBoundary>  
+      <div className="flex items-center justify-center h-screen">
+        <Spinner />
+      </div>
+    </ErrorBoundary>
   )
 }
 
