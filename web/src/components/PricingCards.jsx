@@ -21,10 +21,14 @@ const PricingCards = ({ isAuthenticated = false }) => {
   const [planPreview, setPlanPreview] = useState(null);
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showResumeUpgradeConfirm, setShowResumeUpgradeConfirm] = useState(false);
+  const [resumeUpgradeMessage, setResumeUpgradeMessage] = useState(null);
 
   // Derive current plan from active org
   const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
   const currentPlan = activeOrg?.plan ||  'Free';
+  const currentStatus = activeOrg?.subscriptionStatus ?? 'None';
+  const isCancelScheduled = currentStatus === 'ScheduledToEnd';
 
   useEffect(() => {
     const handleCheckoutRedirect = async () => {
@@ -92,11 +96,35 @@ const PricingCards = ({ isAuthenticated = false }) => {
     setSelectedPlan(null);
   };
 
+  const closeResumeUpgradeConfirm = () => {
+    if (isLoading) {
+      return;
+    }
+
+    setShowResumeUpgradeConfirm(false);
+    setResumeUpgradeMessage(null);
+    setSelectedPlan(null);
+  };
+
   const handlePaidPlanPreview = async (plan) => {
-    setIsLoading(true);
     setCheckoutError(null);
     setSuccessMessage(null);
     setSelectedPlan(plan);
+    setShowResumeUpgradeConfirm(false);
+    setResumeUpgradeMessage(null);
+
+    const currentRank = PLAN_ORDER[currentPlan] || 0;
+    const cardRank = PLAN_ORDER[plan] || 0;
+
+    if (isCancelScheduled && cardRank > currentRank) {
+      setPlanPreview(null);
+      setShowPlanPreview(false);
+      setResumeUpgradeMessage('Your subscription is scheduled to end. Confirming this upgrade will resume it and remove the scheduled cancellation.');
+      setShowResumeUpgradeConfirm(true);
+      return;
+    }
+
+    setIsLoading(true);
 
     if (!profile?.orgId) {
       setCheckoutError('No active organization selected.');
@@ -106,6 +134,14 @@ const PricingCards = ({ isAuthenticated = false }) => {
 
     try {
       const preview = await previewPlanChange(plan, profile.orgId);
+      if (preview?.requiresResumeConfirmation) {
+        setPlanPreview(null);
+        setShowPlanPreview(false);
+        setResumeUpgradeMessage(preview.message || 'Your subscription is scheduled to end. Confirming this upgrade will resume it and remove the scheduled cancellation.');
+        setShowResumeUpgradeConfirm(true);
+        return;
+      }
+
       setPlanPreview(preview);
       setShowPlanPreview(true);
     } catch (error) {
@@ -218,6 +254,17 @@ const PricingCards = ({ isAuthenticated = false }) => {
       );
     } else {
       if (cardPlan === 'Free') {
+        if (isCancelScheduled) {
+          return (
+            <button
+              disabled
+              className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg cursor-not-allowed"
+            >
+              Cancellation Scheduled
+            </button>
+          );
+        }
+
         return (
           <button
             onClick={() => setShowCancelConfirm(true)}
@@ -234,7 +281,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
           disabled={isLoading}
           className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
         >
-          {cardRank > currentRank ? 'Upgrade' : 'Downgrade'}
+          {isCancelScheduled && cardRank > currentRank ? 'Resume & Upgrade' : cardRank > currentRank ? 'Upgrade' : 'Downgrade'}
         </button>
       );
     }
@@ -342,6 +389,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
           onConfirm={handleConfirmPlanChange}
           preview={planPreview}
           isSubmitting={isLoading}
+          isCancellationScheduled={isCancelScheduled}
         />
 
         {/* Feature Gating Matrix */}
@@ -415,6 +463,16 @@ const PricingCards = ({ isAuthenticated = false }) => {
           message="Are you sure you want to cancel your plan? Your access will remain active until the end of the billing period, and no refunds are issued for the current billing period except where required by law."
           confirmLabel="Yes, Cancel Plan"
           cancelLabel="No, Keep Plan"
+        />
+
+        <ConfirmDialog
+          isOpen={showResumeUpgradeConfirm}
+          onClose={closeResumeUpgradeConfirm}
+          onConfirm={handleConfirmPlanChange}
+          title="Resume & Upgrade"
+          message={resumeUpgradeMessage || 'Your subscription is scheduled to end. Upgrading will resume it and remove the scheduled cancellation.'}
+          confirmLabel="Yes, Resume & Upgrade"
+          cancelLabel="Keep Scheduled Cancellation"
         />
       </div>
     </div>
