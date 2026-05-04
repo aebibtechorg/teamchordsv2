@@ -1,33 +1,81 @@
-// This service worker file needs to be registered in your app
-// For a complete PWA setup, you'll want to add caching strategies here
-
-const CACHE_NAME = 'teamchords-cache-v1';
-const urlsToCache = [
+const CACHE_VERSION = 'v3';
+const SHELL_CACHE = `teamchords-shell-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `teamchords-runtime-${CACHE_VERSION}`;
+const APP_SHELL_URLS = [
   '/',
   '/index.html',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
+  '/manifest.json',
+  '/service-worker.js',
+  '/favicon.png',
+  '/android-chrome-192x192.png',
+  '/android-chrome-512x512.png',
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
+const isSameOrigin = (requestUrl) => requestUrl.origin === self.location.origin;
+
+const cacheResponse = async (cacheName, request, response) => {
+  if (!response || !response.ok) {
+    return response;
+  }
+
+  const cache = await caches.open(cacheName);
+  cache.put(request, response.clone());
+  return response;
+};
+
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.addAll(APP_SHELL_URLS);
+    self.skipWaiting();
+  })());
 });
 
-self.addEventListener('fetch', event => {
-  // Handle wildcard routes - cache all navigation requests
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match('/index.html')
-        .then(response => response || fetch(event.request))
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter((name) => ![SHELL_CACHE, RUNTIME_CACHE].includes(name))
+        .map((name) => caches.delete(name)),
     );
-  } else {
-    // For other requests, try cache first then network
-    event.respondWith(
-      caches.match(event.request)
-        .then(response => response || fetch(event.request))
-    );
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+
+  if (request.method !== 'GET' || !isSameOrigin(new URL(request.url))) {
+    return;
+  }
+
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request);
+        return await cacheResponse(RUNTIME_CACHE, request, response);
+      } catch {
+        const cached = await caches.match('/index.html');
+        return cached || caches.match('/');
+      }
+    })());
+    return;
+  }
+
+  if (['script', 'style', 'image', 'font'].includes(request.destination)) {
+    event.respondWith((async () => {
+      const cached = await caches.match(request);
+      if (cached) {
+        return cached;
+      }
+
+      try {
+        const response = await fetch(request);
+        return await cacheResponse(RUNTIME_CACHE, request, response);
+      } catch {
+        return cached;
+      }
+    })());
   }
 });

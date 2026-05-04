@@ -2,9 +2,11 @@ import { useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
+import { keys } from "../constants";
+import { clearLiveViewOverrides, clearLiveViewSnapshot, loadLiveViewOverrides, loadLiveViewSnapshot, saveLiveViewOverrides, saveLiveViewSnapshot } from "../utils/liveViewCache";
 import ChordSheetJS from "chordsheetjs";
 import { Key } from "chordsheetjs";
-import { Guitar, PrinterIcon, SlidersHorizontal } from "lucide-react";
+import { Guitar, PrinterIcon, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import { AnimatePresence, motion } from "framer-motion";
@@ -35,6 +37,14 @@ const ScaledPage = ({ html, pageSizeKey }) => {
         observer.observe(el);
         return () => observer.disconnect();
     }, [widthPx]);
+
+    if (!html) {
+        return (
+            <div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500 shadow-sm">
+                This output does not have chord-sheet content available right now.
+            </div>
+        );
+    }
 
     const isMobile = wrapperWidth < 768;
 
@@ -74,6 +84,15 @@ const ScaledPage = ({ html, pageSizeKey }) => {
 
 const AnimatedOutputCard = motion.div;
 
+const SHARED_KEY_LABEL = "Use shared key";
+
+const getOutputStorageKey = (output, index) => String(output?.id ?? output?.chordSheetId ?? output?.order ?? index);
+
+const getResolvedKey = (output, overrides, index) => {
+    const storageKey = getOutputStorageKey(output, index);
+    return overrides?.[storageKey] || output?.targetKey || output?.chordsheets?.key || "";
+};
+
 const SetListView = () => {
     const { id } = useParams();
     const [setlist, setSetlist] = useState(null);
@@ -81,6 +100,8 @@ const SetListView = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [pageSize, setPageSize] = useState("letter");
     const [controlsOpen, setControlsOpen] = useState(false);
+    const [personalKeyOverrides, setPersonalKeyOverrides] = useState({});
+    const [isOfflineView, setIsOfflineView] = useState(false);
     const controlsRef = useRef(null);
 
     useEffect(() => {
@@ -110,25 +131,82 @@ const SetListView = () => {
         if (!id) {
             setSetlist(null);
             setOutputs([]);
+            setPersonalKeyOverrides({});
+            setIsOfflineView(false);
             setIsLoading(false);
             return;
         }
 
+        setPersonalKeyOverrides(loadLiveViewOverrides(id));
         setIsLoading(true);
+        setIsOfflineView(false);
 
         const fetchSet = async () => {
-            const setlistData = await getSetList(id);
-            const outputData = await getOutputs(id);
-            setSetlist(setlistData);
-            setOutputs(outputData ?? []);
-            document.title = setlistData?.name ? `Team Chords - ${setlistData.name}` : "Team Chords";
+            try {
+                const setlistData = await getSetList(id);
+                const outputData = await getOutputs(id);
+
+                if (setlistData && outputData !== null) {
+                    setSetlist(setlistData);
+                    setOutputs(outputData ?? []);
+                    setIsOfflineView(false);
+                    document.title = setlistData?.name ? `Team Chords - ${setlistData.name}` : "Team Chords";
+                    saveLiveViewSnapshot(id, {
+                        setlist: {
+                            id: setlistData?.id ?? id,
+                            name: setlistData?.name ?? "",
+                            updatedAt: setlistData?.updatedAt ?? null,
+                        },
+                        outputs: outputData ?? [],
+                        savedAt: new Date().toISOString(),
+                    });
+                    return;
+                }
+            } catch (error) {
+                console.error(error);
+            }
+
+            const cachedView = loadLiveViewSnapshot(id);
+            if (cachedView?.setlist) {
+                setSetlist(cachedView.setlist);
+                setOutputs(cachedView.outputs ?? []);
+                setIsOfflineView(true);
+                document.title = cachedView.setlist?.name ? `Team Chords - ${cachedView.setlist.name}` : "Team Chords";
+                toast.success("Loaded the last saved live view for offline use.");
+                return;
+            }
+
+            toast.error(`An error has occured.`);
+            setSetlist(null);
+            setOutputs([]);
         };
 
-        fetchSet().then(() => setIsLoading(false)).catch(() => {
-            toast.error(`An error has occured.`);
-            setIsLoading(false);
-        });
+        fetchSet().finally(() => setIsLoading(false));
     }, [id]);
+
+    useEffect(() => {
+        if (!id) {
+            return;
+        }
+
+        saveLiveViewOverrides(id, personalKeyOverrides);
+    }, [id, personalKeyOverrides]);
+
+    useEffect(() => {
+        if (!id || !setlist) {
+            return;
+        }
+
+        saveLiveViewSnapshot(id, {
+            setlist: {
+                id: setlist?.id ?? id,
+                name: setlist?.name ?? "",
+                updatedAt: setlist?.updatedAt ?? null,
+            },
+            outputs,
+            savedAt: new Date().toISOString(),
+        });
+    }, [id, setlist, outputs]);
 
     useEffect(() => {
         if (!id) return;
@@ -152,89 +230,79 @@ const SetListView = () => {
             if (String(sid?.id ?? sid?.Id ?? sid) === String(id)) {
                 setSetlist(null);
                 setOutputs([]);
+                clearLiveViewSnapshot(id);
+                clearLiveViewOverrides(id);
             }
         });
 
-        setlistConn.on("OutputCreated", (o) => {
-            const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
-            if (setListId && String(setListId) === String(id)) {
-                const newOutput = {
-                    id: o.id ?? o.Id,
-                    setListId: o.setListId ?? o.SetListId,
-                    targetKey: o.targetKey ?? o.TargetKey,
-                    chordSheetId: o.chordSheetId ?? o.ChordSheetId,
-                    capo: o.capo ?? o.Capo,
-                    order: o.order ?? o.Order,
-                    createdAt: o.createdAt ?? o.CreatedAt,
-                    updatedAt: o.updatedAt ?? o.UpdatedAt,
-                    chordsheets: o.chordsheets ?? o.Chordsheets
-                };
-                setOutputs(prevOutputs => [...prevOutputs, newOutput].sort((a, b) => a.order - b.order));
-            }
-        });
+        const upsertOutput = (outputPayload) => {
+            const setListId = outputPayload?.setListId ?? outputPayload?.SetListId ?? outputPayload?.setlistid;
+            if (!setListId || String(setListId) !== String(id)) return;
 
-        setlistConn.on("OutputUpdated", (o) => {
-            const setListId = o?.setListId ?? o?.SetListId ?? o?.setlistid;
-            const outputId = o?.id ?? o?.Id;
-            if (setListId && String(setListId) === String(id)) {
-                const updatedOutput = {
-                    id: o.id ?? o.Id,
-                    setListId: o.setListId ?? o.SetListId,
-                    targetKey: o.targetKey ?? o.TargetKey,
-                    chordSheetId: o.chordSheetId ?? o.ChordSheetId,
-                    capo: o.capo ?? o.Capo,
-                    order: o.order ?? o.Order,
-                    createdAt: o.createdAt ?? o.CreatedAt,
-                    updatedAt: o.updatedAt ?? o.UpdatedAt,
-                    chordsheets: o.chordsheets ?? o.Chordsheets
-                };
-                setOutputs(prevOutputs => prevOutputs.map(prevOutput => String(prevOutput.id) === String(outputId) ? updatedOutput : prevOutput).sort((a, b) => a.order - b.order));
-            }
-        });
+            const normalized = {
+                id: outputPayload.id ?? outputPayload.Id,
+                setListId: outputPayload.setListId ?? outputPayload.SetListId,
+                targetKey: outputPayload.targetKey ?? outputPayload.TargetKey,
+                chordSheetId: outputPayload.chordSheetId ?? outputPayload.ChordSheetId,
+                capo: outputPayload.capo ?? outputPayload.Capo,
+                order: outputPayload.order ?? outputPayload.Order,
+                createdAt: outputPayload.createdAt ?? outputPayload.CreatedAt,
+                updatedAt: outputPayload.updatedAt ?? outputPayload.UpdatedAt,
+                chordsheets: outputPayload.chordsheets ?? outputPayload.Chordsheets,
+            };
 
-        setlistConn.on("OutputDeleted", (outputId) => {
+            setOutputs((prevOutputs) => {
+                const without = prevOutputs.filter((prevOutput) => String(prevOutput.id) !== String(normalized.id));
+                return [...without, normalized].sort((a, b) => a.order - b.order);
+            });
+        };
+
+        setlistConn.on('OutputCreated', upsertOutput);
+        setlistConn.on('OutputUpdated', upsertOutput);
+
+        setlistConn.on('OutputDeleted', (outputId) => {
             const oid = outputId?.id ?? outputId?.Id ?? outputId;
-            setOutputs(prevOutputs => prevOutputs.filter(p => String(p.id) !== String(oid)).sort((a, b) => a.order - b.order));
+            setOutputs((prevOutputs) => prevOutputs.filter((p) => String(p.id) !== String(oid)).sort((a, b) => a.order - b.order));
         });
 
-        setlistConn.on("ChordSheetUpdated", (cs) => {
+        setlistConn.on('ChordSheetUpdated', (cs) => {
             const csId = cs?.id ?? cs?.Id;
-            setOutputs(prevOutputs => {
-                return prevOutputs.map(output => {
-                    if (output.chordSheetId === csId) {
-                        return {
-                            ...output,
-                            chordsheets: {
-                                ...(output.chordsheets ?? {}),
-                                key: cs.key ?? cs.Key,
-                                content: cs.content ?? cs.Content
-                            }
-                        };
-                    }
-                    return output;
-                }).sort((a, b) => a.order - b.order);
-            });
+            setOutputs((prevOutputs) => prevOutputs.map((output) => {
+                if (String(output.chordSheetId) === String(csId)) {
+                    return {
+                        ...output,
+                        chordsheets: {
+                            ...(output.chordsheets ?? {}),
+                            key: cs.key ?? cs.Key,
+                            content: cs.content ?? cs.Content,
+                        },
+                    };
+                }
+                return output;
+            }).sort((a, b) => a.order - b.order));
         });
 
-        setlistConn.on("ChordSheetDeleted", (csId) => {
+        setlistConn.on('ChordSheetDeleted', (csId) => {
             const deletedCsId = csId?.id ?? csId?.Id ?? csId;
-            setOutputs(prevOutputs => {
-                return prevOutputs.map(output => {
-                    if (String(output.chordSheetId) === String(deletedCsId)) {
-                        return {
-                            ...output,
-                            chordsheets: null
-                        };
-                    }
-                    return output;
-                }).sort((a, b) => a.order - b.order);
-            });
+            setOutputs((prevOutputs) => prevOutputs.map((output) => {
+                if (String(output.chordSheetId) === String(deletedCsId)) {
+                    return {
+                        ...output,
+                        chordsheets: null,
+                    };
+                }
+                return output;
+            }).sort((a, b) => a.order - b.order));
         });
 
-        setlistConn.start().catch((err) => console.error("SetList SignalR Connection Error: ", err));
+        setlistConn.start().catch((err) => console.error('SetList SignalR Connection Error:', err));
 
         return () => {
-            try { setlistConn.stop().catch(() => {}); } catch (e) {}
+            try {
+                setlistConn.stop().catch(() => {});
+            } catch {
+                // ignore
+            }
         };
     }, [id]);
 
@@ -242,11 +310,14 @@ const SetListView = () => {
         try {
             if (chordProContent) {
                 const parser = new ChordSheetJS.ChordProParser();
-                const distance = Key.distance(originalKey, targetKey);
+                const safeOriginalKey = originalKey || targetKey;
+                const safeTargetKey = targetKey || originalKey;
+                const normalizedCapo = Number(capo) || 0;
+                const distance = safeOriginalKey && safeTargetKey ? Key.distance(safeOriginalKey, safeTargetKey) : 0;
                 chordProContent = chordProContent.replaceAll('{ci:', '{c:');
                 const song = parser.parse(chordProContent);
                 const transposedSong = song.transpose(distance);
-                const changedTitleSong = transposedSong.changeMetadata('title', capo !== 0 ? `${transposedSong.title} (Capo on ${getCapoText(capo)})` : transposedSong.title);
+                const changedTitleSong = transposedSong.changeMetadata('title', normalizedCapo !== 0 ? `${transposedSong.title} (Capo on ${getCapoText(normalizedCapo)})` : transposedSong.title);
                 const formatter = new ChordSheetJS.HtmlTableFormatter();
                 return formatter.format(changedTitleSong);
             }
@@ -275,27 +346,41 @@ const SetListView = () => {
             </div>
         );
     }
-  
+
     return (
         <div className="bg-gray-100">
-            <style dangerouslySetInnerHTML={{__html: `@page { size: ${PAGE_SIZES[pageSize].size}; }`}} />
+            <style dangerouslySetInnerHTML={{ __html: `@page { size: ${PAGE_SIZES[pageSize].size}; }` }} />
 
-            <h2 className="print:hidden text-center text-sm md:text-base lg:text-lg font-bold sticky top-0 left-0 z-10 w-full bg-gray-700 text-white py-4 shadow-md">
+            <h2 className="print:hidden sticky top-0 left-0 z-10 w-full bg-gray-700 px-4 py-4 text-center text-sm font-bold text-white shadow-md md:text-base lg:text-lg">
                 <span>{setlist.name}</span>
             </h2>
 
-            {/* Print-only output */}
+            <div className="print:hidden mx-auto mt-4 max-w-4xl px-4">
+                <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${isOfflineView ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="font-semibold">{isOfflineView ? 'Offline snapshot' : 'Live Mode'}</p>
+                            <p className="mt-1 text-sm">
+                                {isOfflineView
+                                    ? 'This view was loaded from a previously opened live set list and can be used offline.'
+                                    : 'Shared updates appear in real time when the creator changes the set list.'}
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                            <span className="rounded-full bg-white/70 px-3 py-1">{isOfflineView ? 'Offline ready' : 'Real-time sync'}</span>
+                            <span className="rounded-full bg-white/70 px-3 py-1">Personal transpose is local only</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div className="hidden print:block">
                 {outputs.map((output) => (
-                    <pre key={output.id} dangerouslySetInnerHTML={{ __html: renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo) }} />
+                    <pre key={output.id} dangerouslySetInnerHTML={{ __html: renderChordPro(output.chordsheets?.content, output.chordsheets?.key, output.targetKey, output.capo) }} />
                 ))}
             </div>
 
-            {/* Floating controls */}
-            <div
-                ref={controlsRef}
-                className="print:hidden fixed z-20 right-3 bottom-3 lg:right-4 lg:bottom-4"
-            >
+            <div ref={controlsRef} className="print:hidden fixed z-20 right-3 bottom-3 lg:right-4 lg:bottom-4">
                 <div className="relative flex items-end justify-end">
                     <button
                         type="button"
@@ -313,7 +398,7 @@ const SetListView = () => {
                                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                transition={{ duration: 0.2, ease: 'easeOut' }}
                                 className="absolute bottom-14 right-0 w-56 overflow-hidden rounded-2xl border border-gray-700 bg-gray-800 text-white shadow-2xl lg:w-60"
                             >
                                 <div className="flex flex-col gap-2 p-3">
@@ -335,7 +420,7 @@ const SetListView = () => {
                                         className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
                                     >
                                         <PrinterIcon size={16} />
-                                        Print set list
+                                        Print / Save PDF
                                     </button>
                                 </div>
                             </motion.div>
@@ -344,47 +429,101 @@ const SetListView = () => {
                 </div>
             </div>
 
-            {/* Scaled page previews */}
             <div className="print:hidden md:px-4">
                 <AnimatePresence initial={false} mode="popLayout">
-                    {outputs.map((output, index) => (
-                        <AnimatedOutputCard
-                            key={output.id ?? `${output.chordSheetId}-${output.order ?? index}`}
-                            layout
-                            initial={{ opacity: 0, y: 16, scale: 0.985 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -16, scale: 0.985 }}
-                            transition={{ duration: 0.24, ease: "easeOut" }}
-                        >
-                            <ScaledPage
-                                html={renderChordPro(output.chordsheets.content, output.chordsheets.key, output.targetKey, output.capo)}
-                                pageSizeKey={pageSize}
-                            />
-                        </AnimatedOutputCard>
-                    ))}
+                    {outputs.map((output, index) => {
+                        const outputStorageKey = getOutputStorageKey(output, index);
+                        const overrideKey = personalKeyOverrides[outputStorageKey] ?? '';
+
+                        return (
+                            <AnimatedOutputCard
+                                key={output.id ?? `${output.chordSheetId}-${output.order ?? index}`}
+                                layout
+                                initial={{ opacity: 0, y: 16, scale: 0.985 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -16, scale: 0.985 }}
+                                transition={{ duration: 0.24, ease: 'easeOut' }}
+                            >
+                                <div className="mx-auto mt-4 w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+                                    <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900">Song {index + 1}</p>
+                                            <p className="text-xs text-gray-500">
+                                                Shared key: {output.targetKey || '—'} · Original key: {output.chordsheets?.key || '—'}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-end gap-3">
+                                            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Personal transpose
+                                                <select
+                                                    value={overrideKey}
+                                                    onChange={(e) => {
+                                                        const nextValue = e.target.value;
+                                                        setPersonalKeyOverrides((prev) => {
+                                                            const next = { ...prev };
+                                                            if (nextValue) {
+                                                                next[outputStorageKey] = nextValue;
+                                                            } else {
+                                                                delete next[outputStorageKey];
+                                                            }
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    className="mt-1 w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 outline-none transition focus:border-gray-500"
+                                                >
+                                                    <option value="">{SHARED_KEY_LABEL}</option>
+                                                    {keys.map((key) => (
+                                                        <option key={key} value={key}>{key}</option>
+                                                    ))}
+                                                </select>
+                                            </label>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPersonalKeyOverrides((prev) => {
+                                                        if (!(outputStorageKey in prev)) {
+                                                            return prev;
+                                                        }
+                                                        const next = { ...prev };
+                                                        delete next[outputStorageKey];
+                                                        return next;
+                                                    });
+                                                }}
+                                                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                                disabled={!overrideKey}
+                                            >
+                                                <RefreshCw size={14} />
+                                                Reset
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <ScaledPage
+                                        html={renderChordPro(
+                                            output.chordsheets?.content,
+                                            output.chordsheets?.key,
+                                            getResolvedKey(output, personalKeyOverrides, index),
+                                            output.capo,
+                                        )}
+                                        pageSizeKey={pageSize}
+                                    />
+                                </div>
+                            </AnimatedOutputCard>
+                        );
+                    })}
                 </AnimatePresence>
             </div>
 
             <footer className="print:hidden text-center text-sm text-white w-full bg-gray-700 mt-8 py-2">
-                <p>Generated by <a href={window.location.origin} target="_blank" rel="noopener noreferrer"><Guitar className="inline-block" /> Team Chords</a></p>
+                <p>
+                    Generated by{' '}
+                    <a href={window.location.origin} target="_blank" rel="noopener noreferrer">
+                        <Guitar className="inline-block" /> Team Chords
+                    </a>
+                </p>
             </footer>
-
-            {/* Bluetooth Pedal */}
-            {/*<div className="print:hidden fixed bottom-4 right-4 z-20">*/}
-            {/*    <BluetoothPedal*/}
-            {/*        outputs={outputs}*/}
-            {/*        setOutputs={setOutputs}*/}
-            {/*        show={showPedal}*/}
-            {/*        onClose={() => setShowPedal(false)}*/}
-            {/*    />*/}
-            {/*    <button*/}
-            {/*        onClick={() => setShowPedal(true)}*/}
-            {/*        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow-md"*/}
-            {/*    >*/}
-            {/*        <BluetoothPedal className="w-5 h-5" />*/}
-            {/*        Show Pedal*/}
-            {/*    </button>*/}
-            {/*</div>*/}
         </div>
     );
 };

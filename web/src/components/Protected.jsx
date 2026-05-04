@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useProfileStore } from "../store/useProfileStore";
 import { getProfile } from "../utils/common";
@@ -47,19 +47,6 @@ const Protected = ({ children }) => {
       }
 
       if (!isCancelled) setIsProfileSyncing(false);
-
-      // Register service worker in production (kept from previous PrivateRoute)
-      if (typeof window !== "undefined" && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(() => {
-              console.log('ServiceWorker registration successful');
-            })
-            .catch(err => {
-              console.log('ServiceWorker registration failed: ', err);
-            });
-        });
-      }
     };
 
     sync();
