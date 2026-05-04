@@ -60,9 +60,12 @@ internal static class SetListEndpoints
             return operation;
         });
 
-        setlists.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
+        setlists.MapGet("/{id}", async (Guid id, AppDbContext db) =>
         {
-            var s = await db.SetLists.Include(s => s.Outputs).FirstOrDefaultAsync(s => s.Id == id);
+            var s = await db.SetLists
+                .Include(s => s.Organization)
+                .Include(s => s.Outputs)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (s == null) return Results.NotFound();
 
             // if (s.OrgId.HasValue)

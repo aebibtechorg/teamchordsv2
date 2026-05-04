@@ -14,6 +14,7 @@ namespace tcv2.Api.Data.Entities
     {
         None,
         Active,
+        ScheduledToEnd,
         Canceled,
         PastDue,
         Incomplete

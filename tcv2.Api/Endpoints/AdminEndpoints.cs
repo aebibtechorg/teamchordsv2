@@ -78,7 +78,7 @@ internal static class AdminEndpoints
             {
                 OrganizationCount = await db.Organizations.CountAsync(),
                 PaidOrganizationCount = await db.Organizations.CountAsync(o => o.Plan != Plan.Free),
-                ActiveSubscriptionCount = await db.Organizations.CountAsync(o => o.SubscriptionStatus == SubscriptionStatus.Active),
+                ActiveSubscriptionCount = await db.Organizations.CountAsync(o => o.SubscriptionStatus == SubscriptionStatus.Active || o.SubscriptionStatus == SubscriptionStatus.ScheduledToEnd),
                 UserCount = await db.Users.CountAsync(),
                 MembershipCount = await db.UserOrganizations.CountAsync(),
                 AdminMembershipCount = await db.UserOrganizations.CountAsync(uo => uo.Role == OrgRole.Admin)

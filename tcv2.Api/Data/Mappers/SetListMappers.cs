@@ -1,6 +1,6 @@
-using System.Linq;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
+using tcv2.Api.Services;
 
 namespace tcv2.Api.Data.Mappers;
 
@@ -12,6 +12,7 @@ public static class SetListMappers
         {
             Id = setList.Id,
             OrgId = setList.OrgId,
+            CanUsePaidControls = setList.Organization is not null && PlanService.CanUseLiveSync(setList.Organization),
             Name = setList.Name,
             CreatedAt = setList.CreatedAt,
             UpdatedAt = setList.UpdatedAt
@@ -24,6 +25,7 @@ public static class SetListMappers
         {
             Id = setList.Id,
             OrgId = setList.OrgId,
+            CanUsePaidControls = setList.Organization is not null && PlanService.CanUseLiveSync(setList.Organization),
             Name = setList.Name,
             CreatedAt = setList.CreatedAt,
             UpdatedAt = setList.UpdatedAt,

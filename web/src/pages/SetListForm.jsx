@@ -413,7 +413,7 @@ const SetListForm = () => {
 
     const handleCopyLinkWrapper = async (id) => {
         await handleCopyLink(id);
-        toast.success('Link copied to clipboard!');
+        toast.success('Live view link copied to clipboard!');
     };
 
     if (isLoading) {
@@ -455,10 +455,10 @@ const SetListForm = () => {
                     {id !== "new" && (
                         <>
                             <button onClick={() => handleCopyLinkWrapper(id)} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex justify-center items-center gap-2 disabled:opacity-50" disabled={isSaving}>
-                                <Link2 size={16} /> Copy Link
+                                <Link2 size={16} /> Copy Live View Link
                             </button>
                             <button onClick={() => handlePreview(id)} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex justify-center items-center gap-2 disabled:opacity-50" disabled={isSaving}>
-                                <Eye size={16} /> Preview
+                                <Eye size={16} /> Open Live View
                             </button>
                         </>
                     )}

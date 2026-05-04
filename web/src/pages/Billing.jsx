@@ -16,11 +16,12 @@ const PLAN_LABELS = {
 };
 
 const STATUS_BADGE = {
-  Active:     'bg-green-100 text-green-800',
-  Canceled:   'bg-red-100 text-red-800',
-  PastDue:    'bg-yellow-100 text-yellow-800',
+  Active: 'bg-green-100 text-green-800',
+  ScheduledToEnd: 'bg-amber-100 text-amber-800',
+  Canceled: 'bg-red-100 text-red-800',
+  PastDue: 'bg-yellow-100 text-yellow-800',
   Incomplete: 'bg-orange-100 text-orange-800',
-  None:       'bg-gray-100 text-gray-600',
+  None: 'bg-gray-100 text-gray-600',
 };
 
 const REFRESH_RETRY_DELAY_MS = 2000;
@@ -52,7 +53,7 @@ export default function Billing() {
   const currentBillingState = getBillingState(profile);
 
   const isPaid = plan !== 'Free';
-  const isCancelPending = status === 'Canceled' && isPaid; // cancelled but period not ended yet
+  const isCancelPending = status === 'ScheduledToEnd' && isPaid; // cancelled but period not ended yet
 
   const refreshProfile = useCallback(async ({ retryOnce = false } = {}) => {
     const fresh = await getProfile();
@@ -182,7 +183,7 @@ export default function Billing() {
           </div>
 
           <span className={`text-xs font-semibold px-3 py-1 rounded-full ${STATUS_BADGE[status] ?? STATUS_BADGE.None}`}>
-            {isCancelPending ? 'Cancels at period end' : status}
+            {isCancelPending ? 'Scheduled to end' : status}
           </span>
         </div>
       </div>

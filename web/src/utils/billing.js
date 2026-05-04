@@ -1,13 +1,26 @@
 import { apiFetch } from './api';
 
+async function getErrorMessage(res, fallbackMessage) {
+    const text = await res.text().catch(() => '');
+    if (!text) {
+        return fallbackMessage;
+    }
+
+    try {
+        const data = JSON.parse(text);
+        return data?.error || data?.message || data?.code || fallbackMessage;
+    } catch {
+        return text || fallbackMessage;
+    }
+}
+
 export async function startCheckout(plan, orgId, redirectUrl) {
     const res = await apiFetch('/api/billing/checkout', {
         method: 'POST',
         body: JSON.stringify({ plan, orgId, redirectUrl }),
     });
     if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Failed to create checkout session');
+        throw new Error(await getErrorMessage(res, 'Failed to create checkout session'));
     }
     return res.json(); // { url }
 }
@@ -18,8 +31,7 @@ export async function changePlan(plan, orgId) {
         body: JSON.stringify({ plan, orgId }),
     });
     if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Failed to change plan');
+        throw new Error(await getErrorMessage(res, 'Failed to change plan'));
     }
     return res.json();
 }
@@ -30,8 +42,7 @@ export async function previewPlanChange(plan, orgId) {
         body: JSON.stringify({ plan, orgId }),
     });
     if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Failed to preview plan change');
+        throw new Error(await getErrorMessage(res, 'Failed to preview plan change'));
     }
     return res.json();
 }
@@ -42,8 +53,7 @@ export async function cancelSubscription(orgId) {
         body: JSON.stringify({ orgId }),
     });
     if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Failed to cancel subscription');
+        throw new Error(await getErrorMessage(res, 'Failed to cancel subscription'));
     }
 }
 
@@ -53,8 +63,7 @@ export async function openBillingPortal(orgId, returnUrl) {
         body: JSON.stringify({ orgId, returnUrl }),
     });
     if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Failed to open billing portal');
+        throw new Error(await getErrorMessage(res, 'Failed to open billing portal'));
     }
     return res.json(); // { url }
 }

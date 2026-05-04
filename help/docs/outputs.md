@@ -26,7 +26,7 @@ When viewed in the set list share/preview screen, Team Chords can:
 
 ## Public or shareable view
 
-The set list share view is designed for reading, printing, and presenting.
+The set list live view is designed for reading, printing, presenting, and musician-side transposition.
 
 It includes:
 
@@ -35,6 +35,8 @@ It includes:
 - page size controls
 - print support
 - live updates when the set list changes
+- local-only key overrides for each output on the viewer's device
+- offline reopening of previously viewed set lists
 
 ## Page size options
 
@@ -73,6 +75,8 @@ That means changes like these can appear without manually reloading:
 
 This is useful when one person edits while others are already viewing the live set list.
 
+Jam Session includes this shared Live Mode, and Gigging Band adds the viewer-local transpose controls and offline reuse for previously opened views.
+
 ## Transposition behavior
 
 Team Chords calculates the distance between the original song key and the chosen target key, then renders the transposed chart in the live view.
@@ -97,6 +101,7 @@ Before rehearsal or service:
 - verify capo values
 - test print output once
 - keep the set list open on the device you'll use live
+- if you need personal transposition on stage, use the viewer-local key control on the live view
 
 ## Related guides
 

@@ -32,6 +32,20 @@ function AuthTokenProviderSetup() {
   return null;
 }
 
+function ServiceWorkerRegistration() {
+  useEffect(() => {
+    if (!import.meta.env.PROD || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+      console.warn('ServiceWorker registration failed:', err);
+    });
+  }, []);
+
+  return null;
+}
+
 async function bootstrap() {
   const config = await loadConfig()
   const audience = config.auth0Audience || import.meta.env.VITE_AUTH0_AUDIENCE;
@@ -48,6 +62,7 @@ async function bootstrap() {
           cacheLocation="localstorage"
         >
           <AuthTokenProviderSetup />
+          <ServiceWorkerRegistration />
             <RouterProvider router={router} />
         </Auth0Provider>
     </StrictMode>

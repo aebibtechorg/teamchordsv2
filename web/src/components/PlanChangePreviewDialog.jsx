@@ -29,13 +29,14 @@ const formatDateTime = (value) => {
   });
 };
 
-const PlanChangePreviewDialog = ({ isOpen, onClose, onConfirm, preview, isSubmitting = false }) => {
+const PlanChangePreviewDialog = ({ isOpen, onClose, onConfirm, preview, isSubmitting = false, isCancellationScheduled = false }) => {
   if (!isOpen || !preview) {
     return null;
   }
 
   const currentPlanLabel = PLAN_LABELS[preview.currentPlan] ?? preview.currentPlan;
   const targetPlanLabel = PLAN_LABELS[preview.targetPlan] ?? preview.targetPlan;
+  const requiresResumeConfirmation = Boolean(preview.requiresResumeConfirmation);
   const immediateCharge = preview.immediateCharge?.totalAmount ?? 0;
   const currency = preview.immediateCharge?.currency ?? 'USD';
   const effectiveAt = preview.effectiveAt ?? preview.newPlan?.scheduledChange?.effectiveAt ?? preview.newPlan?.nextBillingDate;
@@ -46,6 +47,60 @@ const PlanChangePreviewDialog = ({ isOpen, onClose, onConfirm, preview, isSubmit
     ? 'No charge due now'
     : `${isCredit ? 'Credit' : 'Due now'}: ${formatMoney(absoluteCharge, currency)}`;
   const timingCopy = 'This change applies immediately.';
+
+  if (requiresResumeConfirmation) {
+    return (
+      <Modal
+        onClose={onClose}
+        className="fixed inset-x-4 top-10 mx-auto w-full max-w-2xl rounded-xl bg-white shadow-2xl backdrop:bg-black/50"
+      >
+        <div className="p-6">
+          <div className="mb-4">
+            <h3 className="text-2xl font-bold text-gray-900">Confirm Resume & Upgrade</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              {preview.message || 'Your subscription is scheduled to end. Upgrading will resume it and remove the scheduled cancellation.'}
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current plan</p>
+              <p className="mt-1 text-lg font-bold text-gray-900">{currentPlanLabel}</p>
+            </div>
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">New plan</p>
+              <p className="mt-1 text-lg font-bold text-blue-900">{targetPlanLabel}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Scheduled cancellation detected</p>
+            <p className="mt-1">
+              Confirming this upgrade will keep the subscription active and remove the scheduled cancellation{preview.scheduledCancellationEndsAt ? ` (scheduled to end on ${formatDateTime(preview.scheduledCancellationEndsAt)})` : ''}.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-50"
+              disabled={isSubmitting}
+            >
+              Keep scheduled cancellation
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isSubmitting}
+              className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? 'Processing…' : 'Resume & Upgrade'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -126,7 +181,7 @@ const PlanChangePreviewDialog = ({ isOpen, onClose, onConfirm, preview, isSubmit
               isUpgrade ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'
             } disabled:cursor-not-allowed disabled:opacity-60`}
           >
-            {isSubmitting ? 'Processing…' : isUpgrade ? 'Confirm Upgrade' : 'Confirm Downgrade'}
+            {isSubmitting ? 'Processing…' : isUpgrade ? (isCancellationScheduled ? 'Resume & Upgrade' : 'Confirm Upgrade') : 'Confirm Downgrade'}
           </button>
         </div>
       </div>

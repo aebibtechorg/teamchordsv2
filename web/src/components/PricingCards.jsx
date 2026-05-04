@@ -21,10 +21,14 @@ const PricingCards = ({ isAuthenticated = false }) => {
   const [planPreview, setPlanPreview] = useState(null);
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showResumeUpgradeConfirm, setShowResumeUpgradeConfirm] = useState(false);
+  const [resumeUpgradeMessage, setResumeUpgradeMessage] = useState(null);
 
   // Derive current plan from active org
   const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
   const currentPlan = activeOrg?.plan ||  'Free';
+  const currentStatus = activeOrg?.subscriptionStatus ?? 'None';
+  const isCancelScheduled = currentStatus === 'ScheduledToEnd';
 
   useEffect(() => {
     const handleCheckoutRedirect = async () => {
@@ -92,11 +96,35 @@ const PricingCards = ({ isAuthenticated = false }) => {
     setSelectedPlan(null);
   };
 
+  const closeResumeUpgradeConfirm = () => {
+    if (isLoading) {
+      return;
+    }
+
+    setShowResumeUpgradeConfirm(false);
+    setResumeUpgradeMessage(null);
+    setSelectedPlan(null);
+  };
+
   const handlePaidPlanPreview = async (plan) => {
-    setIsLoading(true);
     setCheckoutError(null);
     setSuccessMessage(null);
     setSelectedPlan(plan);
+    setShowResumeUpgradeConfirm(false);
+    setResumeUpgradeMessage(null);
+
+    const currentRank = PLAN_ORDER[currentPlan] || 0;
+    const cardRank = PLAN_ORDER[plan] || 0;
+
+    if (isCancelScheduled && cardRank > currentRank) {
+      setPlanPreview(null);
+      setShowPlanPreview(false);
+      setResumeUpgradeMessage('Your subscription is scheduled to end. Confirming this upgrade will resume it and remove the scheduled cancellation.');
+      setShowResumeUpgradeConfirm(true);
+      return;
+    }
+
+    setIsLoading(true);
 
     if (!profile?.orgId) {
       setCheckoutError('No active organization selected.');
@@ -106,6 +134,14 @@ const PricingCards = ({ isAuthenticated = false }) => {
 
     try {
       const preview = await previewPlanChange(plan, profile.orgId);
+      if (preview?.requiresResumeConfirmation) {
+        setPlanPreview(null);
+        setShowPlanPreview(false);
+        setResumeUpgradeMessage(preview.message || 'Your subscription is scheduled to end. Confirming this upgrade will resume it and remove the scheduled cancellation.');
+        setShowResumeUpgradeConfirm(true);
+        return;
+      }
+
       setPlanPreview(preview);
       setShowPlanPreview(true);
     } catch (error) {
@@ -218,6 +254,17 @@ const PricingCards = ({ isAuthenticated = false }) => {
       );
     } else {
       if (cardPlan === 'Free') {
+        if (isCancelScheduled) {
+          return (
+            <button
+              disabled
+              className="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg cursor-not-allowed"
+            >
+              Cancellation Scheduled
+            </button>
+          );
+        }
+
         return (
           <button
             onClick={() => setShowCancelConfirm(true)}
@@ -234,7 +281,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
           disabled={isLoading}
           className="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-300"
         >
-          {cardRank > currentRank ? 'Upgrade' : 'Downgrade'}
+          {isCancelScheduled && cardRank > currentRank ? 'Resume & Upgrade' : cardRank > currentRank ? 'Upgrade' : 'Downgrade'}
         </button>
       );
     }
@@ -251,7 +298,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
         <div className="mx-auto mb-8 max-w-4xl space-y-2 rounded-lg border border-gray-200 bg-white px-5 py-4 text-center text-sm text-gray-700 shadow-sm">
           <p>All paid plans are billed monthly. You can cancel anytime, and your access will remain active until the end of the billing period.</p>
           <p>Subscriptions are non-refundable except where required by law.</p>
-          <p>After signing up, you&apos;ll get instant access to your workspace so you can start creating chord sheets, building set lists, and inviting your team.</p>
+          <p>Live Mode keeps the shared set list view in sync when the creator changes keys, capos, song order, or chord-sheet content. Gigging Band adds musician-local transpose controls, offline reuse of previously opened live views, and print/PDF support.</p>
         </div>
         {/*<div className="max-w-3xl mx-auto mb-12 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 text-center">*/}
         {/*  Tiering is based on chord sheet and set list capacity inside your organization.*/}
@@ -270,7 +317,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li><span className="font-bold">3 Team Members</span></li>
               <li>Basic ChordPro Editor</li>
               <li>Read-only public sharing</li>
-              <li className="text-gray-400">Real-time live view sync (Live Mode)</li>
+              <li>Real-Time Live Mode for shared set list updates</li>
             </ul>
             {getPlanButton('Free')}
           </div>
@@ -291,10 +338,10 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li><span className="font-bold">250 Chord Sheets</span></li>
               <li><span className="font-bold">Unlimited</span> Set Lists</li>
               <li><span className="font-bold">Unlimited</span> Team Members</li>
-              <li><span className="font-bold text-blue-600">Real-Time &quot;Live Mode&quot;</span></li>
+              <li>Everything in Jam Session</li>
               <li>Transposition Tools</li>
-              <li>PDF Export/Print</li>
-              <li>Offline Mode</li>
+              <li>Offline access for previously opened live views</li>
+              <li>PDF Export / Print</li>
             </ul>
             {getPlanButton('GiggingBand')}
           </div>
@@ -309,9 +356,8 @@ const PricingCards = ({ isAuthenticated = false }) => {
               <li><span className="font-bold">Unlimited Set Lists</span></li>
               <li><span className="font-bold">Unlimited Team Members</span></li>
               <li>Everything in Gigging Band</li>
-              <li><span className="font-bold text-blue-600">Centralized Library</span></li>
-              <li>Admin Controls</li>
               <li>Priority Support</li>
+              <li>Best fit for larger organizations with higher capacity needs</li>
             </ul>
             {getPlanButton('Organization')}
           </div>
@@ -342,6 +388,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
           onConfirm={handleConfirmPlanChange}
           preview={planPreview}
           isSubmitting={isLoading}
+          isCancellationScheduled={isCancelScheduled}
         />
 
         {/* Feature Gating Matrix */}
@@ -359,6 +406,42 @@ const PricingCards = ({ isAuthenticated = false }) => {
               </thead>
               <tbody>
                 <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Real-Time Live Mode for shared set list updates</td>
+                  <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
+                  <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
+                  <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Basic ChordPro Editor</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Read-only public sharing</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Transposition Tools</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">Offline access for previously opened live views</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-4 px-6 font-semibold">PDF Export / Print</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
+                </tr>
+                <tr className="border-b">
                   <td className="py-4 px-6 font-semibold">Chord Sheets</td>
                   <td className="py-4 px-6 text-center">50</td>
                   <td className="py-4 px-6 text-center font-bold">250</td>
@@ -371,22 +454,16 @@ const PricingCards = ({ isAuthenticated = false }) => {
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Members</td>
+                  <td className="py-4 px-6 font-semibold">Team Members</td>
                   <td className="py-4 px-6 text-center">3</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                   <td className="py-4 px-6 text-center font-bold">Unlimited</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Live Sync</td>
+                  <td className="py-4 px-6 font-semibold">Priority Support</td>
                   <td className="py-4 px-6 text-center">No</td>
-                  <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
-                  <td className="py-4 px-6 text-center text-green-500 font-bold">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-4 px-6 font-semibold">Key Transpose</td>
-                  <td className="py-4 px-6 text-center">Personal Only</td>
-                  <td className="py-4 px-6 text-center font-bold">Global Sync</td>
-                  <td className="py-4 px-6 text-center font-bold">Global Sync</td>
+                  <td className="py-4 px-6 text-center">No</td>
+                  <td className="py-4 px-6 text-center font-bold">Yes</td>
                 </tr>
                 {/*<tr>*/}
                 {/*  <td className="py-4 px-6 font-semibold">Library Sharing</td>*/}
@@ -415,6 +492,16 @@ const PricingCards = ({ isAuthenticated = false }) => {
           message="Are you sure you want to cancel your plan? Your access will remain active until the end of the billing period, and no refunds are issued for the current billing period except where required by law."
           confirmLabel="Yes, Cancel Plan"
           cancelLabel="No, Keep Plan"
+        />
+
+        <ConfirmDialog
+          isOpen={showResumeUpgradeConfirm}
+          onClose={closeResumeUpgradeConfirm}
+          onConfirm={handleConfirmPlanChange}
+          title="Resume & Upgrade"
+          message={resumeUpgradeMessage || 'Your subscription is scheduled to end. Upgrading will resume it and remove the scheduled cancellation.'}
+          confirmLabel="Yes, Resume & Upgrade"
+          cancelLabel="Keep Scheduled Cancellation"
         />
       </div>
     </div>

@@ -102,7 +102,8 @@ internal static class BillingEndpoints
             HttpContext httpContext,
             AppDbContext db,
             DodoProductCatalogService catalog,
-            IHttpClientFactory httpClientFactory) =>
+            IHttpClientFactory httpClientFactory,
+            IHubContext<BillingHub, IBillingClient> billingHub) =>
         {
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
@@ -140,6 +141,16 @@ internal static class BillingEndpoints
             var isUpgrade = request.Plan > org.Plan;
             var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var client = CreateDodoClient(config, httpClientFactory);
+            var resumedScheduledCancellation = false;
+
+            if (isUpgrade && org.SubscriptionStatus == SubscriptionStatus.ScheduledToEnd)
+            {
+                var resumed = await ResumeScheduledCancellationAsync(client, db, billingHub, org, httpContext.RequestAborted);
+                if (!resumed)
+                    return Results.BadRequest(new { error = "Failed to resume the scheduled cancellation before upgrading." });
+
+                resumedScheduledCancellation = true;
+            }
 
             // Dodo Payments POST /subscriptions/{subscription_id}/change-plan
             // https://docs.dodopayments.com/api-reference/subscriptions/change-plan
@@ -163,15 +174,41 @@ internal static class BillingEndpoints
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                return Results.BadRequest(new { error });
+
+                if (isUpgrade && !resumedScheduledCancellation && IsScheduledCancellationError(error))
+                {
+                    var resumed = await ResumeScheduledCancellationAsync(client, db, billingHub, org, httpContext.RequestAborted);
+                    if (resumed)
+                    {
+                        resumedScheduledCancellation = true;
+                        response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            return Results.Ok(new
+                            {
+                                plan = request.Plan.ToString(),
+                                effectiveAt = "immediately",
+                                resumedScheduledCancellation,
+                                message = $"Your plan change to {request.Plan} was submitted and your scheduled cancellation was removed."
+                            });
+                        }
+
+                        error = await response.Content.ReadAsStringAsync();
+                    }
+                }
+
+                return Results.BadRequest(new { error = ExtractDodoErrorMessage(error) });
             }
 
             return Results.Ok(new
             {
                 plan = request.Plan.ToString(),
                 effectiveAt = isUpgrade ? "immediately" : "next_billing_date",
+                resumedScheduledCancellation,
                 message = isUpgrade
-                    ? $"Your plan change to {request.Plan} was submitted."
+                    ? resumedScheduledCancellation
+                        ? $"Your plan change to {request.Plan} was submitted and your scheduled cancellation was removed."
+                        : $"Your plan change to {request.Plan} was submitted."
                     : $"Your downgrade to {request.Plan} was submitted and will settle the prorated difference immediately."
             });
         });
@@ -238,11 +275,24 @@ internal static class BillingEndpoints
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                return Results.BadRequest(new { error });
+                if (isUpgrade && IsScheduledCancellationError(error))
+                {
+                    return Results.Ok(new
+                    {
+                        currentPlan = org.Plan.ToString(),
+                        targetPlan = request.Plan.ToString(),
+                        isUpgrade,
+                        requiresResumeConfirmation = true,
+                        scheduledCancellationEndsAt = org.PlanExpiresAt,
+                        message = "Your subscription is scheduled to end. Upgrading will resume it and remove the scheduled cancellation."
+                    });
+                }
+
+                return Results.BadRequest(new { error = ExtractDodoErrorMessage(error) });
             }
 
             var result = await response.Content.ReadFromJsonAsync<DodoPlanChangePreviewResponse>();
-            if (result is null || result.ImmediateCharge.Summary == null)
+            if (result?.ImmediateCharge?.Summary == null)
                 return Results.BadRequest("Failed to create plan preview");
 
             return Results.Ok(new
@@ -335,7 +385,9 @@ internal static class BillingEndpoints
                 if (org != null && plan.HasValue)
                 {
                     org.Plan = plan.Value;
-                    org.SubscriptionStatus = SubscriptionStatus.Active;
+                    org.SubscriptionStatus = data.CancelAtNextBillingDate == true
+                        ? SubscriptionStatus.ScheduledToEnd
+                        : SubscriptionStatus.Active;
 
                     if (!string.IsNullOrWhiteSpace(data.Customer.CustomerId))
                     {
@@ -435,7 +487,8 @@ internal static class BillingEndpoints
             [FromBody] CancelRequest request,
             HttpContext httpContext,
             AppDbContext db,
-            IHttpClientFactory httpClientFactory) =>
+            IHttpClientFactory httpClientFactory,
+            IHubContext<BillingHub, IBillingClient> billingHub) =>
         {
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
@@ -478,12 +531,17 @@ internal static class BillingEndpoints
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                return Results.BadRequest(new { error });
+                return Results.BadRequest(new { error = ExtractDodoErrorMessage(error) });
             }
 
-            // Note: Status remains Active until webhook fires subscription.cancelled at period end
+            var result = await response.Content.ReadFromJsonAsync<DodoSubscriptionResponse>();
+
+            org.SubscriptionStatus = SubscriptionStatus.ScheduledToEnd;
+            if (result?.NextBillingDate is not null)
+                org.PlanExpiresAt = result.NextBillingDate;
             org.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+            await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
 
             return Results.NoContent();
         });
@@ -503,6 +561,85 @@ internal static class BillingEndpoints
         return metadata is not null && metadata.TryGetValue(key, out var value)
             ? value
             : null;
+    }
+
+    private static bool IsScheduledCancellationError(string errorBody)
+    {
+        return TryGetDodoErrorCode(errorBody, out var code)
+            && code == "PLAN_CHANGE_NOT_ALLOWED_FOR_SCHEDULED_CANCELLATION";
+    }
+
+    private static string ExtractDodoErrorMessage(string errorBody)
+    {
+        if (string.IsNullOrWhiteSpace(errorBody))
+            return "An unexpected billing error occurred.";
+
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(errorBody);
+            if (document.RootElement.TryGetProperty("message", out var message) && message.ValueKind == System.Text.Json.JsonValueKind.String)
+                return message.GetString() ?? errorBody;
+
+            if (document.RootElement.TryGetProperty("error", out var error) && error.ValueKind == System.Text.Json.JsonValueKind.String)
+                return error.GetString() ?? errorBody;
+        }
+        catch
+        {
+        }
+
+        return errorBody;
+    }
+
+    private static bool TryGetDodoErrorCode(string errorBody, out string? code)
+    {
+        code = null;
+
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(errorBody);
+            if (document.RootElement.TryGetProperty("code", out var codeElement) && codeElement.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                code = codeElement.GetString();
+                return !string.IsNullOrWhiteSpace(code);
+            }
+        }
+        catch
+        {
+        }
+
+        return false;
+    }
+
+    private static async Task<bool> ResumeScheduledCancellationAsync(
+        HttpClient client,
+        AppDbContext db,
+        IHubContext<BillingHub, IBillingClient> billingHub,
+        Organization org,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(org.DodoSubscriptionId))
+            return false;
+
+        var response = await client.PatchAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}", new
+        {
+            cancel_at_next_billing_date = false
+        }, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            return false;
+
+        var result = await response.Content.ReadFromJsonAsync<DodoSubscriptionResponse>(cancellationToken: cancellationToken);
+
+        org.SubscriptionStatus = SubscriptionStatus.Active;
+        if (result?.NextBillingDate is not null)
+            org.PlanExpiresAt = result.NextBillingDate;
+        if (!string.IsNullOrWhiteSpace(result?.SubscriptionId))
+            org.DodoSubscriptionId = result.SubscriptionId;
+
+        org.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
+        return true;
     }
 
     private static Task NotifyBillingUpdatedAsync(
@@ -623,6 +760,7 @@ public class DodoWebhookData
     public DodoCustomer Customer { get; set; } = new(null);
     public string? ProductId { get; set; }
     public string? Status { get; set; }
+    public bool? CancelAtNextBillingDate { get; set; }
     public Dictionary<string, string>? Metadata { get; set; }
     public DateTime? NextBillingDate { get; set; }
     public DateTime? ExpiresAt { get; set; }

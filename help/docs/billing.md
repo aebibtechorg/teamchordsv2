@@ -16,16 +16,17 @@ Team Chords currently presents these plans:
 - Free
 - intended for individuals or small starter libraries
 - includes limited chord sheets, set lists, and team members
+- includes shared Live Mode updates for the set list view
 
 ### Gigging Band
 - paid monthly plan
 - supports larger libraries and unlimited collaboration
-- includes live sync and more active team workflows
+- includes musician-local transpose controls, offline access, and print/PDF support
 
 ### Pro Library
 - paid monthly plan
 - built for organizations that need the highest capacity
-- includes everything in lower paid tiers plus larger-scale admin use
+- includes everything in lower paid tiers plus higher capacity limits
 
 ## What the Billing page shows
 
@@ -112,6 +113,8 @@ The pricing page explains:
 - monthly billing
 - cancellation policy
 - feature comparisons across tiers
+- Jam Session includes shared Live Mode updates
+- Gigging Band adds musician-local transpose controls, offline reuse, and print/PDF support
 
 It also supports sign-in-aware checkout behavior.
 

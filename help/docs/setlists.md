@@ -68,7 +68,7 @@ This is a good time to confirm:
 Saved set lists support:
 
 - **Copy Link** — copies a shareable link
-- **Preview** — opens the live/public view of the set list
+- **Open Live View** — opens the live/public set list view
 
 This is useful for:
 
@@ -76,6 +76,7 @@ This is useful for:
 - sending charts to teammates
 - print preparation
 - live display workflows
+- musician-local transpose checks on the viewer's device
 
 ## Saving behavior
 

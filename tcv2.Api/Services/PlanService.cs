@@ -81,6 +81,7 @@ namespace tcv2.Api.Services
         public static bool IsSubscriptionActive(Organization org)
         {
             return org.SubscriptionStatus == SubscriptionStatus.Active ||
+                   org.SubscriptionStatus == SubscriptionStatus.ScheduledToEnd ||
                    (org.SubscriptionStatus == SubscriptionStatus.None && org.Plan == Plan.Free);
         }
     }
