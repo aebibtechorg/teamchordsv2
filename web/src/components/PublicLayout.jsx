@@ -12,12 +12,12 @@ const PublicLayout = ({ children }) => {
           </Link>
         </h1>
         <div className="flex items-center gap-2">
-          <Link to="/" className="px-3 py-2 sm:px-4 sm:py-2 rounded bg-gray-500 hover:bg-gray-600 transition text-sm sm:text-base">
+          <Link to="/" className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base">
             Back to Home
           </Link>
-          <a href="/help" className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base">
-            Help
-          </a>
+          {/*<a href="/help" className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base">*/}
+          {/*  Help*/}
+          {/*</a>*/}
         </div>
       </nav>
 
