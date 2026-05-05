@@ -1,17 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
-  --tc-bg: #f3f4f6; /* gray-100 */
-  --tc-hero: #374151; /* gray-700 */
-  --tc-accent: #6b7280; /* gray-500 */
+  --tc-bg: #f3f4f6;
+  --tc-surface: #ffffff;
+  --tc-surface-2: #e5e7eb;
+  --tc-hero: #374151;
+  --tc-accent: #4f46e5;
+  --tc-border: #d1d5db;
+  --tc-text: #111827;
+  --tc-text-muted: #4b5563;
+}
+
+[data-theme='dark'] {
+  --tc-bg: #1b1b1d;
+  --tc-surface: #242526;
+  --tc-surface-2: #2f3133;
+  --tc-hero: #111827;
+  --tc-accent: #93c5fd;
+  --tc-border: #3a3b3c;
+  --tc-text: #f5f6f7;
+  --tc-text-muted: #c7c8ca;
 }
 
 html, body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
   background-color: var(--tc-bg);
+  color: var(--tc-text);
 }
 
-.navbar, .navbar__inner {
+.navbar,
+.navbar__inner {
   background-color: var(--tc-hero) !important;
 }
 
@@ -24,17 +42,64 @@ html, body {
   color: white !important;
 }
 
-.footer { background: #e6e7ea; }
+.footer {
+  background: var(--tc-surface-2);
+}
 
 .docItemWrapper {
-  background: white;
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-border);
   padding: 24px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .button--primary {
-  background-color: #4b5563; /* gray-600 */
+  background-color: var(--tc-hero);
   color: white;
+}
+
+.button--secondary {
+  color: var(--tc-text);
+}
+
+.support-page {
+  color: var(--tc-text);
+}
+
+.support-page__header {
+  margin-bottom: 24px;
+}
+
+.support-page__lede,
+.support-page__muted {
+  color: var(--tc-text-muted);
+}
+
+.support-section {
+  margin-bottom: 24px;
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.support-section__title {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.support-page__warning {
+  margin-top: 12px;
+  color: #b45309;
+}
+
+[data-theme='dark'] .support-page__warning {
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .docItemWrapper {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 

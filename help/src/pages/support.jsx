@@ -4,17 +4,8 @@ const SUPPORT_EMAIL = 'support@teamchords.com';
 
 function Section({ title, children }) {
   return (
-    <section
-      style={{
-        marginBottom: 24,
-        background: '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: 12,
-        padding: 20,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      }}
-    >
-      <h2 style={{ marginTop: 0, marginBottom: 12 }}>{title}</h2>
+    <section className="support-section">
+      <h2 className="support-section__title">{title}</h2>
       {children}
     </section>
   );
@@ -161,10 +152,10 @@ export default function SupportPage() {
   };
 
   return (
-    <main style={{ maxWidth: 980, margin: '32px auto', padding: '0 16px 40px' }}>
-      <header style={{ marginBottom: 24 }}>
+    <main className="support-page" style={{ maxWidth: 980, margin: '32px auto', padding: '0 16px 40px' }}>
+      <header className="support-page__header">
         <h1 style={{ marginBottom: 8 }}>Support</h1>
-        <p style={{ color: '#4b5563', margin: 0 }}>
+        <p className="support-page__lede" style={{ margin: 0 }}>
           Need help with Team Chords? Start a live chat for the fastest response, or email us if chat is unavailable.
         </p>
       </header>
@@ -194,13 +185,13 @@ export default function SupportPage() {
         </div>
 
         {configError && (
-          <p style={{ marginTop: 12, color: '#b45309' }}>
+          <p className="support-page__warning">
             {configError}
           </p>
         )}
 
         {!loading && !canChat && !configError && (
-          <p style={{ marginTop: 12, color: '#6b7280' }}>
+          <p className="support-page__muted" style={{ marginTop: 12 }}>
             Chat is not enabled in this environment. Please use email support instead.
           </p>
         )}
@@ -238,7 +229,7 @@ export default function SupportPage() {
           If live chat is unavailable or you prefer email, contact us at{' '}
           <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
         </p>
-        <p style={{ marginBottom: 0, color: '#4b5563' }}>
+        <p className="support-page__muted" style={{ marginBottom: 0 }}>
           For the fastest reply, include the support checklist above and, if possible, a short description of the exact steps that caused the issue.
         </p>
       </Section>

@@ -145,12 +145,12 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy help to Firebase Hosting (uses GCP SA credentials)
+      - name: Deploy help to Firebase Hosting
         working-directory: help
         run: |
           npx firebase-tools target:apply hosting help "$HELP_FIREBASE_SITE_ID" --project "$PROJECT_ID"
           npx firebase-tools deploy --only hosting:help --project "$PROJECT_ID"
 
-      - name: Deploy to Firebase Hosting
+      - name: Deploy web to Firebase Hosting
         working-directory: web
         run: npx firebase-tools deploy --only hosting --project "$PROJECT_ID"
