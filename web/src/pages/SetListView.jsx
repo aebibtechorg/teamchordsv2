@@ -1,12 +1,13 @@
+/* eslint-disable react/prop-types */
 import { useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { getOutputs, getCapoText } from "../utils/outputs";
 import { getSetList } from "../utils/setlists";
-import { keys } from "../constants";
+import { frets, keys } from "../constants";
 import { clearLiveViewOverrides, clearLiveViewSnapshot, loadLiveViewBannerDismissal, loadLiveViewOverrides, loadLiveViewSnapshot, saveLiveViewBannerDismissal, saveLiveViewOverrides, saveLiveViewSnapshot } from "../utils/liveViewCache";
 import ChordSheetJS from "chordsheetjs";
 import { Key } from "chordsheetjs";
-import { Guitar, PrinterIcon, RefreshCw, SlidersHorizontal, X } from "lucide-react";
+import { PrinterIcon, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { Toaster, toast } from 'react-hot-toast';
 import { AnimatePresence, motion } from "framer-motion";
@@ -85,10 +86,51 @@ const ScaledPage = ({ html, pageSizeKey }) => {
 const AnimatedOutputCard = motion.div;
 
 const SHARED_KEY_LABEL = "Use shared key";
+const SHARED_CAPO_LABEL = "Use shared capo";
 const LIVE_VIEW_BANNER_MODE = "live";
 const OFFLINE_VIEW_BANNER_MODE = "offline";
 
 const getOutputStorageKey = (output, index) => String(output?.id ?? output?.chordSheetId ?? output?.order ?? index);
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value ?? {}, key);
+
+const normalizePersonalOverride = (value) => {
+    if (typeof value === "string") {
+        return value ? { key: value } : {};
+    }
+
+    if (!value || typeof value !== "object") {
+        return {};
+    }
+
+    const normalized = {};
+
+    if (typeof value.key === "string" && value.key) {
+        normalized.key = value.key;
+    }
+
+    if (value.capo !== "" && value.capo !== null && value.capo !== undefined) {
+        const normalizedCapo = Number(value.capo);
+        if (!Number.isNaN(normalizedCapo)) {
+            normalized.capo = normalizedCapo;
+        }
+    }
+
+    return normalized;
+};
+
+const normalizePersonalOverrides = (value) => {
+    if (!value || typeof value !== "object") {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(value)
+            .map(([storageKey, overrideValue]) => [storageKey, normalizePersonalOverride(overrideValue)])
+            .filter(([, overrideValue]) => Object.keys(overrideValue).length > 0)
+    );
+};
+
+const getPersonalOverride = (output, overrides, index) => normalizePersonalOverride(overrides?.[getOutputStorageKey(output, index)]);
 
 const normalizeSetList = (value) => ({
     ...value,
@@ -100,8 +142,30 @@ const getResolvedKey = (output, overrides, index, canUsePaidControls) => {
         return output?.targetKey || output?.chordsheets?.key || "";
     }
 
-    const storageKey = getOutputStorageKey(output, index);
-    return overrides?.[storageKey] || output?.targetKey || output?.chordsheets?.key || "";
+    const personalOverride = getPersonalOverride(output, overrides, index);
+    return personalOverride.key || output?.targetKey || output?.chordsheets?.key || "";
+};
+
+const getResolvedCapo = (output, overrides, index, canUsePaidControls) => {
+    if (!canUsePaidControls) {
+        return Number(output?.capo) || 0;
+    }
+
+    const personalOverride = getPersonalOverride(output, overrides, index);
+    return hasOwn(personalOverride, "capo") ? personalOverride.capo : (Number(output?.capo) || 0);
+};
+
+const formatCapoValue = (capo) => {
+    if (capo === "" || capo === null || capo === undefined) {
+        return "—";
+    }
+
+    const normalizedCapo = Number(capo);
+    if (Number.isNaN(normalizedCapo)) {
+        return "—";
+    }
+
+    return normalizedCapo > 0 ? getCapoText(normalizedCapo) : "None";
 };
 
 const SetListView = () => {
@@ -111,7 +175,7 @@ const SetListView = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [pageSize, setPageSize] = useState("letter");
     const [controlsOpen, setControlsOpen] = useState(false);
-    const [personalKeyOverrides, setPersonalKeyOverrides] = useState({});
+    const [personalOverrides, setPersonalOverrides] = useState({});
     const [isOfflineView, setIsOfflineView] = useState(false);
     const [bannerDismissals, setBannerDismissals] = useState(() => ({
         [LIVE_VIEW_BANNER_MODE]: loadLiveViewBannerDismissal(LIVE_VIEW_BANNER_MODE),
@@ -121,6 +185,28 @@ const SetListView = () => {
     const canUsePaidControls = Boolean(setlist?.canUsePaidControls);
     const bannerMode = isOfflineView ? OFFLINE_VIEW_BANNER_MODE : LIVE_VIEW_BANNER_MODE;
     const isBannerDismissed = bannerDismissals[bannerMode];
+
+    const updatePersonalOverride = (outputStorageKey, updater) => {
+        setPersonalOverrides((prev) => {
+            const current = normalizePersonalOverride(prev?.[outputStorageKey]);
+            const nextValue = normalizePersonalOverride(updater(current));
+
+            if (Object.keys(nextValue).length === 0) {
+                if (!(outputStorageKey in prev)) {
+                    return prev;
+                }
+
+                const next = { ...prev };
+                delete next[outputStorageKey];
+                return next;
+            }
+
+            return {
+                ...prev,
+                [outputStorageKey]: nextValue,
+            };
+        });
+    };
 
     useEffect(() => {
         if (!controlsOpen) return;
@@ -148,7 +234,7 @@ const SetListView = () => {
     useEffect(() => {
         if (!canUsePaidControls) {
             setControlsOpen(false);
-            setPersonalKeyOverrides({});
+            setPersonalOverrides({});
         }
     }, [canUsePaidControls]);
 
@@ -156,13 +242,13 @@ const SetListView = () => {
         if (!id) {
             setSetlist(null);
             setOutputs([]);
-            setPersonalKeyOverrides({});
+            setPersonalOverrides({});
             setIsOfflineView(false);
             setIsLoading(false);
             return;
         }
 
-        setPersonalKeyOverrides({});
+        setPersonalOverrides({});
         setIsLoading(true);
         setIsOfflineView(false);
 
@@ -176,7 +262,7 @@ const SetListView = () => {
                     setSetlist(normalizedSetList);
                     setOutputs(outputData ?? []);
                     setIsOfflineView(false);
-                    setPersonalKeyOverrides(normalizedSetList.canUsePaidControls ? loadLiveViewOverrides(id) : {});
+                    setPersonalOverrides(normalizedSetList.canUsePaidControls ? normalizePersonalOverrides(loadLiveViewOverrides(id)) : {});
                     if (!normalizedSetList.canUsePaidControls) {
                         clearLiveViewOverrides(id);
                         clearLiveViewSnapshot(id);
@@ -205,7 +291,7 @@ const SetListView = () => {
                 const cachedSetlist = normalizeSetList(cachedView.setlist);
                 setSetlist(cachedSetlist);
                 setOutputs(cachedView.outputs ?? []);
-                setPersonalKeyOverrides(loadLiveViewOverrides(id));
+                setPersonalOverrides(normalizePersonalOverrides(loadLiveViewOverrides(id)));
                 setIsOfflineView(true);
                 document.title = cachedView.setlist?.name ? `Team Chords - ${cachedView.setlist.name}` : "Team Chords";
                 toast.success("Loaded the last saved live view for offline use.");
@@ -226,9 +312,9 @@ const SetListView = () => {
         }
 
         if (canUsePaidControls) {
-            saveLiveViewOverrides(id, personalKeyOverrides);
+            saveLiveViewOverrides(id, normalizePersonalOverrides(personalOverrides));
         }
-    }, [canUsePaidControls, id, personalKeyOverrides]);
+    }, [canUsePaidControls, id, personalOverrides]);
 
     useEffect(() => {
         if (!id || !setlist) {
@@ -435,8 +521,18 @@ const SetListView = () => {
             )}
 
             <div className="hidden print:block">
-                {outputs.map((output) => (
-                    <pre key={output.id} dangerouslySetInnerHTML={{ __html: renderChordPro(output.chordsheets?.content, output.chordsheets?.key, output.targetKey, output.capo) }} />
+                {outputs.map((output, index) => (
+                    <pre
+                        key={output.id ?? `${output.chordSheetId}-${output.order ?? index}`}
+                        dangerouslySetInnerHTML={{
+                            __html: renderChordPro(
+                                output.chordsheets?.content,
+                                output.chordsheets?.key,
+                                getResolvedKey(output, personalOverrides, index, canUsePaidControls),
+                                getResolvedCapo(output, personalOverrides, index, canUsePaidControls),
+                            )
+                        }}
+                    />
                 ))}
             </div>
 
@@ -495,7 +591,10 @@ const SetListView = () => {
                 <AnimatePresence initial={false} mode="popLayout">
                     {outputs.map((output, index) => {
                         const outputStorageKey = getOutputStorageKey(output, index);
-                        const overrideKey = canUsePaidControls ? personalKeyOverrides[outputStorageKey] ?? '' : '';
+                        const personalOverride = canUsePaidControls ? getPersonalOverride(output, personalOverrides, index) : {};
+                        const overrideKey = canUsePaidControls ? personalOverride.key ?? '' : '';
+                        const hasCapoOverride = canUsePaidControls ? hasOwn(personalOverride, "capo") : false;
+                        const overrideCapoValue = hasCapoOverride ? String(personalOverride.capo) : '';
 
                         return (
                             <AnimatedOutputCard
@@ -511,27 +610,22 @@ const SetListView = () => {
                                         <div>
                                             <p className="text-sm font-semibold text-gray-900">Song {index + 1}</p>
                                             <p className="text-xs text-gray-500">
-                                                Shared key: {output.targetKey || '—'} · Original key: {output.chordsheets?.key || '—'}
+                                                Shared key: {output.targetKey || '—'} · Original key: {output.chordsheets?.key || '—'} · Capo: {formatCapoValue(output.capo)}
                                             </p>
                                         </div>
 
                                         {canUsePaidControls && (
                                             <div className="flex flex-wrap items-end gap-3">
                                                 <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                    Personal transpose
+                                                    Key
                                                     <select
                                                         value={overrideKey}
                                                         onChange={(e) => {
                                                             const nextValue = e.target.value;
-                                                            setPersonalKeyOverrides((prev) => {
-                                                                const next = { ...prev };
-                                                                if (nextValue) {
-                                                                    next[outputStorageKey] = nextValue;
-                                                                } else {
-                                                                    delete next[outputStorageKey];
-                                                                }
-                                                                return next;
-                                                            });
+                                                            updatePersonalOverride(outputStorageKey, (current) => ({
+                                                                ...current,
+                                                                key: nextValue,
+                                                            }));
                                                         }}
                                                         className="mt-1 w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 outline-none transition focus:border-gray-500"
                                                     >
@@ -542,20 +636,34 @@ const SetListView = () => {
                                                     </select>
                                                 </label>
 
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                    Capo
+                                                    <select
+                                                        value={overrideCapoValue}
+                                                        onChange={(e) => {
+                                                            const nextValue = e.target.value;
+                                                            updatePersonalOverride(outputStorageKey, (current) => ({
+                                                                ...current,
+                                                                capo: nextValue === '' ? undefined : Number(nextValue),
+                                                            }));
+                                                        }}
+                                                        className="mt-1 w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-normal text-gray-900 outline-none transition focus:border-gray-500"
+                                                    >
+                                                        <option value="">{SHARED_CAPO_LABEL}</option>
+                                                        <option value="0">None</option>
+                                                        {frets.map((fret) => (
+                                                            <option key={fret} value={fret}>{getCapoText(Number(fret))}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setPersonalKeyOverrides((prev) => {
-                                                            if (!(outputStorageKey in prev)) {
-                                                                return prev;
-                                                            }
-                                                            const next = { ...prev };
-                                                            delete next[outputStorageKey];
-                                                            return next;
-                                                        });
+                                                        updatePersonalOverride(outputStorageKey, () => ({}));
                                                     }}
                                                     className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                                                    disabled={!overrideKey}
+                                                    disabled={!overrideKey && !hasCapoOverride}
                                                 >
                                                     <RefreshCw size={14} />
                                                     Reset
@@ -568,8 +676,8 @@ const SetListView = () => {
                                         html={renderChordPro(
                                             output.chordsheets?.content,
                                             output.chordsheets?.key,
-                                            getResolvedKey(output, personalKeyOverrides, index, canUsePaidControls),
-                                            output.capo,
+                                            getResolvedKey(output, personalOverrides, index, canUsePaidControls),
+                                            getResolvedCapo(output, personalOverrides, index, canUsePaidControls),
                                         )}
                                         pageSizeKey={pageSize}
                                     />
