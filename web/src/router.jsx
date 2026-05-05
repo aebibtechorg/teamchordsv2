@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
-import App from "./App";
+import LandingPage from "./LandingPage.jsx";
 import Signup from "./pages/Signup";
 import Signin from "./pages/Signin";
 import ChordLibrary from "./pages/ChordLibrary";
@@ -21,9 +21,10 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import TeamManagement from "./pages/TeamManagement";
 import Pricing from "./pages/Pricing.jsx";
 import Billing from "./pages/Billing.jsx";
+import NotFound from "./pages/NotFound.jsx";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <App /> },
+  { path: "/", element: <LandingPage /> },
   { path: "/signup", element: <Signup /> },
   { path: "/signin", element: <Signin /> },
   {
@@ -92,4 +93,5 @@ export const router = createBrowserRouter([
   },
   { path: "/pricing", element: <Protected><Pricing /></Protected> },
   { path: "/billing", element: <Protected><Billing /></Protected> },
+  { path: "*", element: <NotFound /> },
 ]);

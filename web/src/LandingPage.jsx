@@ -6,7 +6,7 @@ import MainLogo from "./components/MainLogo";
 import PricingCards from "./components/PricingCards";
 import ChatwootWidget from "./components/ChatwootWidget";
 
-function App() {
+function LandingPage() {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
   const navigate = useNavigate();
 
@@ -176,4 +176,4 @@ function App() {
   );
 }
 
-export default App;
+export default LandingPage;
