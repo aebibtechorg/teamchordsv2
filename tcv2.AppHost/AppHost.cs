@@ -191,4 +191,57 @@ if (builder.Configuration["Destination"] == "compose")
         });
 }
 
+if (builder.Configuration["Destination"] == "test")
+{
+    var postgres = builder.AddPostgres("tcdb")
+        .ExcludeFromManifest();
+
+    var db = postgres.AddDatabase("TeamChords", "teamchords");
+
+    var redis = builder.AddRedis("Redis")
+        .ExcludeFromManifest();
+
+    builder.AddProject<Projects.tcv2_Api>("api")
+        .WithEnvironment(c =>
+        {
+            c.EnvironmentVariables.Add("Auth0__Domain", builder.Configuration["Auth0:Domain"] ?? Environment.GetEnvironmentVariable("Auth0__Domain") ?? "");
+            c.EnvironmentVariables.Add("Auth0__Audience", builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "");
+            c.EnvironmentVariables.Add("Auth0__ClientId", builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("Auth0__ClientSecret", builder.Configuration["Auth0:ClientSecret"] ?? Environment.GetEnvironmentVariable("Auth0__ClientSecret") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__Domain", builder.Configuration["AdminAuth0:Domain"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Domain") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__Audience", builder.Configuration["AdminAuth0:Audience"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Audience") ?? "");
+            c.EnvironmentVariables.Add("AdminAuth0__ClientId", builder.Configuration["AdminAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("AdminAuth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("WebAuth0__Domain", builder.Configuration["WebAuth0:Domain"] ?? Environment.GetEnvironmentVariable("WebAuth0__Domain") ?? "");
+            c.EnvironmentVariables.Add("WebAuth0__Audience", builder.Configuration["WebAuth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? "");
+            c.EnvironmentVariables.Add("WebAuth0__ClientId", builder.Configuration["WebAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? "");
+            c.EnvironmentVariables.Add("CustomerApp__BaseUrl", builder.Configuration["CustomerApp:BaseUrl"] ?? Environment.GetEnvironmentVariable("CustomerApp__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__BaseUrl", builder.Configuration["Chatwoot:BaseUrl"] ?? Environment.GetEnvironmentVariable("Chatwoot__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__WebsiteToken", builder.Configuration["Chatwoot:WebsiteToken"] ?? Environment.GetEnvironmentVariable("Chatwoot__WebsiteToken") ?? "");
+            c.EnvironmentVariables.Add("Chatwoot__Position", builder.Configuration["Chatwoot:Position"] ?? Environment.GetEnvironmentVariable("Chatwoot__Position") ?? "right");
+            c.EnvironmentVariables.Add("Chatwoot__HideMessageBubble", builder.Configuration["Chatwoot:HideMessageBubble"] ?? Environment.GetEnvironmentVariable("Chatwoot__HideMessageBubble") ?? "false");
+            c.EnvironmentVariables.Add("Chatwoot__Locale", builder.Configuration["Chatwoot:Locale"] ?? Environment.GetEnvironmentVariable("Chatwoot__Locale") ?? "en");
+            c.EnvironmentVariables.Add("ZeptoMail__ApiKey", builder.Configuration["ZeptoMail:ApiKey"] ?? Environment.GetEnvironmentVariable("ZeptoMail__ApiKey") ?? "");
+            c.EnvironmentVariables.Add("ZeptoMail__TemplateKey", builder.Configuration["ZeptoMail:TemplateKey"] ?? Environment.GetEnvironmentVariable("ZeptoMail__TemplateKey") ?? "");
+            c.EnvironmentVariables.Add("ZeptoMail__FromEmailAddress", builder.Configuration["ZeptoMail:FromEmailAddress"] ?? Environment.GetEnvironmentVariable("ZeptoMail__FromEmailAddress") ?? "");
+            c.EnvironmentVariables.Add("ZeptoMail__FromName", builder.Configuration["ZeptoMail:FromName"] ?? Environment.GetEnvironmentVariable("ZeptoMail__FromName") ?? "");
+            c.EnvironmentVariables.Add("ZeptoMail__BaseUrl", builder.Configuration["ZeptoMail:BaseUrl"] ?? Environment.GetEnvironmentVariable("ZeptoMail__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("Dodo__SecretKey", builder.Configuration["Dodo:SecretKey"] ?? Environment.GetEnvironmentVariable("Dodo__SecretKey") ?? "");
+            c.EnvironmentVariables.Add("Dodo__WebhookSecret", builder.Configuration["Dodo:WebhookSecret"] ?? Environment.GetEnvironmentVariable("Dodo__WebhookSecret") ?? "");
+            c.EnvironmentVariables.Add("Dodo__BaseUrl", builder.Configuration["Dodo:BaseUrl"] ?? Environment.GetEnvironmentVariable("Dodo__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("RateLimiting__Enabled", builder.Configuration["RateLimiting:Enabled"] ?? Environment.GetEnvironmentVariable("RateLimiting__Enabled") ?? "true");
+            c.EnvironmentVariables.Add("RateLimiting__QueueLimit", builder.Configuration["RateLimiting:QueueLimit"] ?? Environment.GetEnvironmentVariable("RateLimiting__QueueLimit") ?? "0");
+            c.EnvironmentVariables.Add("RateLimiting__Authenticated__PermitLimit", builder.Configuration["RateLimiting:Authenticated:PermitLimit"] ?? Environment.GetEnvironmentVariable("RateLimiting__Authenticated__PermitLimit") ?? "120");
+            c.EnvironmentVariables.Add("RateLimiting__Authenticated__WindowSeconds", builder.Configuration["RateLimiting:Authenticated:WindowSeconds"] ?? Environment.GetEnvironmentVariable("RateLimiting__Authenticated__WindowSeconds") ?? "60");
+            c.EnvironmentVariables.Add("RateLimiting__Anonymous__PermitLimit", builder.Configuration["RateLimiting:Anonymous:PermitLimit"] ?? Environment.GetEnvironmentVariable("RateLimiting__Anonymous__PermitLimit") ?? "20");
+            c.EnvironmentVariables.Add("RateLimiting__Anonymous__WindowSeconds", builder.Configuration["RateLimiting:Anonymous:WindowSeconds"] ?? Environment.GetEnvironmentVariable("RateLimiting__Anonymous__WindowSeconds") ?? "60");
+            c.EnvironmentVariables.Add("RateLimiting__Webhook__PermitLimit", builder.Configuration["RateLimiting:Webhook:PermitLimit"] ?? Environment.GetEnvironmentVariable("RateLimiting__Webhook__PermitLimit") ?? "120");
+            c.EnvironmentVariables.Add("RateLimiting__Webhook__WindowSeconds", builder.Configuration["RateLimiting:Webhook:WindowSeconds"] ?? Environment.GetEnvironmentVariable("RateLimiting__Webhook__WindowSeconds") ?? "60");
+        })
+        .WithReference(db)
+        .WaitFor(db)
+        .WithReference(redis)
+        .WaitFor(redis)
+        .WithExternalHttpEndpoints();
+}
+
 builder.Build().Run();
