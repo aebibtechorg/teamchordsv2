@@ -7,6 +7,11 @@ export default defineConfig(({ mode }) => {
   const target = env['services__api__http__0'];
   return {
     plugins: [react(), tailwindcss()],
+    test: {
+      environment: 'jsdom',
+      setupFiles: './src/test/setup.jsx',
+      clearMocks: true,
+    },
     server:{
       port: parseInt(env.VITE_PORT),
       proxy: {

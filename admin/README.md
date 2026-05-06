@@ -38,7 +38,7 @@ npm run dev
 
 - dashboard shell
 - organization list/detail/members views
-- analytics placeholder
+- analytics trends and breakdown charts
 - support handoff into the existing customer workflow
 - Auth0-backed admin bootstrap and role-aware sign-out state
 - Auth0-backed admin bootstrap and role-aware sign-out state, with no dependency on a stored customer `User` record

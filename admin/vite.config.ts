@@ -9,19 +9,36 @@ import { nitro } from "nitro/vite"
 const config = defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "")
   const apiTarget = env["services__api__http__0"] || env.VITE_API_TARGET || "http://localhost:5000"
+  const isVitest = process.env.VITEST === "true"
 
   return {
-    plugins: [
-      devtools(),
-      nitro(),
-      // this is the plugin that enables path aliases
-      viteTsConfigPaths({
-        projects: ["./tsconfig.json"],
-      }),
-      tailwindcss(),
-      tanstackStart(),
-      viteReact(),
-    ],
+    plugins: isVitest
+      ? [
+          viteTsConfigPaths({
+            projects: ["./tsconfig.json"],
+          }),
+          tailwindcss(),
+          viteReact(),
+        ]
+      : [
+          devtools(),
+          nitro(),
+          // this is the plugin that enables path aliases
+          viteTsConfigPaths({
+            projects: ["./tsconfig.json"],
+          }),
+          tailwindcss(),
+          tanstackStart(),
+          viteReact(),
+        ],
+    test: {
+      environment: "jsdom",
+      setupFiles: "./src/test/setup.tsx",
+      clearMocks: true,
+    },
+    resolve: {
+      dedupe: ["react", "react-dom"],
+    },
     server: {
       port: parseInt(env.VITE_PORT) || 3000,
       proxy: {
