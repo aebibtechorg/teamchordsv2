@@ -10,6 +10,11 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
+using Microsoft.Extensions.Options;
+using tcv2.Api.Configuration;
+using tcv2.Api.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -85,7 +90,7 @@ builder.Services.AddAuthentication(options =>
     options.Audience = auth0Audience;
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
+        NameClaimType = ClaimTypes.NameIdentifier,
         RoleClaimType = "https://teamchordsapp.io/roles",
         ValidateIssuer = false,
         ValidateAudience = false
@@ -97,6 +102,22 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminAccess", policy => policy.RequireRole("platform-admin", "support"));
     options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("platform-admin"));
 });
+
+builder.Services.AddOptions<RateLimitingOptions>()
+    .BindConfiguration("RateLimiting")
+    .Validate(options =>
+        options.QueueLimit >= 0
+        && options.Authenticated.PermitLimit > 0
+        && options.Authenticated.WindowSeconds > 0
+        && options.Anonymous.PermitLimit > 0
+        && options.Anonymous.WindowSeconds > 0
+        && options.Webhook.PermitLimit > 0
+        && options.Webhook.WindowSeconds > 0,
+        "RateLimiting settings must use positive limits and windows.")
+    .ValidateOnStart();
+
+builder.Services.AddRateLimiter(_ => { });
+builder.Services.AddSingleton<IConfigureOptions<RateLimiterOptions>, ConfigureRateLimiterOptions>();
 
 builder.AddNpgsqlDbContext<AppDbContext>("TeamChords");
 
@@ -147,11 +168,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // API endpoint groups
 var api = app.MapGroup("/api");
 
 api.RequireAuthorization();
+
+if (app.Services.GetRequiredService<IOptions<RateLimitingOptions>>().Value.Enabled)
+{
+    api.RequireRateLimiting("Api");
+}
 
 // SignalR hubs
 // app.MapHub<ChordSheetHub>("/hubs/chordsheets");
