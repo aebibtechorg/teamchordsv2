@@ -225,6 +225,8 @@ if (builder.Configuration["Destination"] == "test")
             c.EnvironmentVariables.Add("Dodo__SecretKey", builder.Configuration["Dodo:SecretKey"] ?? Environment.GetEnvironmentVariable("Dodo__SecretKey") ?? "");
             c.EnvironmentVariables.Add("Dodo__WebhookSecret", builder.Configuration["Dodo:WebhookSecret"] ?? Environment.GetEnvironmentVariable("Dodo__WebhookSecret") ?? "");
             c.EnvironmentVariables.Add("Dodo__BaseUrl", builder.Configuration["Dodo:BaseUrl"] ?? Environment.GetEnvironmentVariable("Dodo__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("Auth0__Issuer", builder.Configuration["Auth0:Issuer"] ?? Environment.GetEnvironmentVariable("Auth0__Issuer") ?? "https://teamchords.test/");
+            c.EnvironmentVariables.Add("Auth0__SigningKey", builder.Configuration["Auth0:SigningKey"] ?? Environment.GetEnvironmentVariable("Auth0__SigningKey") ?? "teamchords-test-signing-key-teamchords-test-signing-key");
             c.EnvironmentVariables.Add("RateLimiting__Enabled", builder.Configuration["RateLimiting:Enabled"] ?? Environment.GetEnvironmentVariable("RateLimiting__Enabled") ?? "true");
             c.EnvironmentVariables.Add("RateLimiting__QueueLimit", builder.Configuration["RateLimiting:QueueLimit"] ?? Environment.GetEnvironmentVariable("RateLimiting__QueueLimit") ?? "0");
             c.EnvironmentVariables.Add("RateLimiting__Authenticated__PermitLimit", builder.Configuration["RateLimiting:Authenticated:PermitLimit"] ?? Environment.GetEnvironmentVariable("RateLimiting__Authenticated__PermitLimit") ?? "120");

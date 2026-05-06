@@ -15,6 +15,7 @@ using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using tcv2.Api.Configuration;
 using tcv2.Api.Options;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,9 +74,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Auth0 JWT authentication if settings are present
+// Configure Auth0 JWT authentication if settings are present.
+// When a signing key is supplied we switch to a deterministic local JWT setup for tests.
 var auth0Domain = builder.Configuration["Auth0:Domain"] ?? builder.Configuration["AUTH0_DOMAIN"]; // e.g. https://my-tenant.auth0.com/
 var auth0Audience = builder.Configuration["Auth0:Audience"] ?? builder.Configuration["AUTH0_AUDIENCE"]; // e.g. api://default
+var auth0Issuer = builder.Configuration["Auth0:Issuer"] ?? builder.Configuration["AUTH0_ISSUER"] ?? "https://teamchords.test/";
+var auth0SigningKey = builder.Configuration["Auth0:SigningKey"] ?? builder.Configuration["AUTH0_SIGNING_KEY"];
 
 Log.Information("Auth0 Domain: {Domain}", auth0Domain);
 Log.Information("Auth0 Audience: {Audience}", auth0Audience);
@@ -86,8 +90,6 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
-    options.Authority = $"https://{auth0Domain}/";
-    options.Audience = auth0Audience;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         NameClaimType = ClaimTypes.NameIdentifier,
@@ -95,6 +97,27 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = false,
         ValidateAudience = false
     };
+
+    if (!string.IsNullOrWhiteSpace(auth0SigningKey))
+    {
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = "https://teamchordsapp.io/roles",
+            ValidateIssuer = true,
+            ValidIssuer = auth0Issuer,
+            ValidateAudience = true,
+            ValidAudience = auth0Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(auth0SigningKey))
+        };
+    }
+    else
+    {
+        options.Authority = $"https://{auth0Domain}/";
+        options.Audience = auth0Audience;
+    }
 });
 
 builder.Services.AddAuthorization(options =>
