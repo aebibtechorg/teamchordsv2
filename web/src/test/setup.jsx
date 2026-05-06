@@ -3,6 +3,34 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 
+const storageData = new Map();
+const localStorageMock = {
+  getItem: vi.fn((key) => (storageData.has(key) ? storageData.get(key) : null)),
+  setItem: vi.fn((key, value) => {
+    storageData.set(String(key), String(value));
+  }),
+  removeItem: vi.fn((key) => {
+    storageData.delete(String(key));
+  }),
+  clear: vi.fn(() => {
+    storageData.clear();
+  }),
+  key: vi.fn((index) => Array.from(storageData.keys())[index] ?? null),
+  get length() {
+    return storageData.size;
+  },
+};
+
+Object.defineProperty(window, "localStorage", {
+  value: localStorageMock,
+  configurable: true,
+});
+
+Object.defineProperty(globalThis, "localStorage", {
+  value: localStorageMock,
+  configurable: true,
+});
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
 
@@ -23,6 +51,7 @@ vi.mock("framer-motion", () => ({
 }));
 
 beforeEach(() => {
+  localStorageMock.clear();
   document.body.innerHTML = '<div id="root"></div><div id="modal-root"></div>';
 
   if (window.HTMLDialogElement?.prototype) {
