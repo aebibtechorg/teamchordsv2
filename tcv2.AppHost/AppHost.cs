@@ -198,9 +198,6 @@ if (builder.Configuration["Destination"] == "test")
 
     var db = postgres.AddDatabase("TeamChords", "teamchords");
 
-    var redis = builder.AddRedis("Redis")
-        .ExcludeFromManifest();
-
     builder.AddProject<Projects.tcv2_Api>("api")
         .WithEnvironment(c =>
         {
@@ -239,8 +236,6 @@ if (builder.Configuration["Destination"] == "test")
         })
         .WithReference(db)
         .WaitFor(db)
-        .WithReference(redis)
-        .WaitFor(redis)
         .WithExternalHttpEndpoints();
 }
 
