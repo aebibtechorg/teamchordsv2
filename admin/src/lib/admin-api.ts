@@ -52,6 +52,26 @@ export type AdminSummary = {
   adminMembershipCount: number
 }
 
+export type AdminAnalyticsTrendPoint = {
+  label: string
+  value: number
+}
+
+export type AdminAnalyticsBreakdownItem = {
+  label: string
+  value: number
+  percentage: number
+}
+
+export type AdminAnalytics = {
+  generatedAt: string
+  organizationGrowth: Array<AdminAnalyticsTrendPoint>
+  userGrowth: Array<AdminAnalyticsTrendPoint>
+  membershipGrowth: Array<AdminAnalyticsTrendPoint>
+  planBreakdown: Array<AdminAnalyticsBreakdownItem>
+  subscriptionBreakdown: Array<AdminAnalyticsBreakdownItem>
+}
+
 export type AdminOrganization = {
   id: string
   ownerUserId?: string | null
@@ -157,6 +177,10 @@ export async function loadAdminSession() {
 
 export async function loadAdminSummary() {
   return requestJson<AdminSummary>('/api/admin/summary')
+}
+
+export async function loadAdminAnalytics() {
+  return requestJson<AdminAnalytics>('/api/admin/analytics')
 }
 
 export async function loadOrganizations(params: LoadOrganizationsParams = {}) {
