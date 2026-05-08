@@ -35,6 +35,7 @@ if (builder.Configuration["Destination"] == "aca")
             c.EnvironmentVariables.Add("Auth0__Audience", builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientId", builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientSecret", builder.Configuration["Auth0:ClientSecret"] ?? Environment.GetEnvironmentVariable("Auth0__ClientSecret") ?? "");
+            c.EnvironmentVariables.Add("Auth0__SyncSecret", builder.Configuration["Auth0:SyncSecret"] ?? Environment.GetEnvironmentVariable("Auth0__SyncSecret") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__Domain", builder.Configuration["AdminAuth0:Domain"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__Audience", builder.Configuration["AdminAuth0:Audience"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__ClientId", builder.Configuration["AdminAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("AdminAuth0__ClientId") ?? "");
@@ -148,6 +149,7 @@ if (builder.Configuration["Destination"] == "compose")
             c.EnvironmentVariables.Add("Auth0__Audience", builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientId", builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientSecret", builder.Configuration["Auth0:ClientSecret"] ?? Environment.GetEnvironmentVariable("Auth0__ClientSecret") ?? "");
+            c.EnvironmentVariables.Add("Auth0__SyncSecret", builder.Configuration["Auth0:SyncSecret"] ?? Environment.GetEnvironmentVariable("Auth0__SyncSecret") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__Domain", builder.Configuration["AdminAuth0:Domain"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__Audience", builder.Configuration["AdminAuth0:Audience"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__ClientId", builder.Configuration["AdminAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("AdminAuth0__ClientId") ?? "");
@@ -205,6 +207,7 @@ if (builder.Configuration["Destination"] == "test")
             c.EnvironmentVariables.Add("Auth0__Audience", builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientId", builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "");
             c.EnvironmentVariables.Add("Auth0__ClientSecret", builder.Configuration["Auth0:ClientSecret"] ?? Environment.GetEnvironmentVariable("Auth0__ClientSecret") ?? "");
+            c.EnvironmentVariables.Add("Auth0__SyncSecret", builder.Configuration["Auth0:SyncSecret"] ?? Environment.GetEnvironmentVariable("Auth0__SyncSecret") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__Domain", builder.Configuration["AdminAuth0:Domain"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Domain") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__Audience", builder.Configuration["AdminAuth0:Audience"] ?? Environment.GetEnvironmentVariable("AdminAuth0__Audience") ?? "");
             c.EnvironmentVariables.Add("AdminAuth0__ClientId", builder.Configuration["AdminAuth0:ClientId"] ?? Environment.GetEnvironmentVariable("AdminAuth0__ClientId") ?? "");

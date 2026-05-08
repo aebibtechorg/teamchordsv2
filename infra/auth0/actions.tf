@@ -18,6 +18,11 @@ resource "auth0_action" "register_teamchords" {
     name  = "TEAMCHORDS_API_BASE_URL"
     value = local.api_base_url
   }
+
+  secrets {
+    name  = "TEAMCHORDS_API_SYNC_SECRET"
+    value = var.api_sync_secret
+  }
 }
 
 resource "auth0_action" "add_role_claims" {

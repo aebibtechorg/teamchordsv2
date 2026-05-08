@@ -24,6 +24,12 @@ variable "api_base_url" {
   type        = string
 }
 
+variable "api_sync_secret" {
+  description = "Shared secret used by the Auth0 post-login Action to authenticate user sync requests"
+  type        = string
+  sensitive   = true
+}
+
 variable "customer_app_base_url" {
   description = "Public base URL for the customer web app, for example https://teamchords.com"
   type        = string

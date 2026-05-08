@@ -172,59 +172,20 @@ internal static class InviteEndpoints
 
         invites.MapGet("/{id}/accept", async (Guid id, AppDbContext db) =>
         {
-            var strategy = db.Database.CreateExecutionStrategy();
+            var invite = await db.Invites.FindAsync(id);
+            if (invite == null) return Results.NotFound(new { message = "Invite not found" });
+            if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
+            if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
 
-            return await strategy.ExecuteAsync(async () =>
+            var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower());
+
+            if (invite.OrganizationId != null)
             {
-                await using var tx = await db.Database.BeginTransactionAsync();
+                var org = await db.Organizations.FindAsync(invite.OrganizationId.Value);
+                if (org == null) return Results.NotFound("Organization not found");
+            }
 
-                try
-                {
-                    var invite = await db.Invites.FindAsync(id);
-                    if (invite == null) return Results.NotFound(new { message = "Invite not found" });
-                    if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
-                    if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
-
-                    var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower());
-                    var isExistingUser = existingUser != null;
-                    var oldUsed = invite.Used;
-                    invite.Used = true;
-
-                    if (isExistingUser)
-                    {
-                        if (invite.OrganizationId == null) return Results.BadRequest(new { message = "Invite organization is missing" });
-
-                        var organizationId = invite.OrganizationId.Value;
-                        var org = await db.Organizations.FindAsync(organizationId);
-                        if (org == null) return Results.NotFound("Organization not found");
-
-                        var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId);
-                        var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
-                        if (gate != null) return gate;
-
-                        if (existingUser == null) return Results.BadRequest(new { message = "User not found" });
-
-                        var userOrg = new UserOrganization
-                        {
-                            UserId = existingUser.Id,
-                            OrganizationId = organizationId,
-                            Role = OrgRole.Member,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.UserOrganizations.Add(userOrg);
-                    }
-
-                    await db.SaveChangesAsync();
-                    await tx.CommitAsync();
-
-                    return Results.Ok(new { isExistingUser, email = invite.Email, organizationId = invite.OrganizationId, used = oldUsed });
-                }
-                catch (DbUpdateException ex)
-                {
-                    await tx.RollbackAsync();
-                    return EndpointHelpers.HandleDbUpdateException(ex);
-                }
-            });
+            return Results.Ok(new { isExistingUser = existingUser != null, email = invite.Email, organizationId = invite.OrganizationId, used = invite.Used });
         }).AllowAnonymous();
 
         invites.MapPut("/{id}", async (Guid id, InviteDto dto, HttpRequest req, AppDbContext db) =>

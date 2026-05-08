@@ -9,31 +9,30 @@ function AcceptInvitePage() {
 
 
     const handleInvite = async () => {
-        let status = '';
         let navigateUrl = null;
         try {
             const res = await fetch(`/api/invites/${inviteId}/accept`);
 
             const result = await res.json();
             if (!res.ok) {
-                status = result.message || 'Failed to accept invite';
+                return { status: result.message || 'Failed to accept invite', navigateUrl: null };
             }
 
             if (result.used) {
-                status = 'This invite has already been used.';
+                return { status: 'This invite has already been used.', navigateUrl: null };
             }
             
-            if (!result.isExisting) {
-                status = 'Invite accepted! Redirecting to signup...';
-                navigateUrl = `/signup?e=${encodeURIComponent(result.email)}&orgId=${result.organizationId}`;
+            if (!result.isExistingUser) {
+                navigateUrl = `/signup?e=${encodeURIComponent(result.email)}&inviteId=${encodeURIComponent(inviteId)}`;
+                return { status: 'Invite accepted! Redirecting to signup...', navigateUrl };
             } else {
-                status = 'Invite accepted! Redirecting to signin...';
-                navigateUrl = '/signin';
+                navigateUrl = `/signin?e=${encodeURIComponent(result.email)}&inviteId=${encodeURIComponent(inviteId)}`;
+                return { status: 'Invite accepted! Redirecting to signin...', navigateUrl };
             }
         } catch (error) {
-            status = `Failed to accept invite: ${error.message}`;
+            return { status: `Failed to accept invite: ${error.message}`, navigateUrl: null };
         }
-        return { status, navigateUrl };
+        return { status: '', navigateUrl };
     }
 
     useEffect(() => {

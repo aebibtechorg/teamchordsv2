@@ -11,7 +11,7 @@ It provisions:
 - Roles: `platform-admin` and `support`
 - Database and Google connections
 - Two `post-login` actions:
-  - register first-time Google users with `POST /api/users/googlesignin`
+  - sync first-time users with `POST /api/users/auth0-sync`
   - add role claims to the ID token and access token under `https://teamchordsapp.io/roles`
 
 ## Runtime contract with the existing apps
@@ -19,7 +19,8 @@ It provisions:
 This stack is aligned with the current codebase:
 
 - [`tcv2.Api/Program.cs`](../../tcv2.Api/Program.cs) expects the custom role claim `https://teamchordsapp.io/roles`
-- [`tcv2.Api/Endpoints/UserEndpoints.cs`](../../tcv2.Api/Endpoints/UserEndpoints.cs) expects the API to receive Google sign-in registrations at `/api/users/googlesignin`
+- [`tcv2.Api/Endpoints/UserEndpoints.cs`](../../tcv2.Api/Endpoints/UserEndpoints.cs) still exposes `/api/users/googlesignin` as a legacy compatibility path, but Auth0 now syncs new users through `/api/users/auth0-sync`
+- [`tcv2.Api/Endpoints/UserEndpoints.cs`](../../tcv2.Api/Endpoints/UserEndpoints.cs) now also exposes a secret-protected Auth0 sync endpoint at `/api/users/auth0-sync`
 - [`web/src/main.jsx`](../../web/src/main.jsx) uses a customer SPA callback at `/callback`
 - [`web/src/router.jsx`](../../web/src/router.jsx) also supports `/auth/callback`
 - [`admin/src/lib/admin-auth.tsx`](../../admin/src/lib/admin-auth.tsx) uses `/dashboard` as the admin redirect target
@@ -38,6 +39,7 @@ Set these through `TF_VAR_*` environment variables, a `.tfvars` file, or your CI
 - `admin_app_base_url`
 - `google_oauth_client_id`
 - `google_oauth_client_secret`
+- `api_sync_secret`
 
 Optional values:
 
@@ -61,7 +63,7 @@ A starter file is included at [`terraform.tfvars.example`](./terraform.tfvars.ex
 
 ## GitHub Actions
 
-This repo also includes a dedicated workflow at [`.github/workflows/deploy-auth0.yml`](../../.github/workflows/deploy-auth0.yml).
+This repo also includes a dedicated Auth0 deployment workflow in `.github/workflows/`.
 
 - Pull requests touching `infra/auth0/**` run `terraform fmt`, `init`, `validate`, and `plan`
 - Pushes to `main` touching `infra/auth0/**` run the same checks and then apply automatically
@@ -82,6 +84,7 @@ Required GitHub secrets for that workflow:
 - `ADMIN_APP_BASE_URL`
 - `GOOGLE_OAUTH_CLIENT_ID`
 - `GOOGLE_OAUTH_CLIENT_SECRET`
+- `AUTH0_SYNC_SECRET`
 
 The repo-root [`.env`](../../.env) template and [`scripts/setup-github-secrets.sh`](../../scripts/setup-github-secrets.sh) now include these values.
 
@@ -181,7 +184,7 @@ scripts/setup-github-secrets.sh --sync-auth0 -r <owner>/<repo>
 ## Notes
 
 - Google sign-in is enabled only for the customer app.
-- The Team Chords registration action only runs for Google logins where `event.stats.logins_count === 1`.
+- The Team Chords registration action runs for first-time logins (`event.stats.logins_count === 1`) and calls the secret-protected `/api/users/auth0-sync` endpoint.
 - The customer app still uses the database connection `Username-Password-Authentication` for email/password signup and reset flows.
 - If your Auth0 tenant does not yet support `node22` for Actions, override `TF_VAR_auth0_actions_runtime` with a runtime your tenant supports.
 

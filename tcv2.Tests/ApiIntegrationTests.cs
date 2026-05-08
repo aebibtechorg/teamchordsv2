@@ -42,7 +42,7 @@ public sealed class ApiIntegrationTests
         var sub = $"google-{Guid.NewGuid():N}";
         var email = $"{sub}@example.com";
 
-        var response = await session.Client.PostAsJsonAsync("/api/users/googlesignin", new GoogleSignInRequest
+        var response = await session.Client.PostAsJsonAsync("/api/users/googlesignin", new
         {
             Email = email,
             EmailVerified = true,
@@ -60,6 +60,48 @@ public sealed class ApiIntegrationTests
     }
 
     [Fact]
+    public async Task Anonymous_auth0_sync_creates_a_user_and_adds_invite_membership()
+    {
+        await using var session = await ApiTestSession.StartAsync();
+
+        var inviterSub = $"inviter-{Guid.NewGuid():N}";
+        var inviterEmail = $"{inviterSub}@example.com";
+        await SeedUserAsync(session.Client, inviterSub, inviterEmail, "Invite", "Sender");
+
+        session.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken(inviterSub));
+
+        var orgName = $"InviteOrg-{Guid.NewGuid():N}";
+        var createOrg = await session.Client.PostAsJsonAsync("/api/organizations", new { Name = orgName });
+        Assert.Equal(HttpStatusCode.Created, createOrg.StatusCode);
+        var orgId = (await ReadJsonAsync(createOrg)).RootElement.GetProperty("id").GetGuid();
+
+        var inviteEmail = $"invitee-{Guid.NewGuid():N}@example.com";
+        var inviteResponse = await session.Client.PostAsJsonAsync("/api/invites", new { Email = inviteEmail, OrganizationId = orgId });
+        Assert.Equal(HttpStatusCode.Created, inviteResponse.StatusCode);
+
+        var inviteId = (await ReadJsonAsync(inviteResponse)).RootElement.GetProperty("id").GetGuid();
+
+        using var syncRequest = new HttpRequestMessage(HttpMethod.Post, "/api/users/auth0-sync");
+        syncRequest.Content = JsonContent.Create(new
+        {
+            Auth0UserId = $"auth0|{Guid.NewGuid():N}",
+            Email = inviteEmail,
+            EmailVerified = true,
+            GivenName = "Casey",
+            FamilyName = "Invitee",
+            Picture = "https://example.com/avatar.png",
+            InviteId = inviteId,
+        });
+        syncRequest.Headers.Add("X-TeamChords-Sync-Secret", TestSyncSecret);
+
+        var syncResponse = await session.Client.SendAsync(syncRequest);
+        Assert.True(syncResponse.StatusCode is HttpStatusCode.OK or HttpStatusCode.Created);
+
+        var members = await ReadJsonAsync(await session.Client.GetAsync($"/api/organizations/{orgId}/members"));
+        Assert.Contains(members.RootElement.GetProperty("items").EnumerateArray(), item => item.GetProperty("email").GetString() == inviteEmail);
+    }
+
+    [Fact]
     public async Task Authenticated_user_can_create_an_organization_and_receive_onboarding_content()
     {
         await using var session = await ApiTestSession.StartAsync();
@@ -71,7 +113,7 @@ public sealed class ApiIntegrationTests
         session.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken(sub));
 
         var orgName = $"Org-{Guid.NewGuid():N}";
-        var createResponse = await session.Client.PostAsJsonAsync("/api/organizations", new OrganizationCreateRequest(orgName));
+        var createResponse = await session.Client.PostAsJsonAsync("/api/organizations", new { Name = orgName });
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var createdOrg = await ReadJsonAsync(createResponse);
@@ -112,7 +154,7 @@ public sealed class ApiIntegrationTests
         session.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken(sub, "platform-admin"));
 
         var orgName = $"AdminOrg-{Guid.NewGuid():N}";
-        var createOrg = await session.Client.PostAsJsonAsync("/api/organizations", new OrganizationCreateRequest(orgName));
+        var createOrg = await session.Client.PostAsJsonAsync("/api/organizations", new { Name = orgName });
         Assert.Equal(HttpStatusCode.Created, createOrg.StatusCode);
         var orgId = (await ReadJsonAsync(createOrg)).RootElement.GetProperty("id").GetGuid();
 
@@ -144,7 +186,7 @@ public sealed class ApiIntegrationTests
 
     private static async Task SeedUserAsync(HttpClient client, string sub, string email, string givenName, string familyName)
     {
-        var response = await client.PostAsJsonAsync("/api/users/googlesignin", new GoogleSignInRequest
+        var response = await client.PostAsJsonAsync("/api/users/googlesignin", new
         {
             Email = email,
             EmailVerified = true,
@@ -187,18 +229,6 @@ public sealed class ApiIntegrationTests
         var content = await response.Content.ReadAsStringAsync();
         return JsonDocument.Parse(content);
     }
-
-    private sealed record GoogleSignInRequest
-    {
-        public string? Email { get; init; }
-        public bool? EmailVerified { get; init; }
-        public string? Auth0UserId { get; init; }
-        public string? GivenName { get; init; }
-        public string? FamilyName { get; init; }
-        public string? Picture { get; init; }
-    }
-
-    private sealed record OrganizationCreateRequest(string? Name);
 
     private sealed class TemporaryEnvironmentVariables : IDisposable
     {
@@ -243,7 +273,8 @@ public sealed class ApiIntegrationTests
                 ["Destination"] = "test",
                 ["Auth0__Issuer"] = TestIssuer,
                 ["Auth0__Audience"] = TestAudience,
-                ["Auth0__SigningKey"] = TestSigningKey
+                ["Auth0__SigningKey"] = TestSigningKey,
+                ["Auth0__SyncSecret"] = TestSyncSecret
             });
 
             var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.tcv2_AppHost>();
@@ -265,6 +296,8 @@ public sealed class ApiIntegrationTests
             _environment.Dispose();
         }
     }
+
+    private const string TestSyncSecret = "teamchords-test-sync-secret-teamchords-test-sync-secret";
 }
 
 

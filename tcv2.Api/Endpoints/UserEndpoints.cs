@@ -3,19 +3,169 @@ using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using tcv2.Api.Data;
 using tcv2.Api.Data.Dto;
 using tcv2.Api.Data.Entities;
 using System.Security.Claims;
 using tcv2.Api.Data.Mappers;
+using tcv2.Api.Services;
 
 namespace tcv2.Api.Endpoints;
 
 internal static class UserEndpoints
 {
+    private const string SyncSecretHeaderName = "X-TeamChords-Sync-Secret";
+
     public static RouteGroupBuilder MapUserEndpoints(this RouteGroupBuilder api)
     {
         var users = api.MapGroup("/users");
+        users.MapPost("/auth0-sync", async (Auth0SyncUserDto dto, HttpRequest req, AppDbContext db, IConfiguration config) =>
+        {
+            var validation = EndpointHelpers.Validate(dto);
+            if (validation != null) return validation;
+
+            var configuredSecret = config["Auth0:SyncSecret"] ?? config["AUTH0_SYNC_SECRET"];
+            if (string.IsNullOrWhiteSpace(configuredSecret))
+            {
+                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+
+            var presentedSecret = req.Headers[SyncSecretHeaderName].ToString();
+            if (string.IsNullOrWhiteSpace(presentedSecret) || !FixedTimeEquals(configuredSecret, presentedSecret))
+            {
+                return Results.Unauthorized();
+            }
+
+            var strategy = db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await db.Database.BeginTransactionAsync();
+
+                try
+                {
+                    var user = await db.Users
+                        .Include(x => x.UserOrganizations)
+                            .ThenInclude(uo => uo.Organization)
+                        .Include(x => x.Profile)
+                        .FirstOrDefaultAsync(x => x.Auth0UserId == dto.Auth0UserId || x.Email == dto.Email);
+
+                    var isNewUser = user is null;
+                    if (user is null)
+                    {
+                        user = new User
+                        {
+                            Id = Guid.NewGuid(),
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.Users.Add(user);
+                    }
+
+                    user.Email = dto.Email;
+                    user.EmailVerified = dto.EmailVerified;
+                    user.Auth0UserId = dto.Auth0UserId;
+                    user.GivenName = dto.GivenName;
+                    user.FamilyName = dto.FamilyName;
+                    user.Name = !string.IsNullOrWhiteSpace(dto.Name)
+                        ? dto.Name
+                        : string.Join(" ", new[] { dto.GivenName, dto.FamilyName }.Where(value => !string.IsNullOrWhiteSpace(value))).Trim();
+                    if (string.IsNullOrWhiteSpace(user.Name))
+                    {
+                        user.Name = dto.Email;
+                    }
+                    user.Picture = dto.Picture;
+                    if (!isNewUser)
+                    {
+                        user.UpdatedAt = DateTime.UtcNow;
+                    }
+
+                    if (dto.InviteId.HasValue)
+                    {
+                        var invite = await db.Invites.FirstOrDefaultAsync(i => i.Id == dto.InviteId.Value);
+                        if (invite is null)
+                        {
+                            await tx.RollbackAsync();
+                            return Results.NotFound(new { message = "Invite not found" });
+                        }
+
+                        if (DateTimeOffset.UtcNow >= invite.ExpiresAt)
+                        {
+                            await tx.RollbackAsync();
+                            return Results.BadRequest(new { message = "Invite has expired" });
+                        }
+
+                        if (!string.Equals(invite.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
+                        {
+                            await tx.RollbackAsync();
+                            return Results.BadRequest(new { message = "Invite email does not match the authenticated user." });
+                        }
+
+                        invite.Used = true;
+
+                        if (invite.OrganizationId.HasValue)
+                        {
+                            var organizationId = invite.OrganizationId.Value;
+                            var org = await db.Organizations.FindAsync(organizationId);
+                            if (org is null)
+                            {
+                                await tx.RollbackAsync();
+                                return Results.NotFound(new { message = "Organization not found" });
+                            }
+
+                            var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId);
+                            var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
+                            if (gate is not null)
+                            {
+                                await tx.RollbackAsync();
+                                return gate;
+                            }
+
+                            var hasMembership = await db.UserOrganizations.AnyAsync(uo => uo.UserId == user.Id && uo.OrganizationId == organizationId);
+                            if (!hasMembership)
+                            {
+                                db.UserOrganizations.Add(new UserOrganization
+                                {
+                                    UserId = user.Id,
+                                    OrganizationId = organizationId,
+                                    Role = OrgRole.Member,
+                                    CreatedAt = DateTime.UtcNow
+                                });
+                            }
+                        }
+                    }
+
+                    await db.SaveChangesAsync();
+                    await tx.CommitAsync();
+
+                    var syncedUser = await db.Users
+                        .Include(x => x.UserOrganizations)
+                            .ThenInclude(uo => uo.Organization)
+                        .Include(x => x.Profile)
+                        .FirstOrDefaultAsync(x => x.Id == user.Id);
+
+                    if (syncedUser is null)
+                    {
+                        return Results.BadRequest(new { message = "Failed to reload synced user" });
+                    }
+
+                    return isNewUser
+                        ? Results.Created($"/api/users/{syncedUser.Id}", syncedUser.ToDetailDto())
+                        : Results.Ok(syncedUser.ToDetailDto());
+                }
+                catch (DbUpdateException ex)
+                {
+                    await tx.RollbackAsync();
+                    return EndpointHelpers.HandleDbUpdateException(ex);
+                }
+                catch (Exception ex)
+                {
+                    await tx.RollbackAsync();
+                    return Results.BadRequest(new { message = "Failed to sync user", detail = ex.Message });
+                }
+            });
+        }).AllowAnonymous();
+
         users.MapGet("/", async (HttpRequest req, AppDbContext db) =>
         {
             var q = db.Users.AsQueryable();
@@ -415,5 +565,12 @@ internal static class UserEndpoints
         });
 
         return api;
+    }
+
+    private static bool FixedTimeEquals(string expectedSecret, string presentedSecret)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expectedSecret);
+        var presentedBytes = Encoding.UTF8.GetBytes(presentedSecret);
+        return expectedBytes.Length == presentedBytes.Length && CryptographicOperations.FixedTimeEquals(expectedBytes, presentedBytes);
     }
 }

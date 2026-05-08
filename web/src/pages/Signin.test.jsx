@@ -41,7 +41,12 @@ beforeEach(() => {
 
 async function renderSubject() {
   const { default: Signin } = await import("./Signin");
-  return render(<Signin />);
+  const { MemoryRouter } = await import("react-router-dom");
+  return render(
+    <MemoryRouter initialEntries={["/signin"]}>
+      <Signin />
+    </MemoryRouter>
+  );
 }
 
 describe("Signin", () => {
