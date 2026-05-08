@@ -103,6 +103,15 @@ if (builder.Configuration["Destination"] == "aca")
         })
         .ExcludeFromManifest();
 
+    // Blog (Astro) - local dev served by the Astro dev server
+    _ = builder.AddNpmApp("blogclient", "../blog", "dev")
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 4322 : null;
+        })
+        .WithExternalHttpEndpoints()
+        .ExcludeFromManifest();
+
     if (builder.ExecutionContext.IsPublishMode)
     {
         builder.AddNpmApp("webclient-server", "../web")
@@ -188,6 +197,12 @@ if (builder.Configuration["Destination"] == "compose")
         .PublishAsDockerComposeService((_, service) =>
         {
             service.Name = "admin";
+        });
+
+    builder.AddNpmApp("blogclient-server", "../blog")
+        .PublishAsDockerComposeService((_, service) =>
+        {
+            service.Name = "blog";
         });
 }
 

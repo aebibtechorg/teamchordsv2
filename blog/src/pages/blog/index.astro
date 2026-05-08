@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort((left, right) => right.data.pubDate.valueOf() - left.data.pubDate.valueOf());
+---
+
+<BaseLayout
+  title="Blog | Team Chords"
+  description="Launch announcements, product stories, and updates from Team Chords."
+>
+  <section class="page-heading">
+    <p class="eyebrow">Blog</p>
+    <h1>Launch stories and product notes</h1>
+    <p class="lede">
+      Start with the launch announcement, then read the stories behind the product and the workflow problems Team Chords is built to solve.
+    </p>
+  </section>
+
+  <section class="archive-grid">
+    {posts.map((post) => (
+      <a class="archive-card" href={`/blog/${post.slug}`}>
+        <div class="archive-card-top">
+          <span class="pill">{post.data.featured ? 'Featured' : 'Article'}</span>
+          <span class="post-meta">{post.data.pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </div>
+        <h2>{post.data.title}</h2>
+        <p>{post.data.description}</p>
+        <div class="tag-row">
+          {post.data.tags.map((tag) => <span>{tag}</span>)}
+        </div>
+      </a>
+    ))}
+  </section>
+</BaseLayout>

@@ -76,11 +76,33 @@ jobs:
         working-directory: admin
         run: npm test
 
+  blog-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: blog/package-lock.json
+
+      - name: Install blog dependencies
+        working-directory: blog
+        run: npm ci
+
+      - name: Build blog
+        working-directory: blog
+        run: npm run build
+
   deploy:
     needs:
       - backend-test
       - web-test
       - admin-test
+      - blog-test
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -101,6 +123,7 @@ jobs:
       TF_VAR_admin_auth0_domain: ${{ secrets.ADMIN_AUTH0_DOMAIN }}
       TF_VAR_admin_auth0_client_id: ${{ secrets.ADMIN_AUTH0_CLIENT_ID }}
       TF_VAR_admin_auth0_audience: ${{ secrets.ADMIN_AUTH0_AUDIENCE }}
+      TF_VAR_blog_firebase_site: ${{ secrets.BLOG_FIREBASE_SITE }}
       TF_VAR_customer_app_base_url: ${{ secrets.CUSTOMER_APP_BASE_URL }}
       TF_VAR_web_app_base_url: ${{ secrets.WEB_APP_BASE_URL }}
       TF_VAR_dodo_secret_key: ${{ secrets.DODO_SECRET_KEY }}
@@ -196,6 +219,9 @@ jobs:
       - name: Export help hosting site id
         run: echo "HELP_FIREBASE_SITE_ID=$(cd infra/gcp && terraform output -raw help_firebase_site)" >> "$GITHUB_ENV"
 
+      - name: Export blog hosting site id
+        run: echo "BLOG_FIREBASE_SITE_ID=$(cd infra/gcp && terraform output -raw blog_firebase_site)" >> "$GITHUB_ENV"
+
       - name: Build web app
         working-directory: web
         run: |
@@ -208,11 +234,23 @@ jobs:
           npm ci
           npm run build
 
+      - name: Build blog site
+        working-directory: blog
+        run: |
+          npm ci
+          npm run build
+
       - name: Deploy help to Firebase Hosting
         working-directory: help
         run: |
           npx firebase-tools target:apply hosting help "$HELP_FIREBASE_SITE_ID" --project "$PROJECT_ID"
           npx firebase-tools deploy --only hosting:help --project "$PROJECT_ID"
+
+      - name: Deploy blog to Firebase Hosting
+        working-directory: blog
+        run: |
+          npx firebase-tools target:apply hosting blog "$BLOG_FIREBASE_SITE_ID" --project "$PROJECT_ID"
+          npx firebase-tools deploy --only hosting:blog --project "$PROJECT_ID"
 
       - name: Deploy web to Firebase Hosting
         working-directory: web

@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort((left, right) => right.data.pubDate.valueOf() - left.data.pubDate.valueOf());
+const featured = posts.find((post) => post.data.featured) ?? posts[0];
+const latest = posts.filter((post) => post.slug !== featured?.slug).slice(0, 3);
+---
+
+<BaseLayout
+  title="Team Chords Blog"
+  description="Launch updates, product stories, and live music workflow notes from Team Chords."
+>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">New from Team Chords</p>
+      <h1>Team Chords is live, and the launch starts here.</h1>
+      <p class="lede">
+        This is the home for the stories behind the product, the launch notes, and the way Team Chords helps music teams keep everything in one place.
+      </p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="/blog">Read the launch story</a>
+        <a class="button button-secondary" href={featured ? `/blog/${featured.slug}` : '/blog'}>Featured article</a>
+      </div>
+    </div>
+    <aside class="hero-panel">
+      <p class="panel-label">Featured post</p>
+      {featured ? (
+        <article class="featured-card">
+          <span class="pill">Launch</span>
+          <h2>{featured.data.title}</h2>
+          <p>{featured.data.description}</p>
+          <a href={`/blog/${featured.slug}`}>Open the post →</a>
+        </article>
+      ) : (
+        <p>No posts yet.</p>
+      )}
+    </aside>
+  </section>
+
+  <section class="story-grid">
+    <div class="section-heading">
+      <p class="eyebrow">Latest stories</p>
+      <h2>Fresh launch energy, not filler.</h2>
+    </div>
+
+    <div class="post-grid">
+      {latest.map((post) => (
+        <a class="post-card" href={`/blog/${post.slug}`}>
+          <p class="post-meta">{post.data.pubDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <h3>{post.data.title}</h3>
+          <p>{post.data.description}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

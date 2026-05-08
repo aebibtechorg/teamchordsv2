@@ -2,6 +2,7 @@ locals {
   api_service_name   = "tcv2-api"
   admin_service_name = "tcv2-admin"
   help_site_id       = trimspace(var.help_firebase_site) != "" ? trimspace(var.help_firebase_site) : "${var.project_id}-help"
+  blog_site_id       = trimspace(var.blog_firebase_site) != "" ? trimspace(var.blog_firebase_site) : "${var.project_id}-blog"
 }
 
 resource "google_project_service" "required" {
@@ -39,6 +40,14 @@ resource "google_firebase_hosting_site" "help" {
   provider = google-beta
   project  = var.project_id
   site_id  = local.help_site_id
+
+  depends_on = [google_firebase_project.default]
+}
+
+resource "google_firebase_hosting_site" "blog" {
+  provider = google-beta
+  project  = var.project_id
+  site_id  = local.blog_site_id
 
   depends_on = [google_firebase_project.default]
 }
