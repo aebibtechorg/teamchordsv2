@@ -206,6 +206,58 @@ jobs:
           docker build -t "${ADMIN_IMAGE_URI}" -f admin/Dockerfile admin
           docker push "${ADMIN_IMAGE_URI}"
 
+      - name: Bootstrap blog Developer Connect connection
+        working-directory: infra/gcp
+        run: terraform apply -auto-approve -target=google_developer_connect_connection.blog
+
+      - name: Require Firebase GitHub authorization
+        working-directory: infra/gcp
+        run: |
+          stage="$(terraform output -raw blog_app_hosting_connection_installation_stage 2>/dev/null || true)"
+
+          if [ -n "${stage}" ] && [ "${stage}" != "COMPLETE" ]; then
+            uri="$(terraform output -raw blog_app_hosting_connection_installation_uri 2>/dev/null || true)"
+            message="$(terraform output -raw blog_app_hosting_connection_installation_message 2>/dev/null || true)"
+
+            {
+              echo "Firebase App Hosting requires a one-time GitHub authorization before the blog backend can be created."
+              echo "Connection stage: ${stage}"
+
+              if [ -n "${message}" ]; then
+                echo "Message: ${message}"
+              fi
+
+              if [ -n "${uri}" ]; then
+                echo "Authorization URL: ${uri}"
+              fi
+
+              echo "After completing the authorization, rerun this workflow."
+            } >&2
+
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              {
+                echo "## Firebase App Hosting authorization required"
+                echo
+                echo "The blog Developer Connect connection is not fully authorized yet."
+                echo
+                echo "- Stage: ${stage}"
+
+                if [ -n "${message}" ]; then
+                  echo "- Message: ${message}"
+                fi
+
+                if [ -n "${uri}" ]; then
+                  echo "- Authorization URL: ${uri}"
+                fi
+
+                echo
+                echo "Complete the GitHub authorization, then rerun this workflow."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+
+            exit 1
+          fi
+
       - name: Plan Terraform
         working-directory: infra/gcp
         run: terraform plan -out=tfplan
