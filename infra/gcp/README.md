@@ -4,8 +4,8 @@ This Terraform stack provisions the Google Cloud resources TeamChords needs to r
 
 - Required GCP APIs
 - Artifact Registry for container images
-- Workload Identity Federation for GitHub Actions
-- Runtime service accounts for the API, web app, and admin app
+- Firebase App Hosting backend wiring for the blog
+- Runtime service accounts for the API, admin app, and blog App Hosting backend
 - Cloud Run services for the API, web app, and admin app
 
 ## Required inputs
@@ -59,7 +59,8 @@ Optional values:
 2. Create the Terraform state bucket if it does not exist.
 3. Initialize Terraform with the GCS backend.
 4. Apply the stack.
-5. Capture `terraform output -raw api_url` and provide it to the web build as `VITE_API_BASE_URL` so the SignalR client can connect to the API origin directly.
+5. If the blog App Hosting connection is new, inspect `terraform output blog_app_hosting_connection_installation_uri` and complete the one-time GitHub installation or authorization flow it points to.
+6. Capture `terraform output -raw api_url` and provide it to the web build as `VITE_API_BASE_URL` so the SignalR client can connect to the API origin directly.
 
 ## GitHub secrets bootstrap
 
@@ -110,6 +111,7 @@ export TF_VAR_zeptomail_base_url="..."
 terraform init -backend-config="bucket=your-project-id-tcv2-tfstate" -backend-config="prefix=gcp"
 terraform apply
 terraform output -raw api_url
+terraform output blog_app_hosting_connection_installation_uri
 ```
 
 ### Azure SignalR
@@ -118,11 +120,13 @@ Provision an Azure SignalR Service instance manually and copy its connection str
 
 The API prefers Azure SignalR when that connection string is present, then falls back to Redis, then finally in-memory SignalR.
 
-The web client reads `VITE_API_BASE_URL` at build time so the SignalR browser client can negotiate against the API origin directly, which keeps Firebase Hosting out of the WebSocket path.
+The web client reads `VITE_API_BASE_URL` at build time so the SignalR browser client can negotiate against the API origin directly, which keeps the static frontend hosting layer out of the WebSocket path.
 
 ## GitHub Actions
 
-The deployment workflow uses the same Terraform stack to provision and update the runtime resources, while GitHub Actions builds and pushes the container images first.
+The deployment workflow uses the same Terraform stack to provision and update the runtime resources, while GitHub Actions builds and pushes the API and admin container images first.
+
+The blog is no longer deployed by `firebase hosting:deploy` in GitHub Actions. Terraform now provisions a Firebase App Hosting backend that watches this repository's `blog/` directory, and App Hosting handles blog rollouts from GitHub after the one-time connection setup is complete.
 
 If you also want Auth0 managed from CI, run or enable the dedicated workflow at [`.github/workflows/deploy-auth0.yml`](../../.github/workflows/deploy-auth0.yml) first so the Auth0 applications, roles, connections, and Actions are in place before the GCP deployment consumes their outputs.
 

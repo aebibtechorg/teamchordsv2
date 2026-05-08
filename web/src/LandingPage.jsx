@@ -40,6 +40,12 @@ function LandingPage() {
             >
               Pricing
             </a>
+            <a
+              href="https://blog.teamchords.com"
+              className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"
+            >
+              Blog
+            </a>
             {/*<a*/}
             {/*  href="/help"*/}
             {/*  className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"*/}
@@ -166,6 +172,7 @@ function LandingPage() {
         </div>
         <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-gray-500">
           <a href="/#pricing" className="hover:underline">Pricing</a>
+          <a href="https://blog.teamchords.com" className="hover:underline">Blog</a>
           <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
           <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
         </div>

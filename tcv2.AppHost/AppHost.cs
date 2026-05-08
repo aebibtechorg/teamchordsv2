@@ -3,6 +3,23 @@
 using Microsoft.Extensions.Configuration;
 var builder = DistributedApplication.CreateBuilder(args);
 
+string GetSetting(string configurationKey, string environmentVariableName, string fallback = "")
+{
+    var environmentValue = Environment.GetEnvironmentVariable(environmentVariableName);
+    if (!string.IsNullOrWhiteSpace(environmentValue))
+    {
+        return environmentValue;
+    }
+
+    var configurationValue = builder.Configuration[configurationKey];
+    if (!string.IsNullOrWhiteSpace(configurationValue))
+    {
+        return configurationValue;
+    }
+
+    return fallback;
+}
+
 
 if (builder.Configuration["Destination"] == "aca")
 {
@@ -93,7 +110,7 @@ if (builder.Configuration["Destination"] == "aca")
         .ExcludeFromManifest();
 
     // Help center (Docusaurus) - local dev served by the Docusaurus dev server
-    _ = builder.AddNpmApp("helpclient", "../help")
+    _ = builder.AddViteApp("helpclient", "../help", "start")
         .WithReference(api)
         .WaitFor(api)
         .WithEndpoint(endpointName: "http", endpoint =>
@@ -101,6 +118,36 @@ if (builder.Configuration["Destination"] == "aca")
             // Docusaurus default dev port (use 3001 to avoid colliding with admin dev port 3000)
             endpoint.Port = builder.ExecutionContext.IsRunMode ? 3001 : null;
         })
+        .ExcludeFromManifest();
+
+    // Blog (Astro) - local dev served by the Astro dev server
+    _ = builder.AddViteApp("blogclient", "../blog", "dev")
+        .WithEnvironment(c => {
+            c.EnvironmentVariables.Add("BLOG_SITE_URL", builder.Configuration["Blog:SiteUrl"] ?? Environment.GetEnvironmentVariable("BLOG_SITE_URL") ?? "http://localhost:4322");
+            c.EnvironmentVariables.Add("SANITY_PROJECT_ID", builder.Configuration["Blog:SanityProjectId"] ?? Environment.GetEnvironmentVariable("SANITY_PROJECT_ID") ?? "");
+            c.EnvironmentVariables.Add("SANITY_DATASET", builder.Configuration["Blog:SanityDataset"] ?? Environment.GetEnvironmentVariable("SANITY_DATASET") ?? "");
+            c.EnvironmentVariables.Add("SANITY_API_TOKEN", builder.Configuration["Blog:SanityApiToken"] ?? Environment.GetEnvironmentVariable("SANITY_API_TOKEN") ?? "");
+            c.EnvironmentVariables.Add("SANITY_API_VERSION", builder.Configuration["Blog:SanityApiVersion"] ?? Environment.GetEnvironmentVariable("SANITY_API_VERSION") ?? "2025-05-08");
+        })
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 4322 : null;
+        })
+        .WithExternalHttpEndpoints()
+        .ExcludeFromManifest();
+
+    // Sanity Studio - local editorial app for blog authoring
+    _ = builder.AddViteApp("blogstudio", "../blog/studio", "dev")
+        .WithEnvironment(c => {
+            c.EnvironmentVariables.Add("SANITY_STUDIO_PROJECT_ID", builder.Configuration["Blog:SanityProjectId"] ?? Environment.GetEnvironmentVariable("SANITY_PROJECT_ID") ?? "");
+            c.EnvironmentVariables.Add("SANITY_STUDIO_DATASET", builder.Configuration["Blog:SanityDataset"] ?? Environment.GetEnvironmentVariable("SANITY_DATASET") ?? "");
+            c.EnvironmentVariables.Add("SANITY_STUDIO_API_VERSION", builder.Configuration["Blog:SanityApiVersion"] ?? Environment.GetEnvironmentVariable("SANITY_API_VERSION") ?? "2025-05-08");
+        })
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            endpoint.Port = builder.ExecutionContext.IsRunMode ? 3002 : null;
+        })
+        .WithExternalHttpEndpoints()
         .ExcludeFromManifest();
 
     if (builder.ExecutionContext.IsPublishMode)
@@ -188,6 +235,19 @@ if (builder.Configuration["Destination"] == "compose")
         .PublishAsDockerComposeService((_, service) =>
         {
             service.Name = "admin";
+        });
+
+    builder.AddNpmApp("blogclient-server", "../blog")
+        .WithEnvironment(c => {
+            c.EnvironmentVariables.Add("BLOG_SITE_URL", GetSetting("Blog:SiteUrl", "BLOG_SITE_URL", "http://localhost:4322"));
+            c.EnvironmentVariables.Add("SANITY_PROJECT_ID", GetSetting("Blog:SanityProjectId", "SANITY_PROJECT_ID"));
+            c.EnvironmentVariables.Add("SANITY_DATASET", GetSetting("Blog:SanityDataset", "SANITY_DATASET"));
+            c.EnvironmentVariables.Add("SANITY_API_TOKEN", GetSetting("Blog:SanityApiToken", "SANITY_API_TOKEN"));
+            c.EnvironmentVariables.Add("SANITY_API_VERSION", GetSetting("Blog:SanityApiVersion", "SANITY_API_VERSION", "2025-05-08"));
+        })
+        .PublishAsDockerComposeService((_, service) =>
+        {
+            service.Name = "blog";
         });
 }
 

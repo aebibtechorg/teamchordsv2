@@ -1,0 +1,82 @@
+---
+import '../styles/global.css';
+
+const {
+  title = 'Team Chords Blog',
+  description = 'Launch notes, product stories, and updates from Team Chords.',
+  canonical,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="https://teamchords.com/favicon.png" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    {canonical ? <link rel="canonical" href={canonical} /> : null}
+  </head>
+  <body>
+    <header class="site-header" data-menu-open="false">
+      <div class="site-header-top">
+        <a class="brand" href="/" aria-label="Team Chords home">
+          <img class="brand-mark" src="https://teamchords.com/favicon.png" alt="Team Chords logo" width="32" height="32" />
+          <span>Team Chords</span>
+        </a>
+        <button class="menu-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">
+          <span class="menu-toggle-icon" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+          <!-- <span class="menu-toggle-label">Menu</span> -->
+        </button>
+      </div>
+      <nav class="site-nav" id="primary-navigation" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/blog">Stories</a>
+      </nav>
+      </header>
+    <div class="page-shell">
+      <main class="site-main">
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <p>Your Team&apos;s Ultimate Chord Sharing Hub.</p>
+        <p>© {new Date().getFullYear()} Team Chords</p>
+      </footer>
+    </div>
+    <script>
+      const header = document.querySelector('.site-header') as HTMLElement | null;
+      const toggle = header?.querySelector('.menu-toggle') as HTMLButtonElement | null;
+      const nav = header?.querySelector('.site-nav') as HTMLElement | null;
+
+      if (header && toggle && nav) {
+        const setMenuOpen = (isOpen: boolean) => {
+          header.dataset.menuOpen = String(isOpen);
+          toggle.setAttribute('aria-expanded', String(isOpen));
+        };
+
+        toggle.addEventListener('click', () => {
+          setMenuOpen(header.dataset.menuOpen !== 'true');
+        });
+
+        nav.querySelectorAll('a').forEach((link) => {
+          link.addEventListener('click', () => setMenuOpen(false));
+        });
+
+        window.addEventListener('resize', () => {
+          if (window.innerWidth > 860) {
+            setMenuOpen(false);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -76,16 +76,40 @@ jobs:
         working-directory: admin
         run: npm test
 
+  blog-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: blog/package-lock.json
+
+      - name: Install blog dependencies
+        working-directory: blog
+        run: npm ci
+
+      - name: Build blog
+        working-directory: blog
+        run: npm run build
+
   deploy:
     needs:
       - backend-test
       - web-test
       - admin-test
+      - blog-test
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       REGION: asia-southeast1
       ARTIFACT_REPOSITORY: tcv2-containers
+      TF_VAR_github_owner: ${{ github.repository_owner }}
+      TF_VAR_github_repo: ${{ github.event.repository.name }}
       TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
       TF_VAR_region: asia-southeast1
       TF_VAR_teamchords_connection_string: ${{ secrets.NEON_POSTGRES_CS }}
