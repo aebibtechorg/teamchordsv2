@@ -9,6 +9,16 @@ variable "region" {
   default     = "us-central1"
 }
 
+variable "github_owner" {
+  description = "GitHub owner or organization for the repository linked to App Hosting"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "GitHub repository name linked to App Hosting"
+  type        = string
+}
+
 
 variable "artifact_registry_repository_id" {
   description = "Artifact Registry repository ID for container images"
@@ -194,10 +204,16 @@ variable "help_firebase_site" {
   default     = ""
 }
 
-variable "blog_firebase_site" {
-  description = "Optional Firebase Hosting site id for the blog; defaults to <project_id>-blog when empty"
+variable "blog_app_hosting_backend_id" {
+  description = "Firebase App Hosting backend id for the blog"
   type        = string
-  default     = ""
+  default     = "teamchords-blog"
+}
+
+variable "blog_app_hosting_root_directory" {
+  description = "Path to the blog app relative to the repository root for App Hosting"
+  type        = string
+  default     = "blog"
 }
 
 variable "help_image" {

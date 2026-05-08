@@ -1,9 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import { getBlogPosts, getFeaturedPost } from '../lib/posts';
 
-const posts = (await getCollection('blog')).sort((left, right) => right.data.pubDate.valueOf() - left.data.pubDate.valueOf());
-const featured = posts.find((post) => post.data.featured) ?? posts[0];
+const posts = await getBlogPosts();
+const featured = (await getFeaturedPost()) ?? posts[0];
 const latest = posts.filter((post) => post.slug !== featured?.slug).slice(0, 3);
 ---
 
@@ -28,8 +28,8 @@ const latest = posts.filter((post) => post.slug !== featured?.slug).slice(0, 3);
       {featured ? (
         <article class="featured-card">
           <span class="pill">Launch</span>
-          <h2>{featured.data.title}</h2>
-          <p>{featured.data.description}</p>
+          <h2>{featured.title}</h2>
+          <p>{featured.description}</p>
           <a href={`/blog/${featured.slug}`}>Open the post →</a>
         </article>
       ) : (
@@ -47,9 +47,9 @@ const latest = posts.filter((post) => post.slug !== featured?.slug).slice(0, 3);
     <div class="post-grid">
       {latest.map((post) => (
         <a class="post-card" href={`/blog/${post.slug}`}>
-          <p class="post-meta">{post.data.pubDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          <h3>{post.data.title}</h3>
-          <p>{post.data.description}</p>
+          <p class="post-meta">{post.pubDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <h3>{post.title}</h3>
+          <p>{post.description}</p>
         </a>
       ))}
     </div>

@@ -53,12 +53,12 @@ const {
       </footer>
     </div>
     <script>
-      const header = document.querySelector('.site-header');
-      const toggle = header?.querySelector('.menu-toggle');
-      const nav = header?.querySelector('.site-nav');
+      const header = document.querySelector('.site-header') as HTMLElement | null;
+      const toggle = header?.querySelector('.menu-toggle') as HTMLButtonElement | null;
+      const nav = header?.querySelector('.site-nav') as HTMLElement | null;
 
       if (header && toggle && nav) {
-        const setMenuOpen = (isOpen) => {
+        const setMenuOpen = (isOpen: boolean) => {
           header.dataset.menuOpen = String(isOpen);
           toggle.setAttribute('aria-expanded', String(isOpen));
         };

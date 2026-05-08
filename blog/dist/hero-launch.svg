@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" fill="none">
-  <rect width="1200" height="700" rx="48" fill="#0b1020"/>
-  <circle cx="980" cy="160" r="170" fill="#ff7f66" fill-opacity="0.18"/>
-  <circle cx="250" cy="520" r="200" fill="#8ff0d0" fill-opacity="0.12"/>
-  <path d="M170 410C320 250 430 210 590 250C705 279 818 391 1030 290" stroke="#ffe6a7" stroke-width="14" stroke-linecap="round"/>
-  <path d="M170 470C320 310 430 270 590 310C705 339 818 451 1030 350" stroke="#8ff0d0" stroke-width="12" stroke-linecap="round"/>
-  <text x="80" y="120" fill="#f7f1e8" font-family="Georgia, serif" font-size="60" font-weight="700">Team Chords Launch</text>
-</svg>
