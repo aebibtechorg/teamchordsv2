@@ -5,6 +5,7 @@ import node from '@astrojs/node';
 export default defineConfig({
   site: process.env.BLOG_SITE_URL || 'https://teamchords-blog.web.app',
   output: 'server',
+  server: { host: true },
   adapter: node({ mode: 'standalone' }),
   integrations: [mdx()],
 });
