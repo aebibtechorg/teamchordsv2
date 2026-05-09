@@ -52,7 +52,7 @@ describe("Sidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
 
     expect(sidebarMocks.clearUserProfile).toHaveBeenCalledTimes(1);
-    expect(logout).toHaveBeenCalledWith({ logoutParams: { returnTo: window.location.origin } });
+    expect(logout).toHaveBeenCalledWith({ logoutParams: { returnTo: `${window.location.origin}/signin` } });
   });
 });
 

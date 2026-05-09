@@ -7,6 +7,8 @@ This Terraform stack provisions the Google Cloud resources TeamChords needs to r
 - Runtime service accounts for the API and admin app
 - Cloud Run services for the API, web app, and admin app
 
+This stack does not manage the blog. Blog deployment is handled manually outside this Terraform state.
+
 ## Required inputs
 
 Most Auth0-related inputs can now come from the separate [`infra/auth0`](../auth0/README.md) Terraform stack. Apply that stack first, then feed its outputs into the variables below.
@@ -37,6 +39,8 @@ Set these values through `TF_VAR_*` environment variables, a `.tfvars` file, or 
 - `zeptomail_api_key`
 - `zeptomail_template_key`
 - `zeptomail_from_email_address`
+
+The public blog uses `APP_SITE_URL` and `BLOG_SITE_URL`, but those are managed by the blog deployment target rather than this Terraform stack.
 
 Optional values:
 

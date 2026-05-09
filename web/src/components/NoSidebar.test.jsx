@@ -25,7 +25,7 @@ describe("NoSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
 
     expect(clearUserProfile).toHaveBeenCalledTimes(1);
-    expect(logout).toHaveBeenCalledWith({ logoutParams: { returnTo: window.location.origin } });
+    expect(logout).toHaveBeenCalledWith({ logoutParams: { returnTo: `${window.location.origin}/signin` } });
     expect(screen.getByText(/profile setup/i)).toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@
   "dependencies": {
     "@astrojs/mdx": "^4.3.3",
     "@astrojs/node": "^9.5.0",
+    "@astrojs/tailwind": "^6.0.2",
     "@sanity/client": "^7.12.0",
     "astro": "^5.7.0",
     "marked": "^15.0.12",
