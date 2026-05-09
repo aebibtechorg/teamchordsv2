@@ -1,5 +1,5 @@
 scripts:
-  runCommand: HOST=0.0.0.0 node dist/server/entry.mjs
+  runCommand: HOST=0.0.0.0 node blog/dist/server/entry.mjs
 
 outputFiles:
   serverApp:
