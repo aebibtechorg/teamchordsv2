@@ -14,7 +14,7 @@ env:
       - RUNTIME
 
   - variable: SANITY_DATASET
-    value: testing
+    value: production
     availability:
       - BUILD
       - RUNTIME
