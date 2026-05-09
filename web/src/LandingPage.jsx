@@ -41,7 +41,7 @@ function LandingPage() {
               Pricing
             </a>
             <a
-              href="https://blog.teamchords.com"
+              href="https://teamchords.com"
               className="px-3 py-2 sm:px-4 sm:py-2 rounded hover:bg-gray-600 transition text-sm sm:text-base"
             >
               Blog

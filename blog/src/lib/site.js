@@ -1,2 +1,2 @@
-export const BLOG_SITE_URL = process.env.BLOG_SITE_URL || 'https://teamchords-blog.web.app';
+export const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || 'https://teamchords.com';
 export const APP_SITE_URL = process.env.APP_SITE_URL || 'https://app.teamchords.com';

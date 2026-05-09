@@ -47,10 +47,11 @@ The checked-in App Hosting config provides the non-secret Sanity settings that m
 - `SANITY_DATASET`
 - `SANITY_API_VERSION`
 - `APP_SITE_URL`
+- `PUBLIC_SITE_URL`
 
-Set these separately in the Firebase App Hosting console or secret manager integration before rollout:
+Set these separately in the deployment environment before rollout:
 
-- `BLOG_SITE_URL` so canonical URLs match the real production domain
+- `PUBLIC_SITE_URL` so canonical URLs match the real production domain
 - `APP_SITE_URL` so public CTAs point at the app domain
 - `SANITY_API_TOKEN` only if you want server-side draft or preview reads
 

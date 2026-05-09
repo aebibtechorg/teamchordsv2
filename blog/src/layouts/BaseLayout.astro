@@ -1,13 +1,13 @@
 ---
 import '../styles/global.css';
-import { APP_SITE_URL, BLOG_SITE_URL } from '../lib/site';
+import { APP_SITE_URL, PUBLIC_SITE_URL } from '../lib/site';
 
 const {
   title = 'Team Chords',
   description = 'Team Chords helps music teams keep chord sheets, set lists, and live outputs in sync.',
   canonical,
 } = Astro.props;
-const pageCanonical = canonical ?? new URL(Astro.url.pathname, BLOG_SITE_URL).href;
+const pageCanonical = canonical ?? new URL(Astro.url.pathname, PUBLIC_SITE_URL).href;
 ---
 
 <!doctype html>
@@ -15,7 +15,7 @@ const pageCanonical = canonical ?? new URL(Astro.url.pathname, BLOG_SITE_URL).hr
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="/favicon.png" />
+    <link rel="icon" href={`${PUBLIC_SITE_URL.replace(/\/$/, '')}/favicon.png`} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -47,7 +47,7 @@ const pageCanonical = canonical ?? new URL(Astro.url.pathname, BLOG_SITE_URL).hr
           <nav class="site-nav hidden w-full flex-col gap-2 border-t border-white/10 pt-3 text-sm sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:border-t-0 sm:pt-0" id="primary-navigation" aria-label="Primary">
             <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href="/">Home</a>
             <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href="/stories">Stories</a>
-            <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href={`${APP_SITE_URL}/#pricing`}>Pricing</a>
+            <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href="/#pricing">Pricing</a>
             <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href={`${APP_SITE_URL}/signin`}>Sign in</a>
             <a class="rounded-full bg-white px-4 py-2 font-semibold text-gray-900 transition hover:bg-gray-100" href={`${APP_SITE_URL}/signup`}>Get started</a>
           </nav>
@@ -65,7 +65,7 @@ const pageCanonical = canonical ?? new URL(Astro.url.pathname, BLOG_SITE_URL).hr
           <div class="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-6">
             <a class="hover:text-gray-900 hover:underline" href="/">Home</a>
             <a class="hover:text-gray-900 hover:underline" href="/blog">Stories</a>
-            <a class="hover:text-gray-900 hover:underline" href={`${APP_SITE_URL}/#pricing`}>Pricing</a>
+            <a class="hover:text-gray-900 hover:underline" href="/#pricing">Pricing</a>
             <a class="hover:text-gray-900 hover:underline" href={`${APP_SITE_URL}/signin`}>Sign in</a>
             <a class="hover:text-gray-900 hover:underline" href={`${APP_SITE_URL}/signup`}>Get started</a>
             <a class="hover:text-gray-900 hover:underline" href="/privacy-policy">Privacy Policy</a>

@@ -1,0 +1,67 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { PUBLIC_SITE_URL } from '../lib/site';
+
+const siteUrl = PUBLIC_SITE_URL.replace(/\/$/, '');
+---
+
+<BaseLayout
+  title="Privacy Policy | Team Chords"
+  description="How Team Chords collects, uses, and protects information on the public site and related services."
+>
+  <article class="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
+    <header class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-xl shadow-gray-900/5 sm:p-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Legal</p>
+      <h1 class="mt-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">Privacy Policy</h1>
+      <p class="mt-4 text-sm text-gray-600">Effective date: 2026-01-02</p>
+    </header>
+
+    <div class="post-body mt-8 rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm shadow-gray-900/5 sm:p-8">
+      <h2>1. Introduction</h2>
+      <p>Welcome to <strong>Team Chords</strong>.</p>
+      <p><strong>Team Chords</strong> (&quot;us&quot;, &quot;we&quot;, or &quot;our&quot;) operates <strong>{siteUrl}</strong> (the <strong>&quot;Service&quot;</strong>).</p>
+      <p>Our Privacy Policy explains how we collect, safeguard, and disclose information that results from your use of the Service.</p>
+      <p>By using the Service, you agree to the collection and use of information in accordance with this policy.</p>
+
+      <h2>2. Information We Collect</h2>
+      <p>We may collect Personal Data, Usage Data, and Cookies to provide and improve the Service.</p>
+      <ul>
+        <li>Email address, name, and other contact details you provide.</li>
+        <li>Usage Data such as IP address, browser type, pages visited, and time spent.</li>
+        <li>Cookies and similar tracking technologies used to operate and secure the Service.</li>
+      </ul>
+
+      <h2>3. How We Use Data</h2>
+      <p>We use collected data to provide and maintain the Service, notify you about changes, provide support, improve the Service, monitor usage, and detect or address technical issues.</p>
+
+      <h2>4. Retention and Transfer</h2>
+      <p>We retain Personal Data only as long as necessary for the purposes described in this policy and as required by law.</p>
+      <p>Your information may be transferred to and maintained on systems located outside your jurisdiction, including the Philippines, where our operations are managed.</p>
+
+      <h2>5. Disclosure</h2>
+      <p>We may disclose personal information in connection with a business transaction, to service providers, to comply with legal obligations, or with your consent.</p>
+
+      <h2>6. Security</h2>
+      <p>We use commercially acceptable means to protect your Personal Data, but no method of transmission or storage is 100% secure.</p>
+
+      <h2>7. Your Rights</h2>
+      <p>If you are in the EU, EEA, or California, you may have rights to access, update, delete, restrict, or object to processing of your Personal Data. To exercise those rights, email <strong>support@teamchords.com</strong>.</p>
+
+      <h2>8. Third-Party Services</h2>
+      <p>We may use third-party service providers, analytics tools, CI/CD tooling, and payment processors. These providers may process your data only as needed to provide their services.</p>
+
+      <h2>9. Links To Other Sites</h2>
+      <p>Our Service may contain links to other websites that are not operated by us. We strongly advise you to review the privacy policy of every site you visit.</p>
+      <p>This policy template was originally produced with <a href="https://policymaker.io/privacy-policy/">PolicyMaker.io</a>.</p>
+
+      <h2>10. Children&apos;s Privacy</h2>
+      <p>Our Services are not intended for use by children under 18, and we do not knowingly collect personal information from children under 18.</p>
+
+      <h2>11. Changes To This Policy</h2>
+      <p>We may update this Privacy Policy from time to time by posting a new version on this page.</p>
+
+      <h2>12. Contact Us</h2>
+      <p>If you have any questions about this Privacy Policy, please contact us by email at <strong>support@teamchords.com</strong>.</p>
+    </div>
+  </article>
+</BaseLayout>
