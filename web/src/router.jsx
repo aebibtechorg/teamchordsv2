@@ -1,5 +1,5 @@
-import { createBrowserRouter } from "react-router-dom";
-import LandingPage from "./LandingPage.jsx";
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
 import Signup from "./pages/Signup";
 import Signin from "./pages/Signin";
 import ChordLibrary from "./pages/ChordLibrary";
@@ -23,8 +23,18 @@ import Pricing from "./pages/Pricing.jsx";
 import Billing from "./pages/Billing.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
+export function RootRedirect() {
+  const { isAuthenticated, isLoading } = useAuth0();
+
+  if (isLoading) {
+    return null;
+  }
+
+  return <Navigate to={isAuthenticated ? "/library" : "/signin"} replace />;
+}
+
 export const router = createBrowserRouter([
-  { path: "/", element: <LandingPage /> },
+  { path: "/", element: <RootRedirect /> },
   { path: "/signup", element: <Signup /> },
   { path: "/signin", element: <Signin /> },
   {

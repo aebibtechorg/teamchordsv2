@@ -1,57 +1,176 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getBlogPosts, getFeaturedPost } from '../lib/posts';
+import { getBlogPosts } from '../lib/posts';
+import { APP_SITE_URL, PUBLIC_SITE_URL } from '../lib/site';
 
 const posts = await getBlogPosts();
-const featured = (await getFeaturedPost()) ?? posts[0];
-const latest = posts.filter((post) => post.slug !== featured?.slug).slice(0, 3);
+const latest = posts.slice(0, 3);
 ---
 
 <BaseLayout
-  title="Team Chords Blog"
-  description="Launch updates, product stories, and live music workflow notes from Team Chords."
+  title="Team Chords | Chord sheets, set lists, and live outputs"
+  description="Team Chords helps music teams keep chord sheets, set lists, and live outputs in sync."
+  canonical={PUBLIC_SITE_URL}
 >
-  <section class="hero">
-    <div class="hero-copy">
-      <p class="eyebrow">New from Team Chords</p>
-      <h1>Team Chords is live, and the launch starts here.</h1>
-      <p class="lede">
-        This is the home for the stories behind the product, the launch notes, and the way Team Chords helps music teams keep everything in one place.
-      </p>
-      <div class="hero-actions">
-        <a class="button button-primary" href="/blog">Read the launch story</a>
-        <a class="button button-secondary" href={featured ? `/blog/${featured.slug}` : '/blog'}>Featured article</a>
+  <section class="mx-auto grid max-w-6xl gap-10 px-4 pb-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-8 lg:py-10">
+    <div class="space-y-6">
+      <!-- <p class="inline-flex rounded-full border border-gray-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 shadow-sm">Team Chords</p> -->
+      <div class="space-y-4">
+        <h1 class="max-w-2xl text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">Your team&apos;s ultimate chord sharing hub.</h1>
+        <p class="max-w-2xl text-lg leading-8 text-gray-700">Collaborate on chord sheets, create set lists, and share updates in real time. The public site is server-rendered for better indexing and a cleaner launch experience.</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <a class="inline-flex min-h-12 items-center justify-center rounded-full bg-gray-700 px-6 py-3 text-base font-semibold text-white shadow-md shadow-gray-900/10 transition hover:-translate-y-0.5 hover:bg-gray-600" href={`${APP_SITE_URL}/signup`}>Get started</a>
+        <a class="inline-flex min-h-12 items-center justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 transition hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50" href={`${APP_SITE_URL}/signin`}>Sign in</a>
+      </div>
+      <p class="max-w-xl text-sm leading-6 text-gray-500">Built for worship teams and musicians who need reliable, real-time collaboration.</p>
+    </div>
+
+    <div class="rounded-[2rem] border border-gray-200 bg-white p-4 shadow-xl shadow-gray-900/5 sm:p-6">
+      <div class="rounded-[1.5rem] bg-gray-700 p-6 text-white sm:p-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-300">Why teams use it</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Keep every song, key, and set list in one place.</h2>
+        <p class="mt-3 text-sm leading-7 text-gray-300 sm:text-base">Store chord sheets, organize set lists, and share live outputs without wrestling with scattered docs.</p>
+      </div>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        {[
+          { title: 'Real-time', desc: 'Changes stay in sync as your team edits.' },
+          { title: 'Structured', desc: 'Built for rehearsal and service workflows.' },
+          { title: 'Fast access', desc: 'Find songs, keys, and set lists quickly.' },
+          { title: 'Shared focus', desc: 'Keep every musician on the same page.' },
+        ].map((item) => (
+          <article class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <h3 class="text-lg font-semibold tracking-tight text-gray-900">{item.title}</h3>
+            <p class="mt-2 text-sm leading-6 text-gray-600">{item.desc}</p>
+          </article>
+        ))}
       </div>
     </div>
-    <aside class="hero-panel">
-      <p class="panel-label">Featured post</p>
-      {featured ? (
-        <article class="featured-card">
-          <span class="pill">Launch</span>
-          <h2>{featured.title}</h2>
-          <p>{featured.description}</p>
-          <a href={`/blog/${featured.slug}`}>Open the post →</a>
-        </article>
-      ) : (
-        <p>No posts yet.</p>
-      )}
-    </aside>
   </section>
 
-  <section class="story-grid">
-    <div class="section-heading">
-      <p class="eyebrow">Latest stories</p>
-      <h2>Fresh launch energy, not filler.</h2>
+  <section class="bg-gray-100">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { title: 'ChordPro Library', desc: 'Store and organize chord sheets in one searchable library.' },
+          { title: 'Set Lists', desc: 'Create and manage set lists for every event and rehearsal.' },
+          { title: 'Real-Time Sync', desc: 'See changes instantly with live updates across your team.' },
+          { title: 'Team Collaboration', desc: 'Invite bandmates and keep everyone on the same page.' },
+        ].map((feature) => (
+          <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm shadow-gray-900/5">
+            <h3 class="text-lg font-semibold tracking-tight text-gray-900">{feature.title}</h3>
+            <p class="mt-2 text-sm leading-7 text-gray-600">{feature.desc}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-3xl text-center">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Pricing</p>
+      <h2 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Pick the plan that fits your team.</h2>
+      <p class="mt-3 text-base leading-7 text-gray-600">
+        Start free, then grow into shared live set lists, larger libraries, and the collaboration features your team actually uses.
+      </p>
     </div>
 
-    <div class="post-grid">
+    <div class="mt-10 grid gap-6 lg:grid-cols-3">
+      <article class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm shadow-gray-900/5">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Jam Session</p>
+        <div class="mt-4 flex items-end gap-2">
+          <span class="text-4xl font-semibold tracking-tight text-gray-900">$0</span>
+          <span class="pb-1 text-sm text-gray-500">/ month</span>
+        </div>
+        <p class="mt-4 text-sm leading-7 text-gray-600">For solo artists and hobbyists getting started with a small library.</p>
+        <ul class="mt-5 space-y-3 text-sm leading-6 text-gray-700">
+          <li><span class="font-semibold">50 Chord Sheets</span> (ChordPro sheets)</li>
+          <li><span class="font-semibold">3 Set Lists</span></li>
+          <li><span class="font-semibold">3 Team Members</span></li>
+          <li>Basic ChordPro Editor</li>
+          <li>Read-only public sharing</li>
+          <li>Real-Time Live Mode for shared set list updates</li>
+        </ul>
+        <a class="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-gray-700 px-6 py-3 text-base font-semibold text-white transition hover:-translate-y-0.5 hover:bg-gray-600" href={`${APP_SITE_URL}/signup`}>Get started</a>
+      </article>
+
+      <article class="relative rounded-[2rem] border-2 border-gray-700 bg-gray-700 p-6 text-white shadow-xl shadow-gray-900/10">
+        <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-gray-900 shadow-sm">
+          Most popular
+        </div>
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-gray-300">Gigging Band</p>
+        <div class="mt-4 flex items-end gap-2">
+          <span class="text-4xl font-semibold tracking-tight">$5</span>
+          <span class="pb-1 text-sm text-gray-300">/ month</span>
+        </div>
+        <p class="mt-4 text-sm leading-7 text-gray-200">For active groups that need a bigger shared library and flexible set lists.</p>
+        <ul class="mt-5 space-y-3 text-sm leading-6 text-gray-100">
+          <li><span class="font-semibold">250 Chord Sheets</span></li>
+          <li><span class="font-semibold">Unlimited</span> Set Lists</li>
+          <li><span class="font-semibold">Unlimited</span> Team Members</li>
+          <li>Everything in Jam Session</li>
+          <li>Transposition Tools</li>
+          <li>Offline access for previously opened live views</li>
+          <li>PDF Export / Print</li>
+        </ul>
+        <a class="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-6 py-3 text-base font-semibold text-gray-900 transition hover:-translate-y-0.5 hover:bg-gray-100" href={`${APP_SITE_URL}/pricing`}>See in app</a>
+      </article>
+
+      <article class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm shadow-gray-900/5">
+        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Pro Library</p>
+        <div class="mt-4 flex items-end gap-2">
+          <span class="text-4xl font-semibold tracking-tight text-gray-900">$49</span>
+          <span class="pb-1 text-sm text-gray-500">/ month</span>
+        </div>
+        <p class="mt-4 text-sm leading-7 text-gray-600">For organizations that need the largest shared chord library and set list capacity.</p>
+        <ul class="mt-5 space-y-3 text-sm leading-6 text-gray-700">
+          <li><span class="font-semibold">Unlimited Chord Sheets</span></li>
+          <li><span class="font-semibold">Unlimited Set Lists</span></li>
+          <li><span class="font-semibold">Unlimited Team Members</span></li>
+          <li>Everything in Gigging Band</li>
+          <li>Priority Support</li>
+          <li>Best fit for larger organizations with higher capacity needs</li>
+        </ul>
+        <a class="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 transition hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50" href={`${APP_SITE_URL}/pricing`}>See in app</a>
+      </article>
+    </div>
+
+    <div class="mx-auto mt-8 max-w-4xl rounded-3xl border border-gray-200 bg-gray-50 px-5 py-4 text-center text-sm leading-6 text-gray-600">
+      All paid plans are billed monthly. You can cancel anytime, and your access will remain active until the end of the billing period. Subscriptions are non-refundable except where required by law.
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+    <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Latest stories</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Fresh launch energy, not filler.</h2>
+      </div>
+      <a class="inline-flex items-center text-sm font-semibold text-gray-700 hover:text-gray-900 hover:underline" href="/blog">Read all stories</a>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-3">
       {latest.map((post) => (
-        <a class="post-card" href={`/blog/${post.slug}`}>
-          <p class="post-meta">{post.pubDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          <h3>{post.title}</h3>
-          <p>{post.description}</p>
+        <a class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm shadow-gray-900/5 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-gray-900/10" href={`/stories/${post.slug}`}>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">{post.pubDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <h3 class="mt-3 text-xl font-semibold tracking-tight text-gray-900 transition group-hover:text-gray-700">{post.title}</h3>
+          <p class="mt-3 text-sm leading-7 text-gray-600">{post.description}</p>
         </a>
       ))}
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+    <div class="rounded-[2rem] bg-gray-700 px-6 py-10 text-white shadow-xl shadow-gray-900/10 sm:px-8 sm:py-12 lg:flex lg:items-center lg:justify-between lg:gap-8">
+      <div class="max-w-2xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-300">Start here</p>
+        <h2 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Sign up on the app site to create your first library.</h2>
+        <p class="mt-3 text-base leading-7 text-gray-300">The public homepage is optimized for search, while the app stays focused on authenticated collaboration.</p>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-3 lg:mt-0">
+        <a class="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-base font-semibold text-gray-900 transition hover:-translate-y-0.5 hover:bg-gray-100" href={`${APP_SITE_URL}/signup`}>Get started</a>
+        <a class="inline-flex min-h-12 items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-base font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15" href={`${APP_SITE_URL}/signin`}>Sign in</a>
+      </div>
     </div>
   </section>
 </BaseLayout>

@@ -91,7 +91,7 @@ if (builder.Configuration["Destination"] == "aca")
         api.WithEnvironment("ConnectionStrings__Redis", builder.Configuration.GetConnectionString("Redis"));
     }
 
-    _ = builder.AddViteApp("webclient", "../web")
+    var appFrontend = builder.AddViteApp("webclient", "../web")
         .WithReference(api)
         .WaitFor(api)
         .WithEndpoint(endpointName: "http", endpoint =>
@@ -123,7 +123,8 @@ if (builder.Configuration["Destination"] == "aca")
     // Blog (Astro) - local dev served by the Astro dev server
     _ = builder.AddViteApp("blogclient", "../blog", "dev")
         .WithEnvironment(c => {
-            c.EnvironmentVariables.Add("BLOG_SITE_URL", builder.Configuration["Blog:SiteUrl"] ?? Environment.GetEnvironmentVariable("BLOG_SITE_URL") ?? "http://localhost:4322");
+            c.EnvironmentVariables.Add("APP_SITE_URL", builder.Configuration["CustomerApp:BaseUrl"] ?? builder.Configuration["WebApp:BaseUrl"] ?? Environment.GetEnvironmentVariable("APP_SITE_URL") ?? appFrontend.GetEndpoint("http").Url ?? "http://localhost:5173");
+            c.EnvironmentVariables.Add("PUBLIC_SITE_URL", builder.Configuration["Blog:SiteUrl"] ?? Environment.GetEnvironmentVariable("PUBLIC_SITE_URL") ?? "http://localhost:4322");
             c.EnvironmentVariables.Add("SANITY_PROJECT_ID", builder.Configuration["Blog:SanityProjectId"] ?? Environment.GetEnvironmentVariable("SANITY_PROJECT_ID") ?? "");
             c.EnvironmentVariables.Add("SANITY_DATASET", builder.Configuration["Blog:SanityDataset"] ?? Environment.GetEnvironmentVariable("SANITY_DATASET") ?? "");
             c.EnvironmentVariables.Add("SANITY_API_TOKEN", builder.Configuration["Blog:SanityApiToken"] ?? Environment.GetEnvironmentVariable("SANITY_API_TOKEN") ?? "");
@@ -239,7 +240,8 @@ if (builder.Configuration["Destination"] == "compose")
 
     builder.AddNpmApp("blogclient-server", "../blog")
         .WithEnvironment(c => {
-            c.EnvironmentVariables.Add("BLOG_SITE_URL", GetSetting("Blog:SiteUrl", "BLOG_SITE_URL", "http://localhost:4322"));
+            c.EnvironmentVariables.Add("APP_SITE_URL", GetSetting("CustomerApp:BaseUrl", "APP_SITE_URL", "http://localhost:5173"));
+            c.EnvironmentVariables.Add("PUBLIC_SITE_URL", GetSetting("Blog:SiteUrl", "PUBLIC_SITE_URL", "http://localhost:4322"));
             c.EnvironmentVariables.Add("SANITY_PROJECT_ID", GetSetting("Blog:SanityProjectId", "SANITY_PROJECT_ID"));
             c.EnvironmentVariables.Add("SANITY_DATASET", GetSetting("Blog:SanityDataset", "SANITY_DATASET"));
             c.EnvironmentVariables.Add("SANITY_API_TOKEN", GetSetting("Blog:SanityApiToken", "SANITY_API_TOKEN"));

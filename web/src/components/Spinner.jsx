@@ -23,7 +23,7 @@ const Spinner = () => {
                     animate={{ scale: [1, 1.05, 1] }}
                     transition={pulseTransition}
                 >
-                    <MainLogo size={72} className="drop-shadow-sm" alt="" aria-hidden="true" />
+                    <MainLogo size={72} className="drop-shadow-sm rounded-full" alt="" aria-hidden="true" />
                 </motion.div>
             </div>
             <span className="sr-only">Loading Team Chords</span>

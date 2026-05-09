@@ -1,11 +1,13 @@
 ---
 import '../styles/global.css';
+import { APP_SITE_URL, PUBLIC_SITE_URL } from '../lib/site';
 
 const {
-  title = 'Team Chords Blog',
-  description = 'Launch notes, product stories, and updates from Team Chords.',
+  title = 'Team Chords',
+  description = 'Team Chords helps music teams keep chord sheets, set lists, and live outputs in sync.',
   canonical,
 } = Astro.props;
+const pageCanonical = canonical ?? new URL(Astro.url.pathname, PUBLIC_SITE_URL).href;
 ---
 
 <!doctype html>
@@ -13,43 +15,63 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="https://teamchords.com/favicon.png" />
+    <link rel="icon" href={`${PUBLIC_SITE_URL.replace(/\/$/, '')}/favicon.png`} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    {canonical ? <link rel="canonical" href={canonical} /> : null}
+    <meta property="og:url" content={pageCanonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href={pageCanonical} />
   </head>
   <body>
-    <header class="site-header" data-menu-open="false">
-      <div class="site-header-top">
-        <a class="brand" href="/" aria-label="Team Chords home">
-          <img class="brand-mark" src="https://teamchords.com/favicon.png" alt="Team Chords logo" width="32" height="32" />
-          <span>Team Chords</span>
-        </a>
-        <button class="menu-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">
-          <span class="menu-toggle-icon" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </span>
-          <!-- <span class="menu-toggle-label">Menu</span> -->
-        </button>
-      </div>
-      <nav class="site-nav" id="primary-navigation" aria-label="Primary">
-        <a href="/">Home</a>
-        <a href="/blog">Stories</a>
-      </nav>
+    <div class="min-h-screen bg-gray-100 text-gray-900">
+      <header class="site-header fixed inset-x-0 top-0 z-50 border-b border-gray-700/80 bg-gray-700/95 text-white shadow-md backdrop-blur" data-menu-open="false">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div class="flex w-full items-center justify-between gap-3 sm:w-auto">
+            <a class="flex items-center gap-3 text-lg font-semibold tracking-tight text-white" href="/" aria-label="Team Chords home">
+              <img class="h-8 w-8 rounded-full shadow-sm" src="/favicon.png" alt="Team Chords logo" width="32" height="32" />
+              <span>Team Chords</span>
+            </a>
+            <button class="menu-toggle inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold transition hover:bg-white/15 sm:hidden" type="button" aria-controls="primary-navigation" aria-expanded="false">
+              <span class="menu-toggle-icon flex h-4 w-5 flex-col justify-between" aria-hidden="true">
+                <span class="h-0.5 w-full rounded-full bg-current"></span>
+                <span class="h-0.5 w-full rounded-full bg-current"></span>
+                <span class="h-0.5 w-full rounded-full bg-current"></span>
+              </span>
+              <span class="menu-toggle-label">Menu</span>
+            </button>
+          </div>
+          <nav class="site-nav hidden w-full flex-col gap-2 border-t border-white/10 pt-3 text-sm sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:border-t-0 sm:pt-0" id="primary-navigation" aria-label="Primary">
+            <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href="/">Home</a>
+            <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href="/stories">Stories</a>
+            <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href="/#pricing">Pricing</a>
+            <a class="rounded-full px-3 py-2 transition hover:bg-gray-600" href={`${APP_SITE_URL}/signin`}>Sign in</a>
+            <a class="rounded-full bg-white px-4 py-2 font-semibold text-gray-900 transition hover:bg-gray-100" href={`${APP_SITE_URL}/signup`}>Get started</a>
+          </nav>
+        </div>
       </header>
-    <div class="page-shell">
-      <main class="site-main">
+      <main class="pt-24 sm:pt-28">
         <slot />
       </main>
-      <footer class="site-footer">
-        <p>Your Team&apos;s Ultimate Chord Sharing Hub.</p>
-        <p>© {new Date().getFullYear()} Team Chords</p>
+      <footer class="border-t border-gray-200 bg-gray-200 text-gray-600">
+        <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-gray-500">Team Chords</p>
+            <p class="mt-2 text-sm">Your team's ultimate chord sharing hub.</p>
+          </div>
+          <div class="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-6">
+            <a class="hover:text-gray-900 hover:underline" href="/">Home</a>
+            <a class="hover:text-gray-900 hover:underline" href="/blog">Stories</a>
+            <a class="hover:text-gray-900 hover:underline" href="/#pricing">Pricing</a>
+            <a class="hover:text-gray-900 hover:underline" href={`${APP_SITE_URL}/signin`}>Sign in</a>
+            <a class="hover:text-gray-900 hover:underline" href={`${APP_SITE_URL}/signup`}>Get started</a>
+            <a class="hover:text-gray-900 hover:underline" href="/privacy-policy">Privacy Policy</a>
+            <a class="hover:text-gray-900 hover:underline" href="/terms-and-conditions">Terms &amp; Conditions</a>
+          </div>
+        </div>
       </footer>
     </div>
     <script>

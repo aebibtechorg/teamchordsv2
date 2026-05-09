@@ -2,8 +2,6 @@ locals {
   api_service_name   = "tcv2-api"
   admin_service_name = "tcv2-admin"
   help_site_id       = trimspace(var.help_firebase_site) != "" ? trimspace(var.help_firebase_site) : "${var.project_id}-help"
-  blog_connection_id = "teamchords-github"
-  blog_repo_link_id  = "teamchordsv2-blog"
 }
 
 resource "google_project_service" "required" {
@@ -48,91 +46,76 @@ resource "google_firebase_hosting_site" "help" {
   depends_on = [google_firebase_project.default]
 }
 
-resource "google_firebase_web_app" "blog" {
-  provider = google-beta
-  project  = var.project_id
-  display_name     = "TeamChords Blog"
-  deletion_policy  = "ABANDON"
+removed {
+  from = google_firebase_web_app.blog
 
-  depends_on = [google_firebase_project.default]
-}
-
-resource "google_project_service_identity" "developerconnect" {
-  provider = google-beta
-  project  = var.project_id
-  service  = "developerconnect.googleapis.com"
-
-  depends_on = [google_project_service.required]
-}
-
-resource "google_project_iam_member" "developerconnect_secret_admin" {
-  provider = google-beta
-  project  = var.project_id
-  role     = "roles/secretmanager.admin"
-  member   = google_project_service_identity.developerconnect.member
-}
-
-resource "google_service_account" "firebase_app_hosting_compute" {
-  project                     = var.project_id
-  account_id                  = "firebase-app-hosting-compute"
-  display_name                = "Firebase App Hosting compute service account"
-  create_ignore_already_exists = true
-}
-
-resource "google_project_iam_member" "firebase_app_hosting_compute_runner" {
-  project = var.project_id
-  role    = "roles/firebaseapphosting.computeRunner"
-  member  = google_service_account.firebase_app_hosting_compute.member
-}
-
-resource "google_project_iam_member" "firebase_app_hosting_compute_repo_reader" {
-  project = var.project_id
-  role    = "roles/developerconnect.readTokenAccessor"
-  member  = google_service_account.firebase_app_hosting_compute.member
-}
-
-resource "google_developer_connect_connection" "blog" {
-  provider      = google-beta
-  project       = var.project_id
-  location      = var.region
-  connection_id = local.blog_connection_id
-
-  github_config {
-    github_app = "FIREBASE"
+  lifecycle {
+    destroy = false
   }
-
-  depends_on = [google_project_iam_member.developerconnect_secret_admin]
 }
 
-resource "google_developer_connect_git_repository_link" "blog" {
-  provider               = google-beta
-  project                = var.project_id
-  location               = var.region
-  git_repository_link_id = local.blog_repo_link_id
-  parent_connection      = google_developer_connect_connection.blog.connection_id
-  clone_uri              = "https://github.com/${var.github_owner}/${var.github_repo}.git"
-}
+removed {
+  from = google_project_service_identity.developerconnect
 
-resource "google_firebase_app_hosting_backend" "blog" {
-  provider          = google-beta
-  project           = var.project_id
-  location          = var.region
-  backend_id        = var.blog_app_hosting_backend_id
-  display_name      = "TeamChords Blog"
-  app_id            = google_firebase_web_app.blog.app_id
-  serving_locality  = "GLOBAL_ACCESS"
-  service_account   = google_service_account.firebase_app_hosting_compute.email
-
-  codebase {
-    repository     = google_developer_connect_git_repository_link.blog.name
-    root_directory = var.blog_app_hosting_root_directory
+  lifecycle {
+    destroy = false
   }
+}
 
-  depends_on = [
-    google_project_iam_member.firebase_app_hosting_compute_runner,
-    google_project_iam_member.firebase_app_hosting_compute_repo_reader,
-    google_developer_connect_git_repository_link.blog,
-  ]
+removed {
+  from = google_project_iam_member.developerconnect_secret_admin
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_service_account.firebase_app_hosting_compute
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_project_iam_member.firebase_app_hosting_compute_runner
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_project_iam_member.firebase_app_hosting_compute_repo_reader
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_developer_connect_connection.blog
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_developer_connect_git_repository_link.blog
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_firebase_app_hosting_backend.blog
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 // Stop managing one-time GitHub bootstrap resources in the routine deploy state.

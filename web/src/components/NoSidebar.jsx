@@ -10,7 +10,7 @@ const NoSidebar = ({ children }) => {
 
                 try {
                     clearUserProfile();
-                    await logout({ logoutParams: { returnTo: window.location.origin } });
+                    await logout({ logoutParams: { returnTo: `${window.location.origin}/signin` } });
                 } catch (err) {
                     console.error(err);
                 }

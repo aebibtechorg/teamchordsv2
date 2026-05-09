@@ -204,18 +204,6 @@ variable "help_firebase_site" {
   default     = ""
 }
 
-variable "blog_app_hosting_backend_id" {
-  description = "Firebase App Hosting backend id for the blog"
-  type        = string
-  default     = "teamchords-blog"
-}
-
-variable "blog_app_hosting_root_directory" {
-  description = "Path to the blog app relative to the repository root for App Hosting"
-  type        = string
-  default     = "blog"
-}
-
 variable "help_image" {
   description = "Container image URI for the help site (optional, used if deploying as container)"
   type        = string

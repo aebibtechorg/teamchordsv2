@@ -30,23 +30,3 @@ output "help_firebase_default_url" {
   value = "https://${google_firebase_hosting_site.help.site_id}.web.app"
 }
 
-output "blog_app_hosting_backend_id" {
-  value = google_firebase_app_hosting_backend.blog.backend_id
-}
-
-output "blog_app_hosting_default_url" {
-  value = google_firebase_app_hosting_backend.blog.uri
-}
-
-output "blog_app_hosting_connection_installation_stage" {
-  value = try(google_developer_connect_connection.blog.installation_state[0].stage, "")
-}
-
-output "blog_app_hosting_connection_installation_message" {
-  value = try(google_developer_connect_connection.blog.installation_state[0].message, "")
-}
-
-output "blog_app_hosting_connection_installation_uri" {
-  value = try(google_developer_connect_connection.blog.installation_state[0].action_uri, "")
-}
-
