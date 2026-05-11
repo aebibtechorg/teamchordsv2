@@ -1,6 +1,6 @@
 ---
 title: "Why We Built Team Chords"
-description: "A look at the live problems that pushed us to build a better way to manage songs and setlists."
+description: "Why we built Team Chords to simplify chord sheets, setlists, and live outputs for music teams."
 pubDate: 2026-05-08
 author: "Team Chords"
 tags:
@@ -9,6 +9,7 @@ tags:
   - team workflow
 featured: false
 heroImage: "/hero-story.svg"
+heroImageAlt: "Team Chords story artwork"
 ---
 
 Most music teams do not struggle because they lack talent. They struggle because the workflow is messy.

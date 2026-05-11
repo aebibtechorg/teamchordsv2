@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getBlogPostBySlug, renderPostBody } from '../../lib/posts';
+import { PUBLIC_SITE_URL, SITE_NAME } from '../../lib/site';
 
 export const prerender = false;
 
@@ -11,11 +12,42 @@ if (!post) {
   throw new Response(null, { status: 404, statusText: 'Not found' });
 }
 
-const canonical = new URL(`/stories/${post.slug}`, Astro.site ?? 'https://teamchords-blog.web.app').toString();
+const canonical = new URL(`/stories/${post.slug}`, PUBLIC_SITE_URL).href;
 const renderedBody = renderPostBody(post.body);
+const articleImage = post.heroImage ?? '/hero-story.svg';
+const articleJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.title,
+  description: post.description,
+  url: canonical,
+  datePublished: post.pubDate.toISOString(),
+  dateModified: (post.updatedDate ?? post.pubDate).toISOString(),
+  author: {
+    '@type': 'Person',
+    name: post.author,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: PUBLIC_SITE_URL,
+  },
+  image: new URL(articleImage, PUBLIC_SITE_URL).href,
+  mainEntityOfPage: canonical,
+};
 ---
 
-<BaseLayout title={`${post.title} | Team Chords`} description={post.description} canonical={canonical}>
+<BaseLayout
+  title={`${post.title} | Team Chords`}
+  description={post.description}
+  canonical={canonical}
+  type="article"
+  image={articleImage}
+  imageAlt={post.heroImageAlt ?? post.title}
+  articlePublishedTime={post.pubDate.toISOString()}
+  articleModifiedTime={(post.updatedDate ?? post.pubDate).toISOString()}
+  jsonLd={articleJsonLd}
+>
   <article class="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
     <header class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-xl shadow-gray-900/5 sm:p-8">
       <div class="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
@@ -32,7 +64,7 @@ const renderedBody = renderPostBody(post.body);
     </header>
 
     <figure class="mt-6 overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-100 shadow-lg shadow-gray-900/5">
-      <img class="h-auto w-full object-cover" src={post.heroImage ?? '/hero-story.svg'} alt="Launch illustration" />
+      <img class="h-auto w-full object-cover" src={articleImage} alt={post.heroImageAlt ?? post.title} />
     </figure>
 
     <div class="post-body mt-8 rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm shadow-gray-900/5 sm:p-8" set:html={renderedBody}></div>

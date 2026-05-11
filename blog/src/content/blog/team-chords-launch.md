@@ -1,6 +1,6 @@
 ---
 title: "Team Chords Is Live"
-description: "Meet the new home for chord sheets, setlists, and live output control built for real teams."
+description: "Team Chords launches as a new home for chord sheets, setlists, and live output control built for music teams."
 pubDate: 2026-05-08
 author: "Team Chords"
 tags:
@@ -9,6 +9,7 @@ tags:
   - live music
 featured: true
 heroImage: "/hero-launch.svg"
+heroImageAlt: "Team Chords launch artwork"
 ---
 
 Team Chords is here.

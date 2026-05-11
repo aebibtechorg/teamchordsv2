@@ -1,13 +1,26 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getBlogPosts } from '../../lib/posts';
+import { PUBLIC_SITE_URL, SITE_DESCRIPTION, SITE_NAME } from '../../lib/site';
 
 const posts = await getBlogPosts();
+const canonical = new URL('/stories', PUBLIC_SITE_URL).href;
+const collectionJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `Stories | ${SITE_NAME}`,
+  url: canonical,
+  description: SITE_DESCRIPTION,
+};
 ---
 
 <BaseLayout
   title="Stories | Team Chords"
   description="Launch announcements, product stories, and updates from Team Chords."
+  canonical={canonical}
+  image="/hero-story.svg"
+  imageAlt="Team Chords stories hero artwork"
+  jsonLd={collectionJsonLd}
 >
   <section class="mx-auto max-w-6xl px-4 pb-10 sm:px-6 lg:px-8">
     <div class="rounded-[2rem] bg-gray-700 px-6 py-12 text-white shadow-xl shadow-gray-900/10 sm:px-8 sm:py-14">
