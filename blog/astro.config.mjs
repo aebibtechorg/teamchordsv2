@@ -1,6 +1,5 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
-import tailwind from '@astrojs/tailwind';
 import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 
@@ -9,5 +8,5 @@ export default defineConfig({
   output: 'server',
   server: { host: true, port: 8080 },
   adapter: node({ mode: 'standalone' }),
-  integrations: [mdx(), tailwind(), sitemap()],
+  integrations: [mdx(), sitemap()],
 });
