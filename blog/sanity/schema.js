@@ -33,6 +33,11 @@ export const blogPostSchema = {
       validation: (Rule) => Rule.required(),
     },
     {
+      name: 'updatedDate',
+      title: 'Updated Date',
+      type: 'datetime',
+    },
+    {
       name: 'author',
       title: 'Author',
       type: 'string',
@@ -52,6 +57,11 @@ export const blogPostSchema = {
       options: {
         hotspot: true,
       },
+    },
+    {
+      name: 'heroImageAlt',
+      title: 'Hero Image Alt Text',
+      type: 'string',
     },
     {
       name: 'featured',

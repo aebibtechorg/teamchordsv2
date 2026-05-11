@@ -7,10 +7,12 @@ export type BlogPost = {
   title: string;
   description: string;
   pubDate: Date;
+  updatedDate: Date | null;
   author: string;
   tags: string[];
   featured: boolean;
   heroImage: string | null;
+  heroImageAlt: string | null;
   body: string;
 };
 
@@ -19,10 +21,12 @@ type SanityBlogPost = {
   title: string;
   description: string;
   pubDate: string;
+  updatedDate?: string;
   author: string;
   tags?: string[];
   featured?: boolean;
   heroImage?: string | null;
+  heroImageAlt?: string | null;
   body?: string;
 };
 
@@ -49,10 +53,12 @@ const blogPostFields = `{
   title,
   description,
   pubDate,
+  updatedDate,
   author,
   tags,
   featured,
   "heroImage": heroImage.asset->url,
+  heroImageAlt,
   body
 }`;
 
@@ -62,10 +68,12 @@ function normalizePost(post: SanityBlogPost): BlogPost {
     title: post.title,
     description: post.description,
     pubDate: new Date(post.pubDate),
+    updatedDate: post.updatedDate ? new Date(post.updatedDate) : null,
     author: post.author,
     tags: post.tags ?? [],
     featured: Boolean(post.featured),
     heroImage: post.heroImage || null,
+    heroImageAlt: post.heroImageAlt || null,
     body: post.body || '',
   };
 }
@@ -77,10 +85,12 @@ async function getLocalPosts(): Promise<BlogPost[]> {
     title: post.data.title,
     description: post.data.description,
     pubDate: post.data.pubDate,
+    updatedDate: post.data.updatedDate ?? null,
     author: post.data.author,
     tags: post.data.tags ?? [],
     featured: Boolean(post.data.featured),
     heroImage: post.data.heroImage ?? null,
+    heroImageAlt: post.data.heroImageAlt ?? null,
     body: post.body,
   }));
 }

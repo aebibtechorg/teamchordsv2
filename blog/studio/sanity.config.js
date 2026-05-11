@@ -9,7 +9,7 @@ export default defineConfig({
   title: 'Team Chords Blog',
 
   projectId: process.env.SANITY_STUDIO_PROJECT_ID || process.env.SANITY_PROJECT_ID || 'r499aase',
-  dataset: process.env.SANITY_STUDIO_DATASET || process.env.SANITY_DATASET || 'testing',
+  dataset: process.env.SANITY_STUDIO_DATASET || process.env.SANITY_DATASET || 'production',
   apiVersion: process.env.SANITY_STUDIO_API_VERSION || process.env.SANITY_API_VERSION || '2025-05-08',
 
   plugins: [structureTool(), visionTool()],
