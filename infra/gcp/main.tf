@@ -1,7 +1,6 @@
 locals {
   api_service_name   = "tcv2-api"
   admin_service_name = "tcv2-admin"
-  blog_service_name  = "tcv2-blog"
   help_site_id       = trimspace(var.help_firebase_site) != "" ? trimspace(var.help_firebase_site) : "${var.project_id}-help"
 }
 
@@ -113,6 +112,30 @@ removed {
 
 removed {
   from = google_firebase_app_hosting_backend.blog
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_service_account.blog_runtime
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_cloud_run_v2_service.blog
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = google_cloud_run_v2_service_iam_member.blog_public
 
   lifecycle {
     destroy = false

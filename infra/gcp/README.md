@@ -40,8 +40,6 @@ Set these values through `TF_VAR_*` environment variables, a `.tfvars` file, or 
 - `zeptomail_template_key`
 - `zeptomail_from_email_address`
 
-The public blog uses `APP_SITE_URL` and `BLOG_SITE_URL`, but those are managed by the blog deployment target rather than this Terraform stack.
-
 Optional values:
 
 - `api_image`
