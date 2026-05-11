@@ -1,6 +1,7 @@
 locals {
   api_service_name   = "tcv2-api"
   admin_service_name = "tcv2-admin"
+  blog_service_name  = "tcv2-blog"
   help_site_id       = trimspace(var.help_firebase_site) != "" ? trimspace(var.help_firebase_site) : "${var.project_id}-help"
 }
 

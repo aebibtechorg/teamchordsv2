@@ -210,3 +210,46 @@ variable "help_image" {
   default     = ""
 }
 
+variable "blog_image" {
+  description = "Container image URI for the blog app"
+  type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello"
+}
+
+variable "sanity_project_id" {
+  description = "Sanity project id for the blog content"
+  type        = string
+  default     = ""
+}
+
+variable "sanity_dataset" {
+  description = "Sanity dataset name for the blog"
+  type        = string
+  default     = ""
+}
+
+variable "sanity_api_token" {
+  description = "Sanity API token for server-side requests"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "sanity_api_version" {
+  description = "Sanity API version (ISO date)"
+  type        = string
+  default     = "2025-05-08"
+}
+
+variable "public_site_url" {
+  description = "Public blog site URL (used for canonical links)"
+  type        = string
+  default     = ""
+}
+
+variable "app_site_url" {
+  description = "App site URL for CTA links (overrides customer_app_base_url if set)"
+  type        = string
+  default     = ""
+}
+

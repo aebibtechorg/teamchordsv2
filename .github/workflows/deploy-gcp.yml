@@ -126,6 +126,7 @@ jobs:
       TF_VAR_admin_auth0_client_id: ${{ secrets.ADMIN_AUTH0_CLIENT_ID }}
       TF_VAR_admin_auth0_audience: ${{ secrets.ADMIN_AUTH0_AUDIENCE }}
       TF_VAR_customer_app_base_url: ${{ secrets.CUSTOMER_APP_BASE_URL }}
+      TF_VAR_app_site_url: ${{ secrets.APP_SITE_URL }}
       TF_VAR_web_app_base_url: ${{ secrets.WEB_APP_BASE_URL }}
       TF_VAR_dodo_secret_key: ${{ secrets.DODO_SECRET_KEY }}
       TF_VAR_dodo_base_url: ${{ secrets.DODO_BASE_URL }}
@@ -141,6 +142,11 @@ jobs:
       TF_VAR_zeptomail_from_name: ${{ secrets.ZEPTOMAIL_FROM_NAME }}
       TF_VAR_zeptomail_base_url: ${{ secrets.ZEPTOMAIL_BASE_URL }}
       TF_VAR_help_firebase_site: ${{ secrets.HELP_FIREBASE_SITE }}
+      TF_VAR_sanity_project_id: ${{ secrets.SANITY_PROJECT_ID }}
+      TF_VAR_sanity_dataset: ${{ secrets.SANITY_DATASET }}
+      TF_VAR_sanity_api_token: ${{ secrets.SANITY_API_TOKEN }}
+      TF_VAR_sanity_api_version: ${{ secrets.SANITY_API_VERSION }}
+      TF_VAR_public_site_url: ${{ secrets.PUBLIC_SITE_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -166,6 +172,8 @@ jobs:
           echo "TF_VAR_admin_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-admin:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "HELP_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-help:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "TF_VAR_help_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-help:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BLOG_IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-blog:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "TF_VAR_blog_image=${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/tcv2-blog:${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Ensure Terraform state bucket exists
         run: |
@@ -205,6 +213,8 @@ jobs:
 
           docker build -t "${ADMIN_IMAGE_URI}" -f admin/Dockerfile admin
           docker push "${ADMIN_IMAGE_URI}"
+          docker build -t "${BLOG_IMAGE_URI}" -f blog/Dockerfile blog
+          docker push "${BLOG_IMAGE_URI}"
 
       - name: Plan Terraform
         working-directory: infra/gcp

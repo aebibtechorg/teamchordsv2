@@ -30,3 +30,7 @@ output "help_firebase_default_url" {
   value = "https://${google_firebase_hosting_site.help.site_id}.web.app"
 }
 
+output "blog_url" {
+  value = google_cloud_run_v2_service.blog.uri
+}
+
