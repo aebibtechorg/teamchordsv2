@@ -15,6 +15,7 @@ const Signup = () => {
   const [familyName, setFamilyName] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [agree, setAgree] = useState(false);
 
   const { loginWithRedirect, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
@@ -29,7 +30,12 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+    if (!agree) {
+      setError('You must agree to the Privacy Policy and Terms and Conditions before signing up.');
+      setLoading(false);
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
     try {
       const payload = {
         email: email || undefined,
@@ -141,7 +147,20 @@ const Signup = () => {
           />
         </div>
 
-        <button type="submit" disabled={loading} className="w-full mt-4 border rounded bg-gray-500 p-2 text-white hover:bg-gray-600 disabled:opacity-50">
+        <div className="flex items-center gap-2 py-2">
+          <input
+            id="agree"
+            type="checkbox"
+            checked={agree}
+            onChange={(e) => setAgree(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <label htmlFor="agree" className="text-sm">
+            By signing up, you agree to our <a className="text-blue-500 underline" href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> and <a className="text-blue-500 underline" href="/terms-and-conditions" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>.
+          </label>
+        </div>
+
+        <button type="submit" disabled={loading || !agree} className="w-full mt-4 border rounded bg-gray-500 p-2 text-white hover:bg-gray-600 disabled:opacity-50">
           Sign Up
         </button>
         {/*<div className="flex flex-col gap-2 mt-4">
