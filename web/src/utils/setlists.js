@@ -26,11 +26,14 @@ async function getSetLists(orgId, { search = "", afterCreatedAt = null, afterId 
 async function getSetList(id) {
     try {
         const res = await apiFetch(`/api/setlists/${encodeURIComponent(id)}`);
-        if (!res.ok) return null;
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ message: res.statusText }));
+            throw error;
+        }
         return await res.json();
     } catch (err) {
         console.error("Error fetching set list:", err);
-        return null;
+        throw err;
     }
 }
 
@@ -41,14 +44,13 @@ async function createSetList(setlist) {
             body: JSON.stringify(setlist)
         });
         if (!res.ok) {
-            const text = await res.text();
-            console.error('Error creating set list:', res.status, text);
-            return null;
+            const error = await res.json().catch(() => ({ message: res.statusText }));
+            throw error;
         }
         return await res.json();
     } catch (err) {
         console.error("Error creating set list:", err);
-        return null;
+        throw err;
     }
 }
 
@@ -59,14 +61,13 @@ async function updateSetList(id, setlist) {
             body: JSON.stringify(setlist)
         });
         if (!res.ok && res.status !== 204) {
-            const text = await res.text();
-            console.error('Error updating set list:', res.status, text);
-            return null;
+            const error = await res.json().catch(() => ({ message: res.statusText }));
+            throw error;
         }
         return true;
     } catch (err) {
         console.error("Error updating set list:", err);
-        return null;
+        throw err;
     }
 }
 

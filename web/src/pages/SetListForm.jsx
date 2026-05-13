@@ -270,8 +270,8 @@ const SetListForm = () => {
                 setOutputs(mappedOutputs);
                 persistedOutputsRef.current = mappedOutputs.map(({ id, song, targetKey, capo, order }) => ({ id, song, targetKey, capo, order }));
             };
-            fetchSetList().then(() => setIsLoading(false)).catch(() => {
-                toast.error("A network error has occured.");
+            fetchSetList().then(() => setIsLoading(false)).catch((err) => {
+                toast.error(err.message || "A network error has occured.");
                 setIsLoading(false);
             });
         }
@@ -310,24 +310,20 @@ const SetListForm = () => {
         try {
             if (id === "new") {
                 const newSetList = await createSetList(setlist);
-                if (newSetList) {
-                    const savedOutputs = await syncOutputs(newSetList.id, nextOutputs, []);
-                    if (!savedOutputs) {
-                        toast.error("Failed to save set list songs.");
-                        return;
-                    }
-                    const hydratedOutputs = nextOutputs.map((output, index) => ({
-                        ...output,
-                        id: savedOutputs?.[index]?.id ?? output.id ?? null,
-                        order: index,
-                    }));
-                    setOutputs(hydratedOutputs);
-                    persistedOutputsRef.current = hydratedOutputs.map(({ id, song, targetKey, capo, order }) => ({ id, song, targetKey, capo, order }));
-                    toast.success("Set list created!");
-                    navigate(`/setlists/${newSetList.id}`);
-                } else {
-                    toast.error("Failed to create set list.");
+                const savedOutputs = await syncOutputs(newSetList.id, nextOutputs, []);
+                if (!savedOutputs) {
+                    toast.error("Failed to save set list songs.");
+                    return;
                 }
+                const hydratedOutputs = nextOutputs.map((output, index) => ({
+                    ...output,
+                    id: savedOutputs?.[index]?.id ?? output.id ?? null,
+                    order: index,
+                }));
+                setOutputs(hydratedOutputs);
+                persistedOutputsRef.current = hydratedOutputs.map(({ id, song, targetKey, capo, order }) => ({ id, song, targetKey, capo, order }));
+                toast.success("Set list created!");
+                navigate(`/setlists/${newSetList.id}`);
             } else {
                 await updateSetList(id, setlist);
                 const savedOutputs = await syncOutputs(id, nextOutputs, persistedOutputsRef.current);
@@ -346,7 +342,7 @@ const SetListForm = () => {
                 toast.success("Set list updated!");
             }
         } catch (error) {
-            toast.error("An error occurred while saving.");
+            toast.error(error.message || "An error occurred while saving.");
         } finally {
             setIsSaving(false);
         }

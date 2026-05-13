@@ -99,7 +99,8 @@ const ChordLibrary = () => {
         window.URL.revokeObjectURL(url);
         toast.success("Chord sheets backup downloaded!");
       } else {
-        toast.error("Failed to download backup.");
+        const errorData = await response.json().catch(() => ({ message: "Failed to download backup." }));
+        toast.error(errorData.message || "Failed to download backup.");
       }
     } catch (error) {
       console.error("Error backing up chord sheets:", error);

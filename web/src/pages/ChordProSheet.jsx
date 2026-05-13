@@ -41,7 +41,7 @@ const ChordProSheet = () => {
                 setKey(data.key);
                 setContent(data.content);
             };
-            fetchChordsheet().then(() => setIsLoading(false)).catch((err) => toast.error("A network error has occured."));
+            fetchChordsheet().then(() => setIsLoading(false)).catch((err) => toast.error(err.message || "A network error has occured."));
         }
         else {
             setIsLoading(false);
@@ -109,18 +109,17 @@ const ChordProSheet = () => {
     const handleSave = async () => {
         setIsSaving(true);
         const chordsheet = { title, artist, key, content, orgId: profile.orgId };
-        if (id === 'new') {
-            const response = await createChordsheet(chordsheet);
-            if (response != null) {
+        try {
+            if (id === 'new') {
+                const response = await createChordsheet(chordsheet);
                 toast.success("Chordsheet saved!");
                 navigate(`/library/${response.id}`);
+            } else {
+                await updateChordsheet(id, chordsheet);
+                toast.success("Changes successfully saved!");
             }
-            else {
-                toast.error("An error has occured.");
-            }
-        } else {
-            await updateChordsheet(id, chordsheet);
-            toast.success("Changes successfully saved!");
+        } catch (error) {
+            toast.error(error.message || "An error has occured.");
         }
         setIsSaving(false);
     };

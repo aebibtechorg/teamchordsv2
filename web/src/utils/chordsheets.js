@@ -37,11 +37,14 @@ async function searchChordsheets(orgId, inputValue, pageSize = 20) {
 async function getChordsheet(id) {
     try {
         const res = await apiFetch(`/api/chordsheets/${encodeURIComponent(id)}`);
-        if (!res.ok) return null;
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ message: res.statusText }));
+            throw error;
+        }
         return await res.json();
     } catch (err) {
         console.error("Error fetching chordsheet:", err);
-        return null;
+        throw err;
     }
 }
 
@@ -52,14 +55,13 @@ async function createChordsheet(chordsheet) {
             body: JSON.stringify(chordsheet)
         });
         if (!res.ok) {
-            const text = await res.text();
-            console.error('Error creating chordsheet:', res.status, text);
-            return null;
+            const error = await res.json().catch(() => ({ message: res.statusText }));
+            throw error;
         }
         return await res.json();
     } catch (err) {
         console.error("Error creating chordsheet:", err);
-        return null;
+        throw err;
     }
 }
 
@@ -70,15 +72,14 @@ async function updateChordsheet(id, chordsheet) {
             body: JSON.stringify(chordsheet)
         });
         if (!res.ok && res.status !== 204) {
-            const text = await res.text();
-            console.error('Error updating chordsheet:', res.status, text);
-            return null;
+            const error = await res.json().catch(() => ({ message: res.statusText }));
+            throw error;
         }
         // API returns 204 NoContent on success
         return true;
     } catch (err) {
         console.error("Error updating chordsheet:", err);
-        return null;
+        throw err;
     }
 }
 
@@ -89,7 +90,8 @@ const createChordsheetsBulk = async (chordsheets) => {
     body: JSON.stringify(chordsheets),
   });
   if (!response.ok) {
-    throw new Error('Failed to create chordsheets in bulk');
+    const error = await response.json().catch(() => ({ message: response.statusText }));
+    throw error;
   }
   return response.json();
 };
