@@ -39,7 +39,6 @@ internal sealed class DodoProductCatalogService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<DodoProductCatalogService> _logger;
-    private readonly ConcurrentDictionary<Plan, SemaphoreSlim> _planLocks = new();
     private readonly ConcurrentDictionary<Plan, string> _planToProductId = new();
     private readonly ConcurrentDictionary<string, Plan> _productIdToPlan = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _catalogRefreshLock = new(1, 1);
@@ -60,8 +59,7 @@ internal sealed class DodoProductCatalogService
         if (_planToProductId.TryGetValue(plan, out var cachedProductId))
             return cachedProductId;
 
-        var gate = _planLocks.GetOrAdd(plan, _ => new SemaphoreSlim(1, 1));
-        await gate.WaitAsync(cancellationToken);
+        await _catalogRefreshLock.WaitAsync(cancellationToken);
         try
         {
             if (_planToProductId.TryGetValue(plan, out cachedProductId))
@@ -73,14 +71,6 @@ internal sealed class DodoProductCatalogService
                 return cachedProductId;
 
             var definition = GetDefinition(plan);
-            var product = await FindProductForDefinitionAsync(definition, cancellationToken);
-            if (product is not null)
-            {
-                product = await EnsureStableMetadataAsync(product, definition, cancellationToken);
-                CacheProduct(product, definition.Plan);
-                return product.ProductId;
-            }
-
             try
             {
                 var created = await CreateProductAsync(definition, cancellationToken);
@@ -90,20 +80,15 @@ internal sealed class DodoProductCatalogService
             catch
             {
                 await RefreshCatalogAsync(cancellationToken);
-                product = await FindProductForDefinitionAsync(definition, cancellationToken);
-                if (product is not null)
-                {
-                    product = await EnsureStableMetadataAsync(product, definition, cancellationToken);
-                    CacheProduct(product, definition.Plan);
-                    return product.ProductId;
-                }
+                if (_planToProductId.TryGetValue(plan, out cachedProductId))
+                    return cachedProductId;
 
                 throw;
             }
         }
         finally
         {
-            gate.Release();
+            _catalogRefreshLock.Release();
         }
     }
 
@@ -138,19 +123,8 @@ internal sealed class DodoProductCatalogService
         if (_catalogLoaded)
             return;
 
-        await _catalogRefreshLock.WaitAsync(cancellationToken);
-        try
-        {
-            if (_catalogLoaded)
-                return;
-
-            await RefreshCatalogAsync(cancellationToken);
-            _catalogLoaded = true;
-        }
-        finally
-        {
-            _catalogRefreshLock.Release();
-        }
+        await RefreshCatalogAsync(cancellationToken);
+        _catalogLoaded = true;
     }
 
     private async Task RefreshCatalogAsync(CancellationToken cancellationToken)
@@ -191,17 +165,6 @@ internal sealed class DodoProductCatalogService
         }
     }
 
-    private async Task<DodoProductDto?> FindProductForDefinitionAsync(DodoPlanDefinition definition, CancellationToken cancellationToken)
-    {
-        await foreach (var product in ListAllProductsAsync(cancellationToken))
-        {
-            if (MatchesDefinition(product, definition))
-                return product;
-        }
-
-        return null;
-    }
-
     private async Task<DodoProductDto?> RetrieveProductAsync(string productId, CancellationToken cancellationToken)
     {
         return await SendRequestAsync<DodoProductDto>(HttpMethod.Get, $"/products/{productId}", body: null, cancellationToken);
@@ -234,48 +197,10 @@ internal sealed class DodoProductCatalogService
         return created;
     }
 
-    private async Task<DodoProductDto> EnsureStableMetadataAsync(
-        DodoProductDto product,
-        DodoPlanDefinition definition,
-        CancellationToken cancellationToken)
-    {
-        var metadata = new Dictionary<string, string>(product.Metadata ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
-        var stableMetadata = BuildStableMetadata(definition);
-
-        var changed = false;
-        foreach (var kvp in stableMetadata)
-        {
-            if (!metadata.TryGetValue(kvp.Key, out var existing) || !string.Equals(existing, kvp.Value, StringComparison.Ordinal))
-            {
-                metadata[kvp.Key] = kvp.Value;
-                changed = true;
-            }
-        }
-
-        if (!changed)
-            return product;
-
-        var updateRequest = new { metadata };
-        var updated = await SendRequestAsync<DodoProductDto>(HttpMethod.Patch, $"/products/{product.ProductId}", updateRequest, cancellationToken);
-        return updated ?? product with { Metadata = metadata };
-    }
-
     private void CacheProduct(DodoProductDto product, Plan plan)
     {
         _planToProductId[plan] = product.ProductId;
         _productIdToPlan[product.ProductId] = plan;
-    }
-
-    private static bool MatchesDefinition(DodoProductDto product, DodoPlanDefinition definition)
-    {
-        if (!TryResolvePlanFromProduct(product, out var resolvedPlan) || resolvedPlan != definition.Plan)
-            return false;
-
-        return string.Equals(product.Name, definition.Name, StringComparison.OrdinalIgnoreCase)
-            && product.IsRecurring
-            && string.Equals(product.TaxCategory, definition.TaxCategory, StringComparison.OrdinalIgnoreCase)
-            && product.Price == definition.PriceCents
-            && string.Equals(product.Currency, definition.Currency, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryResolvePlanFromProduct(DodoProductDto product, out Plan plan)
@@ -285,27 +210,6 @@ internal sealed class DodoProductCatalogService
         if (TryParsePlan(GetMetadataValue(metadata, DodoProductIds.PlanMetadataKey), out plan))
             return true;
 
-        if (TryParseLegacyProductId(GetMetadataValue(metadata, DodoProductIds.LegacyProductIdMetadataKey), out plan))
-            return true;
-
-        if (string.Equals(product.Name, Definitions[Plan.GiggingBand].Name, StringComparison.OrdinalIgnoreCase)
-            && product.IsRecurring
-            && string.Equals(product.TaxCategory, Definitions[Plan.GiggingBand].TaxCategory, StringComparison.OrdinalIgnoreCase)
-            && product.Price == Definitions[Plan.GiggingBand].PriceCents)
-        {
-            plan = Plan.GiggingBand;
-            return true;
-        }
-
-        if (string.Equals(product.Name, Definitions[Plan.Organization].Name, StringComparison.OrdinalIgnoreCase)
-            && product.IsRecurring
-            && string.Equals(product.TaxCategory, Definitions[Plan.Organization].TaxCategory, StringComparison.OrdinalIgnoreCase)
-            && product.Price == Definitions[Plan.Organization].PriceCents)
-        {
-            plan = Plan.Organization;
-            return true;
-        }
-
         plan = default;
         return false;
     }
@@ -314,21 +218,6 @@ internal sealed class DodoProductCatalogService
     {
         if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse(value, true, out plan))
             return true;
-
-        plan = default;
-        return false;
-    }
-
-    private static bool TryParseLegacyProductId(string? value, out Plan plan)
-    {
-        foreach (var entry in DodoProductIds.LegacyProductIds)
-        {
-            if (string.Equals(entry.Value, value, StringComparison.OrdinalIgnoreCase))
-            {
-                plan = entry.Key;
-                return true;
-            }
-        }
 
         plan = default;
         return false;
@@ -344,7 +233,6 @@ internal sealed class DodoProductCatalogService
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             [DodoProductIds.PlanMetadataKey] = definition.Plan.ToString(),
-            [DodoProductIds.LegacyProductIdMetadataKey] = DodoProductIds.LegacyProductIds[definition.Plan],
             [DodoProductIds.PlanDisplayNameMetadataKey] = definition.Name,
             [DodoProductIds.PlanPriceCentsMetadataKey] = definition.PriceCents.ToString(),
             [DodoProductIds.PlanCurrencyMetadataKey] = definition.Currency,

@@ -72,7 +72,7 @@ internal static class BillingEndpoints
                 metadata = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
-                    { "plan", request.Plan.ToString() }
+                    { DodoProductIds.PlanMetadataKey, request.Plan.ToString() }
                 },
                 // subscription_data = request.Plan == Plan.GiggingBand
                 //     ? (object)new { trial_period_days = 14 }
@@ -166,7 +166,7 @@ internal static class BillingEndpoints
                 metadata = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
-                    { "plan", request.Plan.ToString() }
+                    { DodoProductIds.PlanMetadataKey, request.Plan.ToString() }
                 }
             };
 
@@ -267,7 +267,7 @@ internal static class BillingEndpoints
                 metadata = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
-                    { "plan", request.Plan.ToString() }
+                    { DodoProductIds.PlanMetadataKey, request.Plan.ToString() }
                 }
             };
 
@@ -369,7 +369,7 @@ internal static class BillingEndpoints
                 var plan = (data.ProductId is not null
                         ? await catalog.GetPlanForProductIdAsync(data.ProductId, httpContext.RequestAborted)
                         : null)
-                    ?? TryParsePlan(GetMetadataValue(data.Metadata, "plan"));
+                    ?? TryParsePlan(GetMetadataValue(data.Metadata, DodoProductIds.PlanMetadataKey));
 
                 Organization? org = null;
                 if (Guid.TryParse(orgIdStr, out var orgId))
