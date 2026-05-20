@@ -294,13 +294,13 @@ internal sealed record DodoProductDto
     public bool IsRecurring { get; init; }
 
     [JsonPropertyName("tax_category")]
-    public string TaxCategory { get; init; } = string.Empty;
+    public string? TaxCategory { get; init; }
 
     [JsonPropertyName("price")]
-    public int? Price { get; init; }
+    public JsonElement? Price { get; init; }
 
     [JsonPropertyName("currency")]
-    public string? Currency { get; init; }
+    public JsonElement? Currency { get; init; }
 
     [JsonPropertyName("price_detail")]
     public JsonElement? PriceDetail { get; init; }
