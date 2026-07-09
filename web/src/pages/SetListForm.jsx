@@ -140,7 +140,7 @@ const SortableSongItem = ({ output, sheet, handleDeleteSong, openEditDialog, han
             style={style}
             className="bg-white rounded-lg shadow p-4 mb-3 flex items-center"
         >
-            <div {...attributes} {...listeners} className="cursor-grab p-2 text-gray-400 hover:text-gray-600">
+            <div {...attributes} {...listeners} style={{ touchAction: 'none' }} className="cursor-grab p-2 text-gray-400 hover:text-gray-600">
                 <svg viewBox="0 0 20 20" width="20" fill="currentColor"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg>
             </div>
 
@@ -251,8 +251,7 @@ const SetListForm = () => {
         }),
         useSensor(TouchSensor, {
             activationConstraint: {
-                distance: 8,
-                delay: 300,
+                delay: 250,
                 tolerance: 5,
             },
         })

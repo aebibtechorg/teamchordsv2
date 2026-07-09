@@ -62,15 +62,105 @@ internal static class UserEndpoints
             return user is not null ? Results.Ok(user.ToDto()) : Results.NotFound();
         });
 
-        users.MapGet("/me", async (HttpRequest req, AppDbContext db) =>
+        users.MapGet("/me", async (HttpRequest req, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config) =>
         {
-            // For simplicity, assume the user's Auth0 id is in the JWT "sub" claim
             var userId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId)) return Results.Unauthorized();
 
-            var user = await db.Users.Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Auth0UserId == userId);
-            if (user == null) return Results.NotFound();
-            
-            return Results.Ok(user.ToDetailDto());
+            var user = await db.Users
+                .Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization)
+                .Include(x => x.Profile)
+                .FirstOrDefaultAsync(x => x.Auth0UserId == userId);
+
+            if (user == null)
+            {
+                var email = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email || c.Type == "email" || c.Type == "https://teamchordsapp.io/email")?.Value;
+                var name = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "name" || c.Type == ClaimTypes.Name)?.Value;
+                var givenName = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "given_name" || c.Type == ClaimTypes.GivenName)?.Value;
+                var familyName = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "family_name" || c.Type == ClaimTypes.Surname)?.Value;
+                var picture = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "picture")?.Value;
+
+                var authHeader = req.Headers.Authorization.ToString();
+                var auth0Domain = config["Auth0:Domain"] ?? config["AUTH0_DOMAIN"];
+                if (!string.IsNullOrWhiteSpace(authHeader) && !string.IsNullOrWhiteSpace(auth0Domain))
+                {
+                    try
+                    {
+                        var http = httpFactory.CreateClient();
+                        using var userInfoReq = new HttpRequestMessage(HttpMethod.Get, $"https://{auth0Domain}/userinfo");
+                        userInfoReq.Headers.Add("Authorization", authHeader);
+
+                        using var userInfoResp = await http.SendAsync(userInfoReq);
+                        if (userInfoResp.IsSuccessStatusCode)
+                        {
+                            var profileJson = await userInfoResp.Content.ReadFromJsonAsync<JsonElement>();
+                            if (profileJson.TryGetProperty("email", out var e)) email = e.GetString();
+                            if (profileJson.TryGetProperty("name", out var n)) name = n.GetString();
+                            if (profileJson.TryGetProperty("given_name", out var gn)) givenName = gn.GetString();
+                            if (profileJson.TryGetProperty("family_name", out var fn)) familyName = fn.GetString();
+                            if (profileJson.TryGetProperty("picture", out var pic)) picture = pic.GetString();
+                        }
+                    }
+                    catch
+                    {
+                        // Fall back to token claims on network issues or mock environments
+                    }
+                }
+
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Auth0UserId = userId,
+                    Email = email,
+                    EmailVerified = true,
+                    Name = name ?? $"{givenName} {familyName}".Trim(),
+                    GivenName = givenName,
+                    FamilyName = familyName,
+                    Picture = picture,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                db.Users.Add(user);
+                await db.SaveChangesAsync();
+
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var pendingInvites = await db.Invites
+                        .Where(i => i.Email.ToLower() == email.ToLower() && i.Used && i.OrganizationId != null)
+                        .ToListAsync();
+
+                    bool invitesSynced = false;
+                    foreach (var invite in pendingInvites)
+                    {
+                        var alreadyMember = await db.UserOrganizations.AnyAsync(uo => uo.UserId == user.Id && uo.OrganizationId == invite.OrganizationId);
+                        if (!alreadyMember)
+                        {
+                            var userOrg = new UserOrganization
+                            {
+                                UserId = user.Id,
+                                OrganizationId = invite.OrganizationId!.Value,
+                                Role = OrgRole.Member,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.UserOrganizations.Add(userOrg);
+                            invitesSynced = true;
+                        }
+                    }
+
+                    if (invitesSynced)
+                    {
+                        await db.SaveChangesAsync();
+                    }
+                }
+
+                // Reload user to hydrate navigation properties cleanly
+                user = await db.Users
+                    .Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization)
+                    .Include(x => x.Profile)
+                    .FirstOrDefaultAsync(x => x.Id == user.Id);
+            }
+
+            return Results.Ok(user!.ToDetailDto());
         });
 
         users.MapPut("/me", async (UpdateMeDto dto, HttpRequest req, AppDbContext db) =>
@@ -94,88 +184,6 @@ internal static class UserEndpoints
             return Results.Ok(updatedUser.ToDetailDto());
         });
 
-        users.MapPost("/googlesignin", async (UserDto dto, AppDbContext db) =>
-        {
-            var validation = EndpointHelpers.Validate(dto);
-            if (validation != null) return validation;
-
-            if (string.IsNullOrWhiteSpace(dto.Email))
-            {
-                return Results.BadRequest(new { message = "Email is required." });
-            }
-
-            var existingUser = await db.Users
-                .Include(u => u.Organizations)
-                .Include(u => u.Profile)
-                .FirstOrDefaultAsync(x => x.Email == dto.Email);
-
-            if (existingUser != null)
-            {
-                return Results.Ok(existingUser.ToDetailDto());
-            }
-
-            var strategy = db.Database.CreateExecutionStrategy();
-
-            return await strategy.ExecuteAsync(async () =>
-            {
-                await using var tx = await db.Database.BeginTransactionAsync();
-
-                try
-                {
-                    var u = new User
-                    {
-                        Id = Guid.NewGuid(),
-                        Email = dto.Email,
-                        EmailVerified = dto.EmailVerified,
-                        Name = $"{dto.GivenName} {dto.FamilyName}",
-                        GivenName = dto.GivenName,
-                        FamilyName = dto.FamilyName,
-                        Picture = dto.Picture,
-                        CreatedAt = DateTime.UtcNow,
-                        Auth0UserId = dto.Auth0UserId
-                    };
-                    
-                    db.Users.Add(u);
-
-                    if (dto.InviteOrganizationId != null)
-                    {
-                        var userOrg = new UserOrganization
-                        {
-                            UserId = u.Id,
-                            OrganizationId = dto.InviteOrganizationId.Value,
-                            Role = OrgRole.Member,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.UserOrganizations.Add(userOrg);
-                    }
-
-                    await db.SaveChangesAsync();
-                    await tx.CommitAsync();
-                    
-                    var user = await db.Users
-                        .Include(x => x.Organizations)
-                        .Include(x => x.Profile)
-                        .FirstOrDefaultAsync(x => x.Id == u.Id);
-
-                    if (user is null)
-                    {
-                        return Results.BadRequest(new { message = "Failed to reload created user" });
-                    }
-
-                    return Results.Created($"/api/users/{u.Id}", user.ToDetailDto());
-                }
-                catch (DbUpdateException ex)
-                {
-                    await tx.RollbackAsync();
-                    return EndpointHelpers.HandleDbUpdateException(ex);
-                }
-                catch (Exception ex)
-                {
-                    await tx.RollbackAsync();
-                    return Results.BadRequest(new { message = "Failed to create user", detail = ex.Message });
-                }
-            });
-        }).AllowAnonymous();
 
         users.MapPost("/", async (UserDto dto, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config) =>
         {

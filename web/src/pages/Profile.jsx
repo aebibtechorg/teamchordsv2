@@ -26,9 +26,29 @@ const Profile = () => {
         }
     }, [searchParams, setUserProfile]);
 
+    // Helper to extract initial names (with fallback to splitting the full name)
+    const getInitialNames = () => {
+        const gName = profile?.givenName || profile?.GivenName || '';
+        const fName = profile?.familyName || profile?.FamilyName || '';
+        if (gName || fName) {
+            return { given: gName, family: fName };
+        }
+        const fullName = profile?.name || profile?.Name || '';
+        if (fullName) {
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length > 1) {
+                return { given: parts[0], family: parts.slice(1).join(' ') };
+            }
+            return { given: parts[0], family: '' };
+        }
+        return { given: '', family: '' };
+    };
+
+    const initial = getInitialNames();
+
     // Local form state
-    const [givenName, setGivenName] = useState(profile?.givenName || profile?.GivenName || '');
-    const [familyName, setFamilyName] = useState(profile?.familyName || profile?.FamilyName || '');
+    const [givenName, setGivenName] = useState(initial.given);
+    const [familyName, setFamilyName] = useState(initial.family);
     const [musicalRole, setMusicalRole] = useState(profile?.profile?.musicalRole || profile?.Profile?.MusicalRole || '');
     const [instruments, setInstruments] = useState(() => {
         const instr = profile?.profile?.instruments || profile?.Profile?.Instruments;
@@ -44,6 +64,60 @@ const Profile = () => {
     const [preferredKey, setPreferredKey] = useState(profile?.profile?.preferredKey || profile?.Profile?.PreferredKey || '');
     const [bio, setBio] = useState(profile?.profile?.bio || profile?.Profile?.Bio || '');
     const [website, setWebsite] = useState(profile?.profile?.website || profile?.Profile?.Website || '');
+
+    // Sync form state when profile loads asynchronously
+    useEffect(() => {
+        if (profile) {
+            const gName = profile.givenName || profile.GivenName || '';
+            const fName = profile.familyName || profile.FamilyName || '';
+
+            if (!givenName && !familyName) {
+                if (gName || fName) {
+                    setGivenName(gName);
+                    setFamilyName(fName);
+                } else {
+                    const fullName = profile.name || profile.Name || '';
+                    if (fullName) {
+                        const parts = fullName.trim().split(/\s+/);
+                        if (parts.length > 1) {
+                            setGivenName(parts[0]);
+                            setFamilyName(parts.slice(1).join(' '));
+                        } else {
+                            setGivenName(parts[0]);
+                        }
+                    }
+                }
+            }
+
+            const prof = profile.profile || profile.Profile;
+            if (prof) {
+                if (!musicalRole && (prof.musicalRole || prof.MusicalRole)) {
+                    setMusicalRole(prof.musicalRole || prof.MusicalRole);
+                }
+                if (!preferredKey && (prof.preferredKey || prof.PreferredKey)) {
+                    setPreferredKey(prof.preferredKey || prof.PreferredKey);
+                }
+                if (!bio && (prof.bio || prof.Bio)) {
+                    setBio(prof.bio || prof.Bio);
+                }
+                if (!website && (prof.website || prof.Website)) {
+                    setWebsite(prof.website || prof.Website);
+                }
+                if (instruments.length === 0) {
+                    const instr = prof.instruments || prof.Instruments;
+                    if (typeof instr === 'string') {
+                        try {
+                            setInstruments(JSON.parse(instr));
+                        } catch {
+                            setInstruments([]);
+                        }
+                    } else if (Array.isArray(instr)) {
+                        setInstruments(instr);
+                    }
+                }
+            }
+        }
+    }, [profile]);
 
     const orgs = profile?.organizations || profile?.Organizations || [];
     const activeOrgId = profile?.orgId || (orgs.length ? (orgs[0].id || orgs[0].Id) : null);

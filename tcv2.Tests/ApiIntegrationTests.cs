@@ -35,24 +35,19 @@ public sealed class ApiIntegrationTests
     }
 
     [Fact]
-    public async Task Anonymous_google_signin_creates_a_user()
+    public async Task Call_me_on_new_user_jit_provisions_the_user()
     {
         await using var session = await ApiTestSession.StartAsync();
 
         var sub = $"google-{Guid.NewGuid():N}";
         var email = $"{sub}@example.com";
 
-        var response = await session.Client.PostAsJsonAsync("/api/users/googlesignin", new GoogleSignInRequest
-        {
-            Email = email,
-            EmailVerified = true,
-            Auth0UserId = sub,
-            GivenName = "Casey",
-            FamilyName = "Tester",
-            Picture = "https://example.com/avatar.png"
-        });
+        var token = CreateTokenWithEmail(sub, email);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await session.Client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var payload = await ReadJsonAsync(response);
         Assert.Equal(email, payload.RootElement.GetProperty("email").GetString());
@@ -144,26 +139,26 @@ public sealed class ApiIntegrationTests
 
     private static async Task SeedUserAsync(HttpClient client, string sub, string email, string givenName, string familyName)
     {
-        var response = await client.PostAsJsonAsync("/api/users/googlesignin", new GoogleSignInRequest
-        {
-            Email = email,
-            EmailVerified = true,
-            Auth0UserId = sub,
-            GivenName = givenName,
-            FamilyName = familyName,
-            Picture = "https://example.com/avatar.png"
-        });
+        var token = CreateTokenWithEmail(sub, email);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/me");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     private static string CreateToken(string subject, params string[] roles)
+    {
+        return CreateTokenWithEmail(subject, $"{subject}@example.com", roles);
+    }
+
+    private static string CreateTokenWithEmail(string subject, string email, params string[] roles)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, subject),
             new("sub", subject),
-            new(ClaimTypes.Email, $"{subject}@example.com")
+            new(ClaimTypes.Email, email)
         };
 
         claims.AddRange(roles.Select(role => new Claim("https://teamchordsapp.io/roles", role)));
@@ -186,16 +181,6 @@ public sealed class ApiIntegrationTests
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         return JsonDocument.Parse(content);
-    }
-
-    private sealed record GoogleSignInRequest
-    {
-        public string? Email { get; init; }
-        public bool? EmailVerified { get; init; }
-        public string? Auth0UserId { get; init; }
-        public string? GivenName { get; init; }
-        public string? FamilyName { get; init; }
-        public string? Picture { get; init; }
     }
 
     private sealed record OrganizationCreateRequest(string? Name);
