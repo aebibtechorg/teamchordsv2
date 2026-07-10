@@ -437,8 +437,8 @@ const SetListForm = () => {
                     placeholder="Set List Name"
                 />
             </div>
-            <div className="flex flex-col sm:flex-row justify-between">
-                <div className="flex flex-col sm:flex-row sm:gap-1 flex-wrap">
+            <div className="flex flex-col min-[835px]:flex-row justify-between">
+                <div className="flex flex-col min-[835px]:flex-row min-[835px]:gap-1 flex-wrap">
                     <button onClick={handleSave} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex justify-center items-center gap-2 disabled:opacity-50" disabled={!name || isSaving}>
                         <Save size={16} /> {isSaving ? 'Saving...' : 'Save'}
                     </button>
@@ -446,7 +446,7 @@ const SetListForm = () => {
                         <Plus size={16} /> Add Song
                     </button>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:gap-1 flex-wrap">
+                <div className="flex flex-col min-[835px]:flex-row min-[835px]:gap-1 flex-wrap">
                     {id !== "new" && (
                         <>
                             <button onClick={() => handleCopyLinkWrapper(id)} className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mt-4 flex justify-center items-center gap-2 disabled:opacity-50" disabled={isSaving}>
