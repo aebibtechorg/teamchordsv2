@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import Modal from './Modal';
+import { Ticket, Trash2, Loader2 } from 'lucide-react';
 
 const PLAN_LABELS = {
   Free: 'Jam Session (Free)',
@@ -29,7 +30,21 @@ const formatDateTime = (value) => {
   });
 };
 
-const PlanChangePreviewDialog = ({ isOpen, onClose, onConfirm, preview, isSubmitting = false, isCancellationScheduled = false }) => {
+const PlanChangePreviewDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  preview,
+  isSubmitting = false,
+  isCancellationScheduled = false,
+  discountCode = "",
+  setDiscountCode,
+  appliedDiscount = null,
+  onApplyDiscount,
+  onRemoveDiscount,
+  validatingCode = false,
+  validationError = "",
+}) => {
   if (!isOpen || !preview) {
     return null;
   }
@@ -154,6 +169,71 @@ const PlanChangePreviewDialog = ({ isOpen, onClose, onConfirm, preview, isSubmit
             <p className="mt-2 text-sm text-gray-600">Effective: {formatDateTime(effectiveAt)}</p>
           </div>
         </div>
+
+        {/* Discount Code Section */}
+        {isUpgrade && (
+          <div className="mt-4 rounded-lg border border-gray-200 p-4">
+            <h4 className="text-sm font-bold text-gray-900 mb-2">Discount Code</h4>
+            
+            {!appliedDiscount ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      placeholder="Enter promo code"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none uppercase"
+                      disabled={validatingCode || isSubmitting}
+                    />
+                  </div>
+                  <button
+                    onClick={() => onApplyDiscount(discountCode)}
+                    disabled={validatingCode || isSubmitting || !discountCode.trim()}
+                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 transition disabled:opacity-55 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                  >
+                    {validatingCode ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Applying...
+                      </>
+                    ) : (
+                      "Apply"
+                    )}
+                  </button>
+                </div>
+                {validationError && (
+                  <p className="text-xs font-semibold text-red-650">{validationError}</p>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-full bg-emerald-100 p-1.5 text-emerald-800">
+                    <Ticket size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-900">
+                      Code {appliedDiscount.code} Applied
+                    </p>
+                    <p className="text-xs text-emerald-700 font-medium">
+                      {appliedDiscount.name} ({(appliedDiscount.amount / 100).toFixed(0)}% Off)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onRemoveDiscount}
+                  disabled={validatingCode || isSubmitting}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-100 hover:text-red-600 transition cursor-pointer"
+                  title="Remove Discount"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
           <p className="font-semibold text-gray-900">What to expect</p>

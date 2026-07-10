@@ -21,6 +21,7 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import TeamManagement from "./pages/TeamManagement";
 import Pricing from "./pages/Pricing.jsx";
 import Billing from "./pages/Billing.jsx";
+import Checkout from "./pages/Checkout.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 export function RootRedirect() {
@@ -103,5 +104,6 @@ export const router = createBrowserRouter([
   },
   { path: "/pricing", element: <Protected><Pricing /></Protected> },
   { path: "/billing", element: <Protected><Billing /></Protected> },
+  { path: "/checkout", element: <Protected><Checkout /></Protected> },
   { path: "*", element: <NotFound /> },
 ]);

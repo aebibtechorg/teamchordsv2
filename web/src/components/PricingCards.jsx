@@ -2,8 +2,9 @@
 import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getProfile } from "../utils/common";
-import { startCheckout, changePlan, previewPlanChange, cancelSubscription } from "../utils/billing";
+import { startCheckout, changePlan, previewPlanChange, cancelSubscription, validateDiscountCode } from "../utils/billing";
 import ConfirmDialog from "./ConfirmDialog";
 import PlanChangePreviewDialog from "./PlanChangePreviewDialog";
 
@@ -23,6 +24,14 @@ const PricingCards = ({ isAuthenticated = false }) => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showResumeUpgradeConfirm, setShowResumeUpgradeConfirm] = useState(false);
   const [resumeUpgradeMessage, setResumeUpgradeMessage] = useState(null);
+
+  // Upgrade flow discount states
+  const [upgradeDiscountCode, setUpgradeDiscountCode] = useState("");
+  const [appliedUpgradeDiscount, setAppliedUpgradeDiscount] = useState(null);
+  const [validatingUpgradeCode, setValidatingUpgradeCode] = useState(false);
+  const [upgradeValidationError, setUpgradeValidationError] = useState("");
+
+  const navigate = useNavigate();
 
   // Derive current plan from active org
   const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
@@ -72,18 +81,8 @@ const PricingCards = ({ isAuthenticated = false }) => {
       return;
     }
 
-    try {
-      const { url } = await startCheckout(
-        plan,
-        profile.orgId,
-        `${window.location.origin}/billing`,
-      );
-      window.location.href = url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      setCheckoutError(error.message || 'An error occurred during checkout. Please try again.');
-      setIsLoading(false);
-    }
+    setIsLoading(false);
+    navigate(`/checkout?plan=${plan}`);
   };
 
   const closePlanPreview = (force = false) => {
@@ -94,6 +93,9 @@ const PricingCards = ({ isAuthenticated = false }) => {
     setShowPlanPreview(false);
     setPlanPreview(null);
     setSelectedPlan(null);
+    setUpgradeDiscountCode("");
+    setAppliedUpgradeDiscount(null);
+    setUpgradeValidationError("");
   };
 
   const closeResumeUpgradeConfirm = () => {
@@ -112,6 +114,9 @@ const PricingCards = ({ isAuthenticated = false }) => {
     setSelectedPlan(plan);
     setShowResumeUpgradeConfirm(false);
     setResumeUpgradeMessage(null);
+    setUpgradeDiscountCode("");
+    setAppliedUpgradeDiscount(null);
+    setUpgradeValidationError("");
 
     const currentRank = PLAN_ORDER[currentPlan] || 0;
     const cardRank = PLAN_ORDER[plan] || 0;
@@ -133,7 +138,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
 
     try {
-      const preview = await previewPlanChange(plan, profile.orgId);
+      const preview = await previewPlanChange(plan, profile.orgId, null);
       if (preview?.requiresResumeConfirmation) {
         setPlanPreview(null);
         setShowPlanPreview(false);
@@ -152,6 +157,65 @@ const PricingCards = ({ isAuthenticated = false }) => {
     }
   };
 
+  const handleApplyUpgradeDiscount = async (code) => {
+    if (!code || !code.trim() || !selectedPlan || !profile?.orgId) {
+      setUpgradeValidationError("Please enter a discount code.");
+      return;
+    }
+
+    setValidatingUpgradeCode(true);
+    setUpgradeValidationError("");
+
+    try {
+      const discount = await validateDiscountCode(code.trim());
+      const preview = await previewPlanChange(selectedPlan, profile.orgId, code.trim());
+
+      if (preview?.requiresResumeConfirmation) {
+        setPlanPreview(null);
+        setShowPlanPreview(false);
+        setResumeUpgradeMessage(preview.message || 'Your subscription is scheduled to end. Confirming this upgrade will resume it and remove the scheduled cancellation.');
+        setShowResumeUpgradeConfirm(true);
+        return;
+      }
+
+      setPlanPreview(preview);
+      setAppliedUpgradeDiscount(discount);
+    } catch (err) {
+      console.error("Failed to apply upgrade discount:", err);
+      setUpgradeValidationError(err.message || "Invalid or expired discount code.");
+    } finally {
+      setValidatingUpgradeCode(false);
+    }
+  };
+
+  const handleRemoveUpgradeDiscount = async () => {
+    if (!selectedPlan || !profile?.orgId) return;
+
+    setValidatingUpgradeCode(true);
+    setUpgradeValidationError("");
+
+    try {
+      const preview = await previewPlanChange(selectedPlan, profile.orgId, null);
+
+      if (preview?.requiresResumeConfirmation) {
+        setPlanPreview(null);
+        setShowPlanPreview(false);
+        setResumeUpgradeMessage(preview.message || 'Your subscription is scheduled to end. Confirming this upgrade will resume it and remove the scheduled cancellation.');
+        setShowResumeUpgradeConfirm(true);
+        return;
+      }
+
+      setPlanPreview(preview);
+      setAppliedUpgradeDiscount(null);
+      setUpgradeDiscountCode("");
+    } catch (err) {
+      console.error("Failed to remove upgrade discount:", err);
+      setUpgradeValidationError(err.message || "Failed to remove discount.");
+    } finally {
+      setValidatingUpgradeCode(false);
+    }
+  };
+
   const handleConfirmPlanChange = async () => {
     if (!selectedPlan || !profile?.orgId) {
       setCheckoutError('No active organization selected.');
@@ -167,7 +231,7 @@ const PricingCards = ({ isAuthenticated = false }) => {
     const beforeExpiresAt = activeOrg?.planExpiresAt ?? null;
 
     try {
-      const result = await changePlan(selectedPlan, profile.orgId);
+      const result = await changePlan(selectedPlan, profile.orgId, appliedUpgradeDiscount?.code);
       const freshProfile = await getProfile();
       if (freshProfile) {
         setUserProfile(freshProfile);
@@ -389,6 +453,13 @@ const PricingCards = ({ isAuthenticated = false }) => {
           preview={planPreview}
           isSubmitting={isLoading}
           isCancellationScheduled={isCancelScheduled}
+          discountCode={upgradeDiscountCode}
+          setDiscountCode={setUpgradeDiscountCode}
+          appliedDiscount={appliedUpgradeDiscount}
+          onApplyDiscount={handleApplyUpgradeDiscount}
+          onRemoveDiscount={handleRemoveUpgradeDiscount}
+          validatingCode={validatingUpgradeCode}
+          validationError={upgradeValidationError}
         />
 
         {/* Feature Gating Matrix */}

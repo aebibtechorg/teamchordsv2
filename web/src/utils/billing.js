@@ -14,10 +14,10 @@ async function getErrorMessage(res, fallbackMessage) {
     }
 }
 
-export async function startCheckout(plan, orgId, redirectUrl) {
+export async function startCheckout(plan, orgId, redirectUrl, discountCode = null) {
     const res = await apiFetch('/api/billing/checkout', {
         method: 'POST',
-        body: JSON.stringify({ plan, orgId, redirectUrl }),
+        body: JSON.stringify({ plan, orgId, redirectUrl, discountCode }),
     });
     if (!res.ok) {
         throw new Error(await getErrorMessage(res, 'Failed to create checkout session'));
@@ -25,10 +25,21 @@ export async function startCheckout(plan, orgId, redirectUrl) {
     return res.json(); // { url }
 }
 
-export async function changePlan(plan, orgId) {
+export async function validateDiscountCode(code) {
+    const res = await apiFetch(`/api/billing/discount/validate?code=${encodeURIComponent(code)}`, {
+        method: 'GET',
+    });
+    if (!res.ok) {
+        throw new Error(await getErrorMessage(res, 'Invalid discount code'));
+    }
+    return res.json();
+}
+
+
+export async function changePlan(plan, orgId, discountCode = null) {
     const res = await apiFetch('/api/billing/change-plan', {
         method: 'POST',
-        body: JSON.stringify({ plan, orgId }),
+        body: JSON.stringify({ plan, orgId, discountCode }),
     });
     if (!res.ok) {
         throw new Error(await getErrorMessage(res, 'Failed to change plan'));
@@ -36,10 +47,10 @@ export async function changePlan(plan, orgId) {
     return res.json();
 }
 
-export async function previewPlanChange(plan, orgId) {
+export async function previewPlanChange(plan, orgId, discountCode = null) {
     const res = await apiFetch('/api/billing/change-plan/preview', {
         method: 'POST',
-        body: JSON.stringify({ plan, orgId }),
+        body: JSON.stringify({ plan, orgId, discountCode }),
     });
     if (!res.ok) {
         throw new Error(await getErrorMessage(res, 'Failed to preview plan change'));
