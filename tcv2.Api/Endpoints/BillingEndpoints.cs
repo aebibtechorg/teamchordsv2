@@ -149,6 +149,7 @@ internal static class BillingEndpoints
             IHttpClientFactory httpClientFactory,
             IHubContext<BillingHub, IBillingClient> billingHub) =>
         {
+            Console.WriteLine($"[ChangePlan] Plan: {request.Plan}, OrgId: {request.OrgId}, DiscountCode: '{request.DiscountCode}'");
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
@@ -200,21 +201,65 @@ internal static class BillingEndpoints
             // https://docs.dodopayments.com/api-reference/subscriptions/change-plan
             var prorationMode = isUpgrade ? "prorated_immediately" : "difference_immediately";
 
-            var changePlanRequest = new
+            var changePlanRequest = new Dictionary<string, object>
             {
-                product_id = productId,
-                proration_billing_mode = prorationMode,
-                quantity = 1,
-                // effective_at = isUpgrade ? "immediately" : "next_billing_date",
-                on_payment_failure = "prevent_change",
-                metadata = new Dictionary<string, string>
+                ["product_id"] = productId,
+                ["proration_billing_mode"] = prorationMode,
+                ["quantity"] = 1,
+                ["on_payment_failure"] = "prevent_change",
+                ["metadata"] = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
                     { DodoProductIds.PlanMetadataKey, request.Plan.ToString() }
                 }
             };
 
+            if (!string.IsNullOrWhiteSpace(request.DiscountCode))
+            {
+                changePlanRequest["discount_codes"] = new[] { request.DiscountCode.Trim() };
+            }
+
             var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions);
+
+            var updateDb = async (HttpResponseMessage httpResponse) =>
+            {
+                try
+                {
+                    var getResponse = await client.GetAsync($"/subscriptions/{org.DodoSubscriptionId}", httpContext.RequestAborted);
+                    if (getResponse.IsSuccessStatusCode)
+                    {
+                        var result = await getResponse.Content.ReadFromJsonAsync<DodoSubscriptionResponse>(httpContext.RequestAborted);
+                        if (result != null)
+                        {
+                            org.Plan = request.Plan;
+                            org.SubscriptionStatus = result.CancelAtNextBillingDate
+                                ? SubscriptionStatus.ScheduledToEnd
+                                : result.Status == "active"
+                                    ? SubscriptionStatus.Active
+                                    : result.Status == "cancelled"
+                                        ? SubscriptionStatus.Canceled
+                                        : SubscriptionStatus.PastDue;
+                            org.PlanExpiresAt = result.NextBillingDate;
+                            org.UpdatedAt = DateTime.UtcNow;
+                            await db.SaveChangesAsync(httpContext.RequestAborted);
+                            await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
+                            return;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[UpdateDb] Error retrieving subscription: {ex.Message}");
+                }
+
+                // Fallback: update plan status locally if GET fails or response is empty
+                org.Plan = request.Plan;
+                org.SubscriptionStatus = SubscriptionStatus.Active;
+                org.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync(httpContext.RequestAborted);
+                await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
+            };
+
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
@@ -228,12 +273,13 @@ internal static class BillingEndpoints
                         response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions);
                         if (response.IsSuccessStatusCode)
                         {
+                            await updateDb(response);
                             return Results.Ok(new
                             {
                                 plan = request.Plan.ToString(),
                                 effectiveAt = "immediately",
                                 resumedScheduledCancellation,
-                                message = $"Your plan change to {request.Plan} was submitted and your scheduled cancellation was removed."
+                                message = $"Your upgrade to {request.Plan} was successful and your scheduled cancellation was removed."
                             });
                         }
 
@@ -244,6 +290,8 @@ internal static class BillingEndpoints
                 return Results.BadRequest(new { error = ExtractDodoErrorMessage(error) });
             }
 
+            await updateDb(response);
+
             return Results.Ok(new
             {
                 plan = request.Plan.ToString(),
@@ -251,9 +299,9 @@ internal static class BillingEndpoints
                 resumedScheduledCancellation,
                 message = isUpgrade
                     ? resumedScheduledCancellation
-                        ? $"Your plan change to {request.Plan} was submitted and your scheduled cancellation was removed."
-                        : $"Your plan change to {request.Plan} was submitted."
-                    : $"Your downgrade to {request.Plan} was submitted and will settle the prorated difference immediately."
+                        ? $"Your upgrade to {request.Plan} was successful and your scheduled cancellation was removed."
+                        : $"Your upgrade to {request.Plan} was successful!"
+                    : $"Your plan change to {request.Plan} was successful!"
             });
         });
 
@@ -264,6 +312,7 @@ internal static class BillingEndpoints
             DodoProductCatalogService catalog,
             IHttpClientFactory httpClientFactory) =>
         {
+            Console.WriteLine($"[ChangePlanPreview] Plan: {request.Plan}, OrgId: {request.OrgId}, DiscountCode: '{request.DiscountCode}'");
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
@@ -301,19 +350,23 @@ internal static class BillingEndpoints
             var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var client = CreateDodoClient(config, httpClientFactory);
 
-            var previewRequest = new
+            var previewRequest = new Dictionary<string, object>
             {
-                product_id = productId,
-                proration_billing_mode = isUpgrade ? "prorated_immediately" : "difference_immediately",
-                quantity = 1,
-                // effective_at = isUpgrade ? "immediately" : "next_billing_date",
-                on_payment_failure = "prevent_change",
-                metadata = new Dictionary<string, string>
+                ["product_id"] = productId,
+                ["proration_billing_mode"] = isUpgrade ? "prorated_immediately" : "difference_immediately",
+                ["quantity"] = 1,
+                ["on_payment_failure"] = "prevent_change",
+                ["metadata"] = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
                     { DodoProductIds.PlanMetadataKey, request.Plan.ToString() }
                 }
             };
+
+            if (!string.IsNullOrWhiteSpace(request.DiscountCode))
+            {
+                previewRequest["discount_codes"] = new[] { request.DiscountCode.Trim() };
+            }
 
             var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan/preview", previewRequest, DodoJsonOptions);
             if (!response.IsSuccessStatusCode)
@@ -748,7 +801,10 @@ internal static class BillingEndpoints
 
 public record CheckoutRequest(Plan Plan, Guid OrgId, string? RedirectUrl, string? DiscountCode = null);
 
-public record ChangePlanRequest(Plan Plan, Guid OrgId);
+public record ChangePlanRequest(
+    Plan Plan, 
+    Guid OrgId, 
+    [property: System.Text.Json.Serialization.JsonPropertyName("discountCode")] string? DiscountCode = null);
 
 public record DodoPlanChangePreviewResponse(
     [property: System.Text.Json.Serialization.JsonPropertyName("immediate_charge")] DodoImmediateCharge ImmediateCharge,

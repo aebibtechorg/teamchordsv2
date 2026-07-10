@@ -36,10 +36,10 @@ export async function validateDiscountCode(code) {
 }
 
 
-export async function changePlan(plan, orgId) {
+export async function changePlan(plan, orgId, discountCode = null) {
     const res = await apiFetch('/api/billing/change-plan', {
         method: 'POST',
-        body: JSON.stringify({ plan, orgId }),
+        body: JSON.stringify({ plan, orgId, discountCode }),
     });
     if (!res.ok) {
         throw new Error(await getErrorMessage(res, 'Failed to change plan'));
@@ -47,10 +47,10 @@ export async function changePlan(plan, orgId) {
     return res.json();
 }
 
-export async function previewPlanChange(plan, orgId) {
+export async function previewPlanChange(plan, orgId, discountCode = null) {
     const res = await apiFetch('/api/billing/change-plan/preview', {
         method: 'POST',
-        body: JSON.stringify({ plan, orgId }),
+        body: JSON.stringify({ plan, orgId, discountCode }),
     });
     if (!res.ok) {
         throw new Error(await getErrorMessage(res, 'Failed to preview plan change'));
