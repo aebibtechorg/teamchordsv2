@@ -15,6 +15,12 @@ namespace tcv2.Api.Endpoints;
 
 internal static class BillingEndpoints
 {
+    private static readonly System.Text.Json.JsonSerializerOptions DodoJsonOptions = new()
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true
+    };
+
     public static RouteGroupBuilder MapBillingEndpoints(this RouteGroupBuilder api)
     {
         var billing = api.MapGroup("/billing");
@@ -59,31 +65,42 @@ internal static class BillingEndpoints
 
             // Dodo Payments POST /checkouts (Checkout Sessions)
             // https://docs.dodopayments.com/api-reference/checkout-sessions/create
-            var checkoutRequest = new
+            var customerEmail = string.IsNullOrWhiteSpace(user.Email) || !user.Email.Contains("@")
+                ? $"{user.Id}@teamchords-placeholder.com"
+                : user.Email.Trim();
+
+            var customerName = string.IsNullOrWhiteSpace(user.Name)
+                ? customerEmail.Split('@')[0]
+                : user.Name.Trim();
+
+            var checkoutRequest = new Dictionary<string, object>
             {
-                product_cart = new[]
+                ["product_cart"] = new[]
                 {
                     new { product_id = productId, quantity = 1 }
                 },
-                customer = (object)(org.DodoCustomerId != null
-                    ? new { customer_id = org.DodoCustomerId, email = user.Email, name = user.Name ?? user.Email }
-                    : new { email = user.Email, name = user.Name ?? user.Email }),
-                return_url = $"{request.RedirectUrl?.TrimEnd('/')}?success=true",
-                metadata = new Dictionary<string, string>
+                ["customer"] = !string.IsNullOrWhiteSpace(org.DodoCustomerId) && org.DodoCustomerId.StartsWith("cus_", StringComparison.OrdinalIgnoreCase)
+                    ? (object)new { customer_id = org.DodoCustomerId }
+                    : new { email = customerEmail, name = customerName },
+                ["return_url"] = $"{request.RedirectUrl?.TrimEnd('/')}?success=true",
+                ["metadata"] = new Dictionary<string, string>
                 {
                     { "organization_id", org.Id.ToString() },
                     { DodoProductIds.PlanMetadataKey, request.Plan.ToString() }
                 },
-                // subscription_data = request.Plan == Plan.GiggingBand
-                //     ? (object)new { trial_period_days = 14 }
-                //     : null,
-                customization = new
+                ["customization"] = new
                 {
                     theme = "light"
                 }
             };
 
-            var response = await client.PostAsJsonAsync("/checkouts", checkoutRequest);
+            if (!string.IsNullOrWhiteSpace(request.DiscountCode))
+            {
+                checkoutRequest["discount_codes"] = new[] { request.DiscountCode.Trim() };
+            }
+
+
+            var response = await client.PostAsJsonAsync("/checkouts", checkoutRequest, DodoJsonOptions);
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
@@ -96,6 +113,33 @@ internal static class BillingEndpoints
 
             return Results.Ok(new { url = result.CheckoutUrl });
         });
+
+        billing.MapGet("/discount/validate", async (
+            [FromQuery] string code,
+            HttpContext httpContext,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return Results.BadRequest(new { error = "Discount code is required." });
+
+            var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var client = CreateDodoClient(config, httpClientFactory);
+
+            var response = await client.GetAsync($"/discounts/code/{Uri.EscapeDataString(code.Trim())}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return Results.BadRequest(new { error = "Invalid or expired discount code." });
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<DodoDiscountResponse>();
+            if (result == null)
+            {
+                return Results.BadRequest(new { error = "Failed to parse discount information." });
+            }
+
+            return Results.Ok(result);
+        });
+
 
         billing.MapPost("/change-plan", async (
             [FromBody] ChangePlanRequest request,
@@ -170,7 +214,7 @@ internal static class BillingEndpoints
                 }
             };
 
-            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest);
+            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions);
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
@@ -181,7 +225,7 @@ internal static class BillingEndpoints
                     if (resumed)
                     {
                         resumedScheduledCancellation = true;
-                        response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest);
+                        response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions);
                         if (response.IsSuccessStatusCode)
                         {
                             return Results.Ok(new
@@ -271,7 +315,7 @@ internal static class BillingEndpoints
                 }
             };
 
-            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan/preview", previewRequest);
+            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan/preview", previewRequest, DodoJsonOptions);
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
@@ -702,7 +746,7 @@ internal static class BillingEndpoints
     }
 }
 
-public record CheckoutRequest(Plan Plan, Guid OrgId, string? RedirectUrl);
+public record CheckoutRequest(Plan Plan, Guid OrgId, string? RedirectUrl, string? DiscountCode = null);
 
 public record ChangePlanRequest(Plan Plan, Guid OrgId);
 
@@ -773,3 +817,12 @@ public record DodoCustomerPortalResponse(
     [property: System.Text.Json.Serialization.JsonPropertyName("link")] string Link);    // URL to redirect the customer to the portal
 
 public record PortalRequest(Guid OrgId, string? ReturnUrl);
+
+public record DodoDiscountResponse(
+    [property: System.Text.Json.Serialization.JsonPropertyName("discount_id")] string DiscountId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("name")] string Name,
+    [property: System.Text.Json.Serialization.JsonPropertyName("code")] string Code,
+    [property: System.Text.Json.Serialization.JsonPropertyName("type")] string Type,
+    [property: System.Text.Json.Serialization.JsonPropertyName("amount")] int Amount,
+    [property: System.Text.Json.Serialization.JsonPropertyName("expires_at")] DateTime? ExpiresAt);
+

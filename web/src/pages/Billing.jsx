@@ -97,6 +97,18 @@ export default function Billing() {
   }, [refreshProfile]);
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      toast.success('Subscription updated successfully!');
+      urlParams.delete('success');
+      const newSearch = urlParams.toString();
+      const newPath = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+      window.history.replaceState(null, '', newPath);
+    }
+  }, []);
+
+
+  useEffect(() => {
     if (!orgId) {
       return undefined;
     }

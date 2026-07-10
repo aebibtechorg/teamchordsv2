@@ -2,6 +2,7 @@
 import { useProfileStore } from "../store/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getProfile } from "../utils/common";
 import { startCheckout, changePlan, previewPlanChange, cancelSubscription } from "../utils/billing";
 import ConfirmDialog from "./ConfirmDialog";
@@ -23,6 +24,8 @@ const PricingCards = ({ isAuthenticated = false }) => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showResumeUpgradeConfirm, setShowResumeUpgradeConfirm] = useState(false);
   const [resumeUpgradeMessage, setResumeUpgradeMessage] = useState(null);
+
+  const navigate = useNavigate();
 
   // Derive current plan from active org
   const activeOrg = profile?.organizations?.find(o => o.id === profile?.orgId || o.Id === profile?.orgId);
@@ -72,18 +75,8 @@ const PricingCards = ({ isAuthenticated = false }) => {
       return;
     }
 
-    try {
-      const { url } = await startCheckout(
-        plan,
-        profile.orgId,
-        `${window.location.origin}/billing`,
-      );
-      window.location.href = url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      setCheckoutError(error.message || 'An error occurred during checkout. Please try again.');
-      setIsLoading(false);
-    }
+    setIsLoading(false);
+    navigate(`/checkout?plan=${plan}`);
   };
 
   const closePlanPreview = (force = false) => {
