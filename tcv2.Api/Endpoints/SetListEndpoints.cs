@@ -15,7 +15,7 @@ internal static class SetListEndpoints
     public static RouteGroupBuilder MapSetListEndpoints(this RouteGroupBuilder api)
     {
         var setlists = api.MapGroup("/setlists");
-        setlists.MapGet("/", async (HttpRequest req, AppDbContext db) =>
+        setlists.MapGet("/", async (HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.SetLists.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
@@ -26,7 +26,7 @@ internal static class SetListEndpoints
             }
 
             // Require caller to be a member of the organization
-            var authCheck = await EndpointHelpers.RequireOrgMember(req, db, g);
+            var authCheck = await EndpointHelpers.RequireOrgMember(req, db, g, cancellationToken);
             if (authCheck != null) return authCheck;
 
             q = q.Where(x => x.OrgId == g);
@@ -44,7 +44,7 @@ internal static class SetListEndpoints
             // Keyset ordering: newest first
             q = q.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id);
 
-            return await EndpointHelpers.ApplyCursorPaging(q, req, x => x.ToDto());
+            return await EndpointHelpers.ApplyCursorPaging(q, req, x => x.ToDto(), cancellationToken);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -60,43 +60,29 @@ internal static class SetListEndpoints
             return operation;
         });
 
-        setlists.MapGet("/{id}", async (Guid id, AppDbContext db) =>
+        setlists.MapGet("/{id}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var s = await db.SetLists
                 .Include(s => s.Organization)
                 .Include(s => s.Outputs)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
             if (s == null) return Results.NotFound();
-
-            // if (s.OrgId.HasValue)
-            // {
-            //     var auth = await EndpointHelpers.RequireOrgMember(req, db, s.OrgId.Value);
-            //     if (auth != null) return auth;
-            // }
-            // else
-            // {
-            //     if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
-            // }
 
             return Results.Ok(s.ToDetailDto());
         }).AllowAnonymous();
 
-        setlists.MapPost("/", async (SetListDto dto, HttpRequest req, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
+        setlists.MapPost("/", async (SetListDto dto, HttpRequest req, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            // if (dto.OrgId.HasValue && !string.IsNullOrWhiteSpace(dto.Name) && await db.SetLists.AnyAsync(x => x.OrgId == dto.OrgId && x.Name == dto.Name))
-            // {
-            //     return Results.Conflict(new { message = "SetList with this name already exists in the organization" });
-            // }
 
             Organization? org = null;
             if (dto.OrgId.HasValue)
             {
-                org = await db.Organizations.FindAsync(dto.OrgId);
+                org = await db.Organizations.FindAsync([dto.OrgId], cancellationToken);
                 if (org == null) return Results.NotFound("Organization not found");
 
-                var auth = await EndpointHelpers.RequireOrgMember(req, db, dto.OrgId.Value);
+                var auth = await EndpointHelpers.RequireOrgMember(req, db, dto.OrgId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
@@ -104,7 +90,7 @@ internal static class SetListEndpoints
                 if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
             }
 
-            var currentSetListCount = dto.OrgId.HasValue ? await db.SetLists.CountAsync(s => s.OrgId == dto.OrgId) : 0;
+            var currentSetListCount = dto.OrgId.HasValue ? await db.SetLists.CountAsync(s => s.OrgId == dto.OrgId, cancellationToken) : 0;
             if (org != null)
             {
                 var gate = FeatureGate.CheckLimits(org, 0, currentSetListCount + 1, 0, 0);
@@ -117,7 +103,7 @@ internal static class SetListEndpoints
             db.SetLists.Add(s);
             try
             {
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
                 if (s.OrgId.HasValue)
                 {
                     await hub.Clients.Group(HubGroupNames.Organization(s.OrgId.Value)).SetListCreated(s.ToDto());
@@ -130,30 +116,26 @@ internal static class SetListEndpoints
             }
         });
 
-        setlists.MapPut("/{id}", async (Guid id, SetListDto dto, HttpRequest req, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
+        setlists.MapPut("/{id}", async (Guid id, SetListDto dto, HttpRequest req, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var existing = await db.SetLists.FindAsync(id);
+            var existing = await db.SetLists.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
             if (existing.OrgId.HasValue)
             {
-                var auth = await EndpointHelpers.RequireOrgMember(req, db, existing.OrgId.Value);
+                var auth = await EndpointHelpers.RequireOrgMember(req, db, existing.OrgId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
             {
                 if (!EndpointHelpers.IsPlatformAdminOrSupport(req)) return Results.Forbid();
             }
-            // if (dto.OrgId.HasValue && !string.IsNullOrWhiteSpace(dto.Name) && (dto.Name != existing.Name || dto.OrgId != existing.OrgId) &&
-            //     await db.SetLists.AnyAsync(x => x.OrgId == dto.OrgId && x.Name == dto.Name && x.Id != id))
-            // {
-            //     return Results.Conflict(new { message = "SetList with this name already exists in the organization" });
-            // }
+
             existing.UpdateFromDto(dto);
             try
             {
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
                 if (existing.OrgId.HasValue)
                 {
                     await hub.Clients.Group(HubGroupNames.Organization(existing.OrgId.Value)).SetListUpdated(existing.ToDto());
@@ -168,13 +150,13 @@ internal static class SetListEndpoints
             }
         });
 
-        setlists.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub) =>
+        setlists.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<SetListHub, ISetListClient> hub, CancellationToken cancellationToken) =>
         {
-            var existing = await db.SetLists.FindAsync(id);
+            var existing = await db.SetLists.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
             if (existing.OrgId.HasValue)
             {
-                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrgId.Value);
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrgId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
@@ -184,7 +166,7 @@ internal static class SetListEndpoints
 
             var orgId = existing.OrgId;
             db.SetLists.Remove(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
 
             if (orgId.HasValue)
             {

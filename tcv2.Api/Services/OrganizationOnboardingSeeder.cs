@@ -23,7 +23,7 @@ internal static class OrganizationOnboardingSeeder
 [D]Build your set lists and [G]share songs
 """;
 
-    public static async Task SeedAsync(AppDbContext db, Organization organization, DateTime createdAt)
+    public static async Task SeedAsync(AppDbContext db, Organization organization, DateTime createdAt, CancellationToken cancellationToken = default)
     {
         var hasTrackedOnboardingContent = db.ChangeTracker.Entries<SetList>()
             .Any(e => e.Entity.OrgId == organization.Id && e.State != EntityState.Deleted)
@@ -31,8 +31,8 @@ internal static class OrganizationOnboardingSeeder
                 .Any(e => e.Entity.OrgId == organization.Id && e.State != EntityState.Deleted);
 
         var hasOnboardingContent = hasTrackedOnboardingContent
-            || await db.SetLists.AnyAsync(x => x.OrgId == organization.Id)
-            || await db.ChordSheets.AnyAsync(x => x.OrgId == organization.Id);
+            || await db.SetLists.AnyAsync(x => x.OrgId == organization.Id, cancellationToken)
+            || await db.ChordSheets.AnyAsync(x => x.OrgId == organization.Id, cancellationToken);
 
         if (hasOnboardingContent)
         {
