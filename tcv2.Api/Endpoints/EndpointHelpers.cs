@@ -21,21 +21,21 @@ internal static class EndpointHelpers
         return null;
     }
 
-    public static async Task<IResult> ApplyPagingAndFilter<T>(IQueryable<T> query, HttpRequest req) where T : class
+    public static async Task<IResult> ApplyPagingAndFilter<T>(IQueryable<T> query, HttpRequest req, CancellationToken cancellationToken = default) where T : class
     {
         var page = 1;
         var pageSize = 20;
         if (req.Query.TryGetValue("page", out var p) && int.TryParse(p, out var pi) && pi > 0) page = pi;
         if (req.Query.TryGetValue("pageSize", out var ps) && int.TryParse(ps, out var psi) && psi > 0) pageSize = psi;
 
-        var total = await query.CountAsync();
-        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         return Results.Ok(new { items, total, page, pageSize });
     }
 
     // Keyset / cursor-based paging. Expects the incoming `query` to be ordered by
     // CreatedAt DESC, Id DESC (newest first). The selector projects entities to DTOs.
-    public static async Task<IResult> ApplyCursorPaging<TSource, TDest>(IQueryable<TSource> query, HttpRequest req, System.Linq.Expressions.Expression<Func<TSource, TDest>> selector) where TSource : class
+    public static async Task<IResult> ApplyCursorPaging<TSource, TDest>(IQueryable<TSource> query, HttpRequest req, System.Linq.Expressions.Expression<Func<TSource, TDest>> selector, CancellationToken cancellationToken = default) where TSource : class
     {
         var pageSize = 20;
         if (req.Query.TryGetValue("pageSize", out var ps) && int.TryParse(ps, out var psi) && psi > 0) pageSize = psi;
@@ -62,7 +62,7 @@ internal static class EndpointHelpers
         }
 
         // Fetch one extra to determine if there's a next page
-        var list = await query.Take(pageSize + 1).ToListAsync();
+        var list = await query.Take(pageSize + 1).ToListAsync(cancellationToken);
 
         bool hasNext = list.Count > pageSize;
         TSource? nextCursorItem = null;
@@ -111,11 +111,11 @@ internal static class EndpointHelpers
         return req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
     }
 
-    public static async Task<User?> GetCallerAsync(HttpRequest req, AppDbContext db)
+    public static async Task<User?> GetCallerAsync(HttpRequest req, AppDbContext db, CancellationToken cancellationToken = default)
     {
         var auth0UserId = GetAuth0UserId(req);
         if (string.IsNullOrWhiteSpace(auth0UserId)) return null;
-        return await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+        return await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
     }
 
     public static bool IsPlatformAdminOrSupport(HttpRequest req)
@@ -135,28 +135,28 @@ internal static class EndpointHelpers
 
     // Ensures the caller is a member of the organization (or platform-admin/support).
     // Returns null when the caller is authorized, otherwise an IResult indicating the failure.
-    public static async Task<IResult?> RequireOrgMember(HttpRequest req, AppDbContext db, Guid orgId)
+    public static async Task<IResult?> RequireOrgMember(HttpRequest req, AppDbContext db, Guid orgId, CancellationToken cancellationToken = default)
     {
         if (IsPlatformAdminOrSupport(req)) return null;
-        var caller = await GetCallerAsync(req, db);
+        var caller = await GetCallerAsync(req, db, cancellationToken);
         if (caller == null) return Results.Unauthorized();
 
-        var membership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == orgId && uo.UserId == caller.Id);
+        var membership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == orgId && uo.UserId == caller.Id, cancellationToken);
         if (membership == null) return Results.Forbid();
         return null;
     }
 
     // Ensures the caller is an admin of the organization or the organization owner (or platform-admin/support).
-    public static async Task<IResult?> RequireOrgAdminOrOwner(HttpRequest req, AppDbContext db, Guid orgId)
+    public static async Task<IResult?> RequireOrgAdminOrOwner(HttpRequest req, AppDbContext db, Guid orgId, CancellationToken cancellationToken = default)
     {
         if (IsPlatformAdminOrSupport(req)) return null;
-        var caller = await GetCallerAsync(req, db);
+        var caller = await GetCallerAsync(req, db, cancellationToken);
         if (caller == null) return Results.Unauthorized();
 
-        var org = await db.Organizations.FindAsync(orgId);
+        var org = await db.Organizations.FindAsync([orgId], cancellationToken);
         if (org == null) return Results.NotFound();
 
-        var membership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == orgId && uo.UserId == caller.Id);
+        var membership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == orgId && uo.UserId == caller.Id, cancellationToken);
         if (membership == null && org.OwnerUserId != caller.Id) return Results.Forbid();
         if (membership != null && membership.Role != OrgRole.Admin && org.OwnerUserId != caller.Id) return Results.Forbid();
         return null;

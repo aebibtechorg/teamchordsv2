@@ -17,7 +17,7 @@ internal static class InviteEndpoints
     public static RouteGroupBuilder MapInviteEndpoints(this RouteGroupBuilder api)
     {
         var invites = api.MapGroup("/invites");
-        invites.MapGet("/", async (HttpRequest req, AppDbContext db) =>
+        invites.MapGet("/", async (HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.Invites.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
@@ -39,7 +39,7 @@ internal static class InviteEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req, cancellationToken);
         }).RequireAuthorization("AdminAccess").WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -55,14 +55,14 @@ internal static class InviteEndpoints
             return operation;
         });
 
-        invites.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
+        invites.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var invite = await db.Invites.FindAsync(id);
+            var invite = await db.Invites.FindAsync([id], cancellationToken);
             if (invite == null) return Results.NotFound();
 
             if (invite.OrganizationId != null)
             {
-                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, invite.OrganizationId.Value);
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, invite.OrganizationId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
@@ -73,13 +73,13 @@ internal static class InviteEndpoints
             return Results.Ok(invite.ToDto());
         });
 
-        invites.MapPost("/", async (InviteDto dto, AppDbContext db, IHttpClientFactory httpFactory, IServiceProvider provider, HttpRequest req) =>
+        invites.MapPost("/", async (InviteDto dto, AppDbContext db, IHttpClientFactory httpFactory, IServiceProvider provider, HttpRequest req, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
 
             var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var inviter = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var inviter = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (inviter == null) return Results.BadRequest(new { message = "Inviter user not found" });
 
             var i = dto.ToEntity();
@@ -94,7 +94,7 @@ internal static class InviteEndpoints
             // Require organization admin/owner for invites tied to an organization.
             if (i.OrganizationId != null)
             {
-                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, i.OrganizationId.Value);
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, i.OrganizationId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
@@ -106,7 +106,7 @@ internal static class InviteEndpoints
             db.Invites.Add(i);
             try
             {
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
 
                 // Send email after successful creation
                 _ = Task.Run(async () =>
@@ -170,22 +170,22 @@ internal static class InviteEndpoints
             }
         });
 
-        invites.MapGet("/{id}/accept", async (Guid id, AppDbContext db) =>
+        invites.MapGet("/{id}/accept", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var strategy = db.Database.CreateExecutionStrategy();
 
-            return await strategy.ExecuteAsync(async () =>
+            return await strategy.ExecuteAsync(async ct =>
             {
-                await using var tx = await db.Database.BeginTransactionAsync();
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
 
                 try
                 {
-                    var invite = await db.Invites.FindAsync(id);
+                    var invite = await db.Invites.FindAsync([id], ct);
                     if (invite == null) return Results.NotFound(new { message = "Invite not found" });
                     if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
                     if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
 
-                    var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower());
+                    var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower(), ct);
                     var isExistingUser = existingUser != null;
                     var oldUsed = invite.Used;
                     invite.Used = true;
@@ -195,10 +195,10 @@ internal static class InviteEndpoints
                         if (invite.OrganizationId == null) return Results.BadRequest(new { message = "Invite organization is missing" });
 
                         var organizationId = invite.OrganizationId.Value;
-                        var org = await db.Organizations.FindAsync(organizationId);
+                        var org = await db.Organizations.FindAsync([organizationId], ct);
                         if (org == null) return Results.NotFound("Organization not found");
 
-                        var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId);
+                        var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId, ct);
                         var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
                         if (gate != null) return gate;
 
@@ -214,29 +214,29 @@ internal static class InviteEndpoints
                         db.UserOrganizations.Add(userOrg);
                     }
 
-                    await db.SaveChangesAsync();
-                    await tx.CommitAsync();
+                    await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
 
                     return Results.Ok(new { isExistingUser, email = invite.Email, organizationId = invite.OrganizationId, used = oldUsed });
                 }
                 catch (DbUpdateException ex)
                 {
-                    await tx.RollbackAsync();
+                    await tx.RollbackAsync(ct);
                     return EndpointHelpers.HandleDbUpdateException(ex);
                 }
-            });
+            }, cancellationToken);
         }).AllowAnonymous();
 
-        invites.MapPut("/{id}", async (Guid id, InviteDto dto, HttpRequest req, AppDbContext db) =>
+        invites.MapPut("/{id}", async (Guid id, InviteDto dto, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var existing = await db.Invites.FindAsync(id);
+            var existing = await db.Invites.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
             // Require org admin/owner if invite is tied to an organization, otherwise platform-admin/support
             if (existing.OrganizationId != null)
             {
-                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrganizationId.Value);
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrganizationId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
@@ -248,7 +248,7 @@ internal static class InviteEndpoints
             
             try
             {
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
                 return Results.NoContent();
             }
             catch (DbUpdateException ex)
@@ -257,14 +257,14 @@ internal static class InviteEndpoints
             }
         });
 
-        invites.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
+        invites.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var existing = await db.Invites.FindAsync(id);
+            var existing = await db.Invites.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
 
             if (existing.OrganizationId != null)
             {
-                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrganizationId.Value);
+                var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, existing.OrganizationId.Value, cancellationToken);
                 if (auth != null) return auth;
             }
             else
@@ -273,7 +273,7 @@ internal static class InviteEndpoints
             }
 
             db.Invites.Remove(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
         });
 

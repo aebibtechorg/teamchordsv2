@@ -16,7 +16,7 @@ internal static class UserEndpoints
     public static RouteGroupBuilder MapUserEndpoints(this RouteGroupBuilder api)
     {
         var users = api.MapGroup("/users");
-        users.MapGet("/", async (HttpRequest req, AppDbContext db) =>
+        users.MapGet("/", async (HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.Users.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
@@ -40,7 +40,7 @@ internal static class UserEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req, cancellationToken);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -56,13 +56,13 @@ internal static class UserEndpoints
             return operation;
         });
 
-        users.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>
+        users.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var user = await db.Users.FindAsync(id);
+            var user = await db.Users.FindAsync([id], cancellationToken);
             return user is not null ? Results.Ok(user.ToDto()) : Results.NotFound();
         });
 
-        users.MapGet("/me", async (HttpRequest req, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config) =>
+        users.MapGet("/me", async (HttpRequest req, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config, CancellationToken cancellationToken) =>
         {
             var userId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId)) return Results.Unauthorized();
@@ -70,7 +70,7 @@ internal static class UserEndpoints
             var user = await db.Users
                 .Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization)
                 .Include(x => x.Profile)
-                .FirstOrDefaultAsync(x => x.Auth0UserId == userId);
+                .FirstOrDefaultAsync(x => x.Auth0UserId == userId, cancellationToken);
 
             if (user == null)
             {
@@ -90,16 +90,20 @@ internal static class UserEndpoints
                         using var userInfoReq = new HttpRequestMessage(HttpMethod.Get, $"https://{auth0Domain}/userinfo");
                         userInfoReq.Headers.Add("Authorization", authHeader);
 
-                        using var userInfoResp = await http.SendAsync(userInfoReq);
+                        using var userInfoResp = await http.SendAsync(userInfoReq, cancellationToken);
                         if (userInfoResp.IsSuccessStatusCode)
                         {
-                            var profileJson = await userInfoResp.Content.ReadFromJsonAsync<JsonElement>();
+                            var profileJson = await userInfoResp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
                             if (profileJson.TryGetProperty("email", out var e)) email = e.GetString();
                             if (profileJson.TryGetProperty("name", out var n)) name = n.GetString();
                             if (profileJson.TryGetProperty("given_name", out var gn)) givenName = gn.GetString();
                             if (profileJson.TryGetProperty("family_name", out var fn)) familyName = fn.GetString();
                             if (profileJson.TryGetProperty("picture", out var pic)) picture = pic.GetString();
                         }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
                     }
                     catch
                     {
@@ -121,18 +125,18 @@ internal static class UserEndpoints
                 };
 
                 db.Users.Add(user);
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(email))
                 {
                     var pendingInvites = await db.Invites
                         .Where(i => i.Email.ToLower() == email.ToLower() && i.Used && i.OrganizationId != null)
-                        .ToListAsync();
+                        .ToListAsync(cancellationToken);
 
                     bool invitesSynced = false;
                     foreach (var invite in pendingInvites)
                     {
-                        var alreadyMember = await db.UserOrganizations.AnyAsync(uo => uo.UserId == user.Id && uo.OrganizationId == invite.OrganizationId);
+                        var alreadyMember = await db.UserOrganizations.AnyAsync(uo => uo.UserId == user.Id && uo.OrganizationId == invite.OrganizationId, cancellationToken);
                         if (!alreadyMember)
                         {
                             var userOrg = new UserOrganization
@@ -149,7 +153,7 @@ internal static class UserEndpoints
 
                     if (invitesSynced)
                     {
-                        await db.SaveChangesAsync();
+                        await db.SaveChangesAsync(cancellationToken);
                     }
                 }
 
@@ -157,19 +161,19 @@ internal static class UserEndpoints
                 user = await db.Users
                     .Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization)
                     .Include(x => x.Profile)
-                    .FirstOrDefaultAsync(x => x.Id == user.Id);
+                    .FirstOrDefaultAsync(x => x.Id == user.Id, cancellationToken);
             }
 
             return Results.Ok(user!.ToDetailDto());
         });
 
-        users.MapPut("/me", async (UpdateMeDto dto, HttpRequest req, AppDbContext db) =>
+        users.MapPut("/me", async (UpdateMeDto dto, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
 
             var userId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var user = await db.Users.FirstOrDefaultAsync(x => x.Auth0UserId == userId);
+            var user = await db.Users.FirstOrDefaultAsync(x => x.Auth0UserId == userId, cancellationToken);
             if (user == null) return Results.NotFound();
 
             user.GivenName = dto.GivenName;
@@ -177,30 +181,74 @@ internal static class UserEndpoints
             user.Name = $"{dto.GivenName} {dto.FamilyName}";
             user.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
 
-            var updatedUser = await db.Users.Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Id == user.Id);
+            var updatedUser = await db.Users.Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization).Include(x => x.Profile).FirstOrDefaultAsync(x => x.Id == user.Id, cancellationToken);
             if (updatedUser is null) return Results.NotFound();
             return Results.Ok(updatedUser.ToDetailDto());
         });
 
 
-        users.MapPost("/", async (UserDto dto, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config) =>
+        users.MapPost("/", async (UserDto dto, AppDbContext db, IHttpClientFactory httpFactory, IConfiguration config, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
 
+            void TriggerAuth0UserCleanup(string auth0UserId)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var http = httpFactory.CreateClient();
+                        var auth0Domain = config["Auth0:Domain"] ?? config["AUTH0_DOMAIN"];
+                        var auth0ClientId = config["Auth0:ClientId"] ?? config["AUTH0_CLIENT_ID"];
+                        var auth0ClientSecret = config["Auth0:ClientSecret"] ?? config["AUTH0_CLIENT_SECRET"];
+
+                        var tokenReq = new
+                        {
+                            client_id = auth0ClientId,
+                            client_secret = auth0ClientSecret,
+                            audience = $"https://{auth0Domain}/api/v2/",
+                            grant_type = "client_credentials"
+                        };
+
+                        using var tokenResp = await http.PostAsJsonAsync(
+                            $"https://{auth0Domain}/oauth/token", tokenReq, CancellationToken.None);
+
+                        if (tokenResp.IsSuccessStatusCode)
+                        {
+                            var tokenJson = await tokenResp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: CancellationToken.None);
+                            var accessToken = tokenJson.GetProperty("access_token").GetString();
+                            var delReq = new HttpRequestMessage(
+                                HttpMethod.Delete,
+                                $"https://{auth0Domain}/api/v2/users/{Uri.EscapeDataString(auth0UserId)}"
+                            );
+
+                            delReq.Headers.Authorization =
+                                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                            await http.SendAsync(delReq, CancellationToken.None);
+                        }
+                    }
+                    catch (Exception cleanupEx)
+                    {
+                        _ = cleanupEx;
+                    }
+                });
+            }
+
             if (!string.IsNullOrWhiteSpace(dto.Email) &&
-                await db.Users.AnyAsync(x => x.Email == dto.Email))
+                await db.Users.AnyAsync(x => x.Email == dto.Email, cancellationToken))
             {
                 return Results.Conflict(new { message = "User with this email already exists" });
             }
 
             var strategy = db.Database.CreateExecutionStrategy();
 
-            return await strategy.ExecuteAsync(async () =>
+            return await strategy.ExecuteAsync(async ct =>
             {
-                await using var tx = await db.Database.BeginTransactionAsync();
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
                 string? createdAuth0UserId = null;
                 string? createdAuth0Picture = null;
 
@@ -249,7 +297,8 @@ internal static class UserEndpoints
 
                         using var tokenResp = await http.PostAsJsonAsync(
                             $"https://{auth0Domain}/oauth/token",
-                            tokenReq
+                            tokenReq,
+                            ct
                         );
 
                         if (!tokenResp.IsSuccessStatusCode)
@@ -263,7 +312,7 @@ internal static class UserEndpoints
                             });
                         }
 
-                        var tokenJson = await tokenResp.Content.ReadFromJsonAsync<JsonElement>();
+                        var tokenJson = await tokenResp.Content.ReadFromJsonAsync<JsonElement>(ct);
                         var accessToken = tokenJson.GetProperty("access_token").GetString();
 
                         var userReq = new Dictionary<string, object>
@@ -290,7 +339,7 @@ internal static class UserEndpoints
                         createReq.Headers.Authorization =
                             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-                        using var createResp = await http.SendAsync(createReq);
+                        using var createResp = await http.SendAsync(createReq, ct);
                         if (!createResp.IsSuccessStatusCode)
                         {
                             await tx.RollbackAsync();
@@ -302,7 +351,7 @@ internal static class UserEndpoints
                             });
                         }
 
-                        var createJson = await createResp.Content.ReadFromJsonAsync<JsonElement>();
+                        var createJson = await createResp.Content.ReadFromJsonAsync<JsonElement>(ct);
                         if (createJson.TryGetProperty("user_id", out var uid))
                         {
                             createdAuth0UserId = uid.GetString();
@@ -320,13 +369,13 @@ internal static class UserEndpoints
                     if (!string.IsNullOrWhiteSpace(createdAuth0Picture))
                         u.Picture = createdAuth0Picture;
 
-                    await db.SaveChangesAsync();
-                    await tx.CommitAsync();
+                    await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
 
                     var createdUser = await db.Users
                         .Include(x => x.UserOrganizations).ThenInclude(uo => uo.Organization)
                         .Include(x => x.Profile)
-                        .FirstOrDefaultAsync(x => x.Id == u.Id);
+                        .FirstOrDefaultAsync(x => x.Id == u.Id, ct);
 
                     if (createdUser == null)
                     {
@@ -348,6 +397,23 @@ internal static class UserEndpoints
 
                     return EndpointHelpers.HandleDbUpdateException(ex);
                 }
+                catch (OperationCanceledException)
+                {
+                    try
+                    {
+                        await tx.RollbackAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(createdAuth0UserId))
+                    {
+                        TriggerAuth0UserCleanup(createdAuth0UserId);
+                    }
+
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     try
@@ -362,63 +428,24 @@ internal static class UserEndpoints
                     // cleanup Auth0 user if it was created
                     if (!string.IsNullOrWhiteSpace(createdAuth0UserId))
                     {
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                var http = httpFactory.CreateClient();
-                                var auth0Domain = config["Auth0:Domain"] ?? config["AUTH0_DOMAIN"];
-                                var auth0ClientId = config["Auth0:ClientId"] ?? config["AUTH0_CLIENT_ID"];
-                                var auth0ClientSecret = config["Auth0:ClientSecret"] ?? config["AUTH0_CLIENT_SECRET"];
-
-                                var tokenReq = new
-                                {
-                                    client_id = auth0ClientId,
-                                    client_secret = auth0ClientSecret,
-                                    audience = $"https://{auth0Domain}/api/v2/",
-                                    grant_type = "client_credentials"
-                                };
-
-                                using var tokenResp = await http.PostAsJsonAsync(
-                                    $"https://{auth0Domain}/oauth/token", tokenReq);
-
-                                if (tokenResp.IsSuccessStatusCode)
-                                {
-                                    var tokenJson = await tokenResp.Content.ReadFromJsonAsync<JsonElement>();
-                                    var accessToken = tokenJson.GetProperty("access_token").GetString();
-                                    var delReq = new HttpRequestMessage(
-                                        HttpMethod.Delete,
-                                        $"https://{auth0Domain}/api/v2/users/{Uri.EscapeDataString(createdAuth0UserId)}"
-                                    );
-
-                                    delReq.Headers.Authorization =
-                                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-                                    await http.SendAsync(delReq);
-                                }
-                            }
-                            catch (Exception cleanupEx)
-                            {
-                                _ = cleanupEx;
-                            }
-                        });
+                        TriggerAuth0UserCleanup(createdAuth0UserId);
                     }
 
                     return Results.BadRequest(new { message = "Failed to create user", detail = ex.Message });
                 }
-            }); // end ExecuteAsync
+            }, cancellationToken); // end ExecuteAsync
         }).AllowAnonymous();
 
-        users.MapDelete("/{id}", async (Guid id, AppDbContext db) =>
+        users.MapDelete("/{id}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var existing = await db.Users.FindAsync(id);
+            var existing = await db.Users.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
-            if (await db.Organizations.AnyAsync(o => o.OwnerUserId == id))
+            if (await db.Organizations.AnyAsync(o => o.OwnerUserId == id, cancellationToken))
             {
                 return Results.Conflict(new { message = "Cannot delete a user who owns an organization." });
             }
             db.Users.Remove(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
         });
 

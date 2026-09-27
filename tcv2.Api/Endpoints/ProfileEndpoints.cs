@@ -13,7 +13,7 @@ internal static class ProfileEndpoints
     public static RouteGroupBuilder MapProfileEndpoints(this RouteGroupBuilder api)
     {
         var profiles = api.MapGroup("/profiles");
-        profiles.MapGet("/", async (HttpRequest req, AppDbContext db) =>
+        profiles.MapGet("/", async (HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.Profiles.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
@@ -33,7 +33,7 @@ internal static class ProfileEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req, cancellationToken);
         }).WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -50,10 +50,10 @@ internal static class ProfileEndpoints
             return operation;
         }).RequireAuthorization("AdminAccess");
 
-        profiles.MapGet("/{id}", async (Guid id, AppDbContext db) =>
-            await db.Profiles.FindAsync(id) is { } p ? Results.Ok(p.ToDto()) : Results.NotFound());
+        profiles.MapGet("/{id}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
+            await db.Profiles.FindAsync([id], cancellationToken) is { } p ? Results.Ok(p.ToDto()) : Results.NotFound());
 
-        profiles.MapPost("/", async (ProfileDto dto, AppDbContext db) =>
+        profiles.MapPost("/", async (ProfileDto dto, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
@@ -61,19 +61,19 @@ internal static class ProfileEndpoints
             p.Id = Guid.NewGuid();
             
             db.Profiles.Add(p);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.Created($"/api/profiles/{p.Id}", p.ToDto());
         });
 
-        profiles.MapPut("/{id}", async (Guid id, ProfileDto dto, AppDbContext db, HttpRequest req) =>
+        profiles.MapPut("/{id}", async (Guid id, ProfileDto dto, AppDbContext db, HttpRequest req, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var existing = await db.Profiles.FindAsync(id);
+            var existing = await db.Profiles.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
 
             var auth0UserId = EndpointHelpers.GetAuth0UserId(req);
-            var user =  await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var user =  await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (user == null) return Results.Unauthorized();
             if (existing.UserId != user.Id && !EndpointHelpers.IsPlatformAdminOrSupport(req))
             {
@@ -81,16 +81,16 @@ internal static class ProfileEndpoints
             }
 
             existing.UpdateFromDto(dto);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
         });
 
-        profiles.MapDelete("/{id}", async (Guid id, AppDbContext db) =>
+        profiles.MapDelete("/{id}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var existing = await db.Profiles.FindAsync(id);
+            var existing = await db.Profiles.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
             db.Profiles.Remove(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
         }).RequireAuthorization("AdminAccess");
 

@@ -257,11 +257,15 @@ api.MapGet("/config", () =>
    return Results.Ok(config);
 }).AllowAnonymous();
 
-api.MapGet("/migrate", async (AppDbContext db) => {
+api.MapGet("/migrate", async (AppDbContext db, CancellationToken cancellationToken) => {
     try
     {
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(cancellationToken);
         return Results.Ok(new { message = "database migrated." });
+    }
+    catch (OperationCanceledException)
+    {
+        throw;
     }
     catch (Exception ex)
     {

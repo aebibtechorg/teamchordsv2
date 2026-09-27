@@ -30,22 +30,23 @@ internal static class BillingEndpoints
             HttpContext httpContext,
             AppDbContext db,
             DodoProductCatalogService catalog,
-            IHttpClientFactory httpClientFactory) =>
+            IHttpClientFactory httpClientFactory,
+            CancellationToken cancellationToken) =>
         {
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var org = await db.Organizations.FindAsync(request.OrgId);
+            var org = await db.Organizations.FindAsync([request.OrgId], cancellationToken);
             if (org == null)
                 return Results.NotFound("Organization not found");
 
             var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(
-                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId);
+                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId, cancellationToken);
             if (userOrg == null && org.OwnerUserId != user.Id)
                 return Results.BadRequest("User does not belong to this organization");
 
@@ -58,7 +59,7 @@ internal static class BillingEndpoints
             if (org.Plan != Plan.Free)
                 return Results.BadRequest(new { error = "Use /api/billing/change-plan to modify an existing paid subscription." });
 
-            var productId = await catalog.GetProductIdForPlanAsync(request.Plan, httpContext.RequestAborted);
+            var productId = await catalog.GetProductIdForPlanAsync(request.Plan, cancellationToken);
 
             var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var client = CreateDodoClient(config, httpClientFactory);
@@ -100,14 +101,14 @@ internal static class BillingEndpoints
             }
 
 
-            var response = await client.PostAsJsonAsync("/checkouts", checkoutRequest, DodoJsonOptions);
+            var response = await client.PostAsJsonAsync("/checkouts", checkoutRequest, DodoJsonOptions, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
                 return Results.BadRequest(new { error });
             }
 
-            var result = await response.Content.ReadFromJsonAsync<DodoCheckoutSessionResponse>();
+            var result = await response.Content.ReadFromJsonAsync<DodoCheckoutSessionResponse>(cancellationToken: cancellationToken);
             if (result?.CheckoutUrl == null)
                 return Results.BadRequest("Failed to create checkout session");
 
@@ -117,7 +118,8 @@ internal static class BillingEndpoints
         billing.MapGet("/discount/validate", async (
             [FromQuery] string code,
             HttpContext httpContext,
-            IHttpClientFactory httpClientFactory) =>
+            IHttpClientFactory httpClientFactory,
+            CancellationToken cancellationToken) =>
         {
             if (string.IsNullOrWhiteSpace(code))
                 return Results.BadRequest(new { error = "Discount code is required." });
@@ -125,13 +127,13 @@ internal static class BillingEndpoints
             var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var client = CreateDodoClient(config, httpClientFactory);
 
-            var response = await client.GetAsync($"/discounts/code/{Uri.EscapeDataString(code.Trim())}");
+            var response = await client.GetAsync($"/discounts/code/{Uri.EscapeDataString(code.Trim())}", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return Results.BadRequest(new { error = "Invalid or expired discount code." });
             }
 
-            var result = await response.Content.ReadFromJsonAsync<DodoDiscountResponse>();
+            var result = await response.Content.ReadFromJsonAsync<DodoDiscountResponse>(cancellationToken: cancellationToken);
             if (result == null)
             {
                 return Results.BadRequest(new { error = "Failed to parse discount information." });
@@ -147,23 +149,24 @@ internal static class BillingEndpoints
             AppDbContext db,
             DodoProductCatalogService catalog,
             IHttpClientFactory httpClientFactory,
-            IHubContext<BillingHub, IBillingClient> billingHub) =>
+            IHubContext<BillingHub, IBillingClient> billingHub,
+            CancellationToken cancellationToken) =>
         {
             Console.WriteLine($"[ChangePlan] Plan: {request.Plan}, OrgId: {request.OrgId}, DiscountCode: '{request.DiscountCode}'");
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var org = await db.Organizations.FindAsync(request.OrgId);
+            var org = await db.Organizations.FindAsync([request.OrgId], cancellationToken);
             if (org == null)
                 return Results.NotFound("Organization not found");
 
             var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(
-                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId);
+                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId, cancellationToken);
             if (userOrg == null && org.OwnerUserId != user.Id)
                 return Results.BadRequest("User does not belong to this organization");
 
@@ -182,7 +185,7 @@ internal static class BillingEndpoints
             if (string.IsNullOrWhiteSpace(org.DodoSubscriptionId))
                 return Results.BadRequest(new { error = "No active subscription found for this organization." });
 
-            var productId = await catalog.GetProductIdForPlanAsync(request.Plan, httpContext.RequestAborted);
+            var productId = await catalog.GetProductIdForPlanAsync(request.Plan, cancellationToken);
             var isUpgrade = request.Plan > org.Plan;
             var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var client = CreateDodoClient(config, httpClientFactory);
@@ -190,7 +193,7 @@ internal static class BillingEndpoints
 
             if (isUpgrade && org.SubscriptionStatus == SubscriptionStatus.ScheduledToEnd)
             {
-                var resumed = await ResumeScheduledCancellationAsync(client, db, billingHub, org, httpContext.RequestAborted);
+                var resumed = await ResumeScheduledCancellationAsync(client, db, billingHub, org, cancellationToken);
                 if (!resumed)
                     return Results.BadRequest(new { error = "Failed to resume the scheduled cancellation before upgrading." });
 
@@ -219,16 +222,16 @@ internal static class BillingEndpoints
                 changePlanRequest["discount_codes"] = new[] { request.DiscountCode.Trim() };
             }
 
-            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions);
+            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions, cancellationToken);
 
             var updateDb = async (HttpResponseMessage httpResponse) =>
             {
                 try
                 {
-                    var getResponse = await client.GetAsync($"/subscriptions/{org.DodoSubscriptionId}", httpContext.RequestAborted);
+                    var getResponse = await client.GetAsync($"/subscriptions/{org.DodoSubscriptionId}", cancellationToken);
                     if (getResponse.IsSuccessStatusCode)
                     {
-                        var result = await getResponse.Content.ReadFromJsonAsync<DodoSubscriptionResponse>(httpContext.RequestAborted);
+                        var result = await getResponse.Content.ReadFromJsonAsync<DodoSubscriptionResponse>(cancellationToken: cancellationToken);
                         if (result != null)
                         {
                             org.Plan = request.Plan;
@@ -241,7 +244,7 @@ internal static class BillingEndpoints
                                         : SubscriptionStatus.PastDue;
                             org.PlanExpiresAt = result.NextBillingDate;
                             org.UpdatedAt = DateTime.UtcNow;
-                            await db.SaveChangesAsync(httpContext.RequestAborted);
+                            await db.SaveChangesAsync(cancellationToken);
                             await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
                             return;
                         }
@@ -256,21 +259,21 @@ internal static class BillingEndpoints
                 org.Plan = request.Plan;
                 org.SubscriptionStatus = SubscriptionStatus.Active;
                 org.UpdatedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync(httpContext.RequestAborted);
+                await db.SaveChangesAsync(cancellationToken);
                 await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
             };
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 if (isUpgrade && !resumedScheduledCancellation && IsScheduledCancellationError(error))
                 {
-                    var resumed = await ResumeScheduledCancellationAsync(client, db, billingHub, org, httpContext.RequestAborted);
+                    var resumed = await ResumeScheduledCancellationAsync(client, db, billingHub, org, cancellationToken);
                     if (resumed)
                     {
                         resumedScheduledCancellation = true;
-                        response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions);
+                        response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan", changePlanRequest, DodoJsonOptions, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
                             await updateDb(response);
@@ -283,7 +286,7 @@ internal static class BillingEndpoints
                             });
                         }
 
-                        error = await response.Content.ReadAsStringAsync();
+                        error = await response.Content.ReadAsStringAsync(cancellationToken);
                     }
                 }
 
@@ -310,23 +313,24 @@ internal static class BillingEndpoints
             HttpContext httpContext,
             AppDbContext db,
             DodoProductCatalogService catalog,
-            IHttpClientFactory httpClientFactory) =>
+            IHttpClientFactory httpClientFactory,
+            CancellationToken cancellationToken) =>
         {
             Console.WriteLine($"[ChangePlanPreview] Plan: {request.Plan}, OrgId: {request.OrgId}, DiscountCode: '{request.DiscountCode}'");
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var org = await db.Organizations.FindAsync(request.OrgId);
+            var org = await db.Organizations.FindAsync([request.OrgId], cancellationToken);
             if (org == null)
                 return Results.NotFound("Organization not found");
 
             var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(
-                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId);
+                uo => uo.UserId == user.Id && uo.OrganizationId == request.OrgId, cancellationToken);
             if (userOrg == null && org.OwnerUserId != user.Id)
                 return Results.BadRequest("User does not belong to this organization");
 
@@ -345,7 +349,7 @@ internal static class BillingEndpoints
             if (string.IsNullOrWhiteSpace(org.DodoSubscriptionId))
                 return Results.BadRequest(new { error = "No active subscription found for this organization." });
 
-            var productId = await catalog.GetProductIdForPlanAsync(request.Plan, httpContext.RequestAborted);
+            var productId = await catalog.GetProductIdForPlanAsync(request.Plan, cancellationToken);
             var isUpgrade = request.Plan > org.Plan;
             var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
             var client = CreateDodoClient(config, httpClientFactory);
@@ -368,10 +372,10 @@ internal static class BillingEndpoints
                 previewRequest["discount_codes"] = new[] { request.DiscountCode.Trim() };
             }
 
-            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan/preview", previewRequest, DodoJsonOptions);
+            var response = await client.PostAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}/change-plan/preview", previewRequest, DodoJsonOptions, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
                 if (isUpgrade && IsScheduledCancellationError(error))
                 {
                     return Results.Ok(new
@@ -388,7 +392,7 @@ internal static class BillingEndpoints
                 return Results.BadRequest(new { error = ExtractDodoErrorMessage(error) });
             }
 
-            var result = await response.Content.ReadFromJsonAsync<DodoPlanChangePreviewResponse>();
+            var result = await response.Content.ReadFromJsonAsync<DodoPlanChangePreviewResponse>(cancellationToken: cancellationToken);
             if (result?.ImmediateCharge?.Summary == null)
                 return Results.BadRequest("Failed to create plan preview");
 
@@ -437,9 +441,10 @@ internal static class BillingEndpoints
             AppDbContext db,
             IConfiguration config,
             DodoProductCatalogService catalog,
-            IHubContext<BillingHub, IBillingClient> billingHub) =>
+            IHubContext<BillingHub, IBillingClient> billingHub,
+            CancellationToken cancellationToken) =>
         {
-            var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync();
+            var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync(cancellationToken);
             var secret = config["Dodo:WebhookSecret"] ?? string.Empty;
 
             // Dodo Payments uses the Standard Webhooks spec:
@@ -464,19 +469,19 @@ internal static class BillingEndpoints
                 var data = dodoEvent.Data;
                 var orgIdStr = data.Metadata?.GetValueOrDefault("organization_id");
                 var plan = (data.ProductId is not null
-                        ? await catalog.GetPlanForProductIdAsync(data.ProductId, httpContext.RequestAborted)
+                        ? await catalog.GetPlanForProductIdAsync(data.ProductId, cancellationToken)
                         : null)
                     ?? TryParsePlan(GetMetadataValue(data.Metadata, DodoProductIds.PlanMetadataKey));
 
                 Organization? org = null;
                 if (Guid.TryParse(orgIdStr, out var orgId))
                 {
-                    org = await db.Organizations.FindAsync(orgId);
+                    org = await db.Organizations.FindAsync([orgId], cancellationToken);
                 }
 
                 if (org == null && !string.IsNullOrWhiteSpace(data.SubscriptionId))
                 {
-                    org = await db.Organizations.FirstOrDefaultAsync(o => o.DodoSubscriptionId == data.SubscriptionId);
+                    org = await db.Organizations.FirstOrDefaultAsync(o => o.DodoSubscriptionId == data.SubscriptionId, cancellationToken);
                 }
 
                 if (org != null && plan.HasValue)
@@ -496,7 +501,7 @@ internal static class BillingEndpoints
 
                     org.PlanExpiresAt = data.NextBillingDate;
                     org.UpdatedAt = DateTime.UtcNow;
-                    await db.SaveChangesAsync();
+                    await db.SaveChangesAsync(cancellationToken);
                     await NotifyBillingUpdatedAsync(billingHub, org, dodoEvent.Type);
                 }
             }
@@ -504,7 +509,7 @@ internal static class BillingEndpoints
             {
                 var data = dodoEvent.Data;
                 var org = await db.Organizations.FirstOrDefaultAsync(
-                    o => o.DodoSubscriptionId == data.SubscriptionId);
+                    o => o.DodoSubscriptionId == data.SubscriptionId, cancellationToken);
                 if (org != null)
                 {
                     org.Plan = Plan.Free;
@@ -514,7 +519,7 @@ internal static class BillingEndpoints
                     // next_billing_date is the last known period end when cancelled
                     org.PlanExpiresAt = data.ExpiresAt ?? data.NextBillingDate;
                     org.UpdatedAt = DateTime.UtcNow;
-                    await db.SaveChangesAsync();
+                    await db.SaveChangesAsync(cancellationToken);
                     await NotifyBillingUpdatedAsync(billingHub, org, dodoEvent.Type);
                 }
             }
@@ -526,19 +531,20 @@ internal static class BillingEndpoints
             [FromBody] PortalRequest request,
             HttpContext httpContext,
             AppDbContext db,
-            IHttpClientFactory httpClientFactory) =>
+            IHttpClientFactory httpClientFactory,
+            CancellationToken cancellationToken) =>
         {
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id);
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id, cancellationToken);
 
-            var org = await db.Organizations.FindAsync(request.OrgId);
+            var org = await db.Organizations.FindAsync([request.OrgId], cancellationToken);
             if (org == null)
                 return Results.NotFound("Organization not found");
 
@@ -566,14 +572,14 @@ internal static class BillingEndpoints
                 portalUrl += $"&return_url={Uri.EscapeDataString(request.ReturnUrl)}";
             }
 
-            var response = await client.PostAsync(portalUrl, null);
+            var response = await client.PostAsync(portalUrl, null, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
                 return Results.BadRequest(new { error });
             }
 
-            var result = await response.Content.ReadFromJsonAsync<DodoCustomerPortalResponse>();
+            var result = await response.Content.ReadFromJsonAsync<DodoCustomerPortalResponse>(cancellationToken: cancellationToken);
             if (result?.Link == null)
                 return Results.BadRequest("Failed to create customer portal session");
 
@@ -585,19 +591,20 @@ internal static class BillingEndpoints
             HttpContext httpContext,
             AppDbContext db,
             IHttpClientFactory httpClientFactory,
-            IHubContext<BillingHub, IBillingClient> billingHub) =>
+            IHubContext<BillingHub, IBillingClient> billingHub,
+            CancellationToken cancellationToken) =>
         {
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0UserId == null)
                 return Results.Unauthorized();
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (user == null)
                 return Results.NotFound("User not found");
 
-            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id);
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == request.OrgId && uo.UserId == user.Id, cancellationToken);
 
-            var org = await db.Organizations.FindAsync(request.OrgId);
+            var org = await db.Organizations.FindAsync([request.OrgId], cancellationToken);
             if (org == null)
                 return Results.NotFound("Organization not found");
 
@@ -624,20 +631,20 @@ internal static class BillingEndpoints
                 cancel_reason = "cancelled_by_customer"
             };
 
-            var response = await client.PatchAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}", cancelRequest);
+            var response = await client.PatchAsJsonAsync($"/subscriptions/{org.DodoSubscriptionId}", cancelRequest, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
                 return Results.BadRequest(new { error = ExtractDodoErrorMessage(error) });
             }
 
-            var result = await response.Content.ReadFromJsonAsync<DodoSubscriptionResponse>();
+            var result = await response.Content.ReadFromJsonAsync<DodoSubscriptionResponse>(cancellationToken: cancellationToken);
 
             org.SubscriptionStatus = SubscriptionStatus.ScheduledToEnd;
             if (result?.NextBillingDate is not null)
                 org.PlanExpiresAt = result.NextBillingDate;
             org.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             await NotifyBillingUpdatedAsync(billingHub, org, "subscription.updated");
 
             return Results.NoContent();

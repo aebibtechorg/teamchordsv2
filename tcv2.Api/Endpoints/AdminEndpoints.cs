@@ -42,7 +42,7 @@ internal static class AdminEndpoints
             });
         }).AllowAnonymous();
 
-        admin.MapGet("/me", async (HttpContext httpContext, AppDbContext db) =>
+        admin.MapGet("/me", async (HttpContext httpContext, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var auth0UserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? httpContext.User.FindFirst("sub")?.Value;
@@ -55,7 +55,7 @@ internal static class AdminEndpoints
                 .Include(x => x.UserOrganizations)
                     .ThenInclude(uo => uo.Organization)
                 .Include(x => x.Profile)
-                .FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
+                .FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId, cancellationToken);
 
             return Results.Ok(new AdminMeDto
             {
@@ -73,22 +73,22 @@ internal static class AdminEndpoints
             });
         });
 
-        admin.MapGet("/summary", async (AppDbContext db) =>
+        admin.MapGet("/summary", async (AppDbContext db, CancellationToken cancellationToken) =>
         {
             var summary = new AdminSummaryDto
             {
-                OrganizationCount = await db.Organizations.CountAsync(),
-                PaidOrganizationCount = await db.Organizations.CountAsync(o => o.Plan != Plan.Free),
-                ActiveSubscriptionCount = await db.Organizations.CountAsync(o => o.SubscriptionStatus == SubscriptionStatus.Active || o.SubscriptionStatus == SubscriptionStatus.ScheduledToEnd),
-                UserCount = await db.Users.CountAsync(),
-                MembershipCount = await db.UserOrganizations.CountAsync(),
-                AdminMembershipCount = await db.UserOrganizations.CountAsync(uo => uo.Role == OrgRole.Admin)
+                OrganizationCount = await db.Organizations.CountAsync(cancellationToken),
+                PaidOrganizationCount = await db.Organizations.CountAsync(o => o.Plan != Plan.Free, cancellationToken),
+                ActiveSubscriptionCount = await db.Organizations.CountAsync(o => o.SubscriptionStatus == SubscriptionStatus.Active || o.SubscriptionStatus == SubscriptionStatus.ScheduledToEnd, cancellationToken),
+                UserCount = await db.Users.CountAsync(cancellationToken),
+                MembershipCount = await db.UserOrganizations.CountAsync(cancellationToken),
+                AdminMembershipCount = await db.UserOrganizations.CountAsync(uo => uo.Role == OrgRole.Admin, cancellationToken)
             };
 
             return Results.Ok(summary);
         });
 
-        admin.MapGet("/analytics", async (AppDbContext db) =>
+        admin.MapGet("/analytics", async (AppDbContext db, CancellationToken cancellationToken) =>
         {
             var now = DateTime.UtcNow;
             var buckets = BuildMonthlyBuckets(now, 6);
@@ -99,31 +99,31 @@ internal static class AdminEndpoints
                 .AsNoTracking()
                 .Where(o => o.CreatedAt >= rangeStart && o.CreatedAt < rangeEnd)
                 .Select(o => o.CreatedAt)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var userCreatedAt = await db.Users
                 .AsNoTracking()
                 .Where(u => u.CreatedAt.HasValue && u.CreatedAt.Value >= rangeStart && u.CreatedAt.Value < rangeEnd)
                 .Select(u => u.CreatedAt!.Value)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var membershipCreatedAt = await db.UserOrganizations
                 .AsNoTracking()
                 .Where(uo => uo.CreatedAt >= rangeStart && uo.CreatedAt < rangeEnd)
                 .Select(uo => uo.CreatedAt)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var planTotals = await db.Organizations
                 .AsNoTracking()
                 .GroupBy(o => o.Plan)
                 .Select(group => new { Plan = group.Key, Count = group.Count() })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var subscriptionTotals = await db.Organizations
                 .AsNoTracking()
                 .GroupBy(o => o.SubscriptionStatus)
                 .Select(group => new { Status = group.Key, Count = group.Count() })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var planTotalCount = planTotals.Sum(item => item.Count);
             var subscriptionTotalCount = subscriptionTotals.Sum(item => item.Count);
@@ -143,7 +143,7 @@ internal static class AdminEndpoints
             });
         });
 
-        admin.MapGet("/organizations", async (HttpRequest req, AppDbContext db) =>
+        admin.MapGet("/organizations", async (HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.Organizations.AsNoTracking().AsQueryable();
 
@@ -174,10 +174,10 @@ internal static class AdminEndpoints
                 AdminCount = o.UserOrganizations.Count(uo => uo.Role == OrgRole.Admin)
             });
 
-            return await EndpointHelpers.ApplyPagingAndFilter(organizations, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(organizations, req, cancellationToken);
         });
 
-        admin.MapGet("/organizations/{id:guid}/members", async (Guid id, HttpRequest req, AppDbContext db) =>
+        admin.MapGet("/organizations/{id:guid}/members", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var members = db.UserOrganizations
                 .AsNoTracking()
@@ -193,7 +193,7 @@ internal static class AdminEndpoints
                     JoinedAt = uo.CreatedAt
                 });
 
-            return await EndpointHelpers.ApplyPagingAndFilter(members, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(members, req, cancellationToken);
         });
 
         return api;

@@ -15,7 +15,7 @@ internal static class OrganizationEndpoints
     public static RouteGroupBuilder MapOrganizationEndpoints(this RouteGroupBuilder api)
     {
         var orgs = api.MapGroup("/organizations");
-        orgs.MapGet("/", async (HttpRequest req, AppDbContext db) =>
+        orgs.MapGet("/", async (HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.Organizations.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
@@ -34,7 +34,7 @@ internal static class OrganizationEndpoints
                 _ => sortDir == "asc" ? q.OrderBy(x => x.CreatedAt) : q.OrderByDescending(x => x.CreatedAt),
             };
 
-            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req);
+            return await EndpointHelpers.ApplyPagingAndFilter(q.Select(x => x.ToDto()), req, cancellationToken);
         }).RequireAuthorization("AdminAccess").WithOpenApi(operation =>
         {
             operation.Parameters = new List<OpenApiParameter>
@@ -50,22 +50,22 @@ internal static class OrganizationEndpoints
             return operation;
         });
 
-        orgs.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
+        orgs.MapGet("/{id}", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var o = await db.Organizations.FindAsync(id);
+            var o = await db.Organizations.FindAsync([id], cancellationToken);
             if (o == null) return Results.NotFound();
 
-            var auth = await EndpointHelpers.RequireOrgMember(req, db, id);
+            var auth = await EndpointHelpers.RequireOrgMember(req, db, id, cancellationToken);
             if (auth != null) return auth;
 
             return Results.Ok(o.ToDto());
         });
 
-        orgs.MapPost("/", async (HttpRequest req, OrganizationDto dto, AppDbContext db) =>
+        orgs.MapPost("/", async (HttpRequest req, OrganizationDto dto, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            if (!string.IsNullOrWhiteSpace(dto.Name) && await db.Organizations.AnyAsync(x => x.Name == dto.Name))
+            if (!string.IsNullOrWhiteSpace(dto.Name) && await db.Organizations.AnyAsync(x => x.Name == dto.Name, cancellationToken))
             {
                 return Results.Conflict(new { message = "Organization name already exists" });
             }
@@ -78,18 +78,18 @@ internal static class OrganizationEndpoints
             };
 
             var strategy = db.Database.CreateExecutionStrategy();
-            return await strategy.ExecuteAsync(async () =>
+            return await strategy.ExecuteAsync(async ct =>
             {
-                await using var tx = await db.Database.BeginTransactionAsync();
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
                 try
                 {
                     var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     if (string.IsNullOrWhiteSpace(auth0UserId)) return Results.Unauthorized();
 
-                    var user = await db.Users.Include(u => u.Organizations).FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId);
+                    var user = await db.Users.Include(u => u.Organizations).FirstOrDefaultAsync(x => x.Auth0UserId == auth0UserId, ct);
                     if (user == null) return Results.NotFound(new { message = "User not found" });
 
-                    var ownsOrg = await db.Organizations.AnyAsync(x => x.OwnerUserId == user.Id);
+                    var ownsOrg = await db.Organizations.AnyAsync(x => x.OwnerUserId == user.Id, ct);
                     if (ownsOrg)
                     {
                         return Results.Conflict(new { message = "You already own an organization." });
@@ -111,29 +111,29 @@ internal static class OrganizationEndpoints
                     user.UpdatedAt = DateTime.UtcNow;
                     // user is tracked by EF; changes will be persisted below when we save
 
-                    await OrganizationOnboardingSeeder.SeedAsync(db, o, DateTime.UtcNow);
+                    await OrganizationOnboardingSeeder.SeedAsync(db, o, DateTime.UtcNow, ct);
 
-                    await db.SaveChangesAsync();
-                    await tx.CommitAsync();
+                    await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
                     return Results.Created($"/api/organizations/{o.Id}", o.ToDto());
                 }
                 catch (DbUpdateException ex)
                 {
-                    await tx.RollbackAsync();
+                    await tx.RollbackAsync(ct);
                     return EndpointHelpers.HandleDbUpdateException(ex);
                 }
-            });
+            }, cancellationToken);
         });
 
-        orgs.MapPut("/{id}", async (Guid id, OrganizationDto dto, HttpRequest req, AppDbContext db) =>
+        orgs.MapPut("/{id}", async (Guid id, OrganizationDto dto, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
-            var existing = await db.Organizations.FindAsync(id);
+            var existing = await db.Organizations.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
-            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, id);
+            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, id, cancellationToken);
             if (auth != null) return auth;
-            if (!string.IsNullOrWhiteSpace(dto.Name) && dto.Name != existing.Name && await db.Organizations.AnyAsync(x => x.Name == dto.Name))
+            if (!string.IsNullOrWhiteSpace(dto.Name) && dto.Name != existing.Name && await db.Organizations.AnyAsync(x => x.Name == dto.Name, cancellationToken))
             {
                 return Results.Conflict(new { message = "Organization name already exists" });
             }
@@ -141,7 +141,7 @@ internal static class OrganizationEndpoints
             existing.UpdatedAt = DateTime.UtcNow;
             try
             {
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
                 return Results.NoContent();
             }
             catch (DbUpdateException ex)
@@ -150,23 +150,23 @@ internal static class OrganizationEndpoints
             }
         });
 
-        orgs.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db) =>
+        orgs.MapDelete("/{id}", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
-            var existing = await db.Organizations.FindAsync(id);
+            var existing = await db.Organizations.FindAsync([id], cancellationToken);
             if (existing == null) return Results.NotFound();
-            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, id);
+            var auth = await EndpointHelpers.RequireOrgAdminOrOwner(req, db, id, cancellationToken);
             if (auth != null) return auth;
-            await using var tx = await db.Database.BeginTransactionAsync();
+            await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
-            var setListIds = await db.SetLists.Where(s => s.OrgId == id).Select(s => s.Id).ToListAsync();
+            var setListIds = await db.SetLists.Where(s => s.OrgId == id).Select(s => s.Id).ToListAsync(cancellationToken);
             var outputs = await db.Outputs
                 .Where(o => o.SetListId != null && setListIds.Contains(o.SetListId.Value))
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            var setLists = await db.SetLists.Where(s => s.OrgId == id).ToListAsync();
-            var chordSheets = await db.ChordSheets.Where(c => c.OrgId == id).ToListAsync();
-            var invites = await db.Invites.Where(i => i.OrganizationId == id).ToListAsync();
-            var memberships = await db.UserOrganizations.Where(uo => uo.OrganizationId == id).ToListAsync();
+            var setLists = await db.SetLists.Where(s => s.OrgId == id).ToListAsync(cancellationToken);
+            var chordSheets = await db.ChordSheets.Where(c => c.OrgId == id).ToListAsync(cancellationToken);
+            var invites = await db.Invites.Where(i => i.OrganizationId == id).ToListAsync(cancellationToken);
+            var memberships = await db.UserOrganizations.Where(uo => uo.OrganizationId == id).ToListAsync(cancellationToken);
 
             db.Outputs.RemoveRange(outputs);
             db.SetLists.RemoveRange(setLists);
@@ -174,12 +174,12 @@ internal static class OrganizationEndpoints
             db.Invites.RemoveRange(invites);
             db.UserOrganizations.RemoveRange(memberships);
             db.Organizations.Remove(existing);
-            await db.SaveChangesAsync();
-            await tx.CommitAsync();
+            await db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
             return Results.NoContent();
         });
 
-        orgs.MapGet("/{id}/members", async (Guid id, HttpRequest req, AppDbContext db) =>
+        orgs.MapGet("/{id}/members", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var q = db.UserOrganizations.Where(uo => uo.OrganizationId == id).Include(uo => uo.User);
             var members = q.Select(uo => new OrgMemberDto
@@ -191,60 +191,60 @@ internal static class OrganizationEndpoints
                 Role = uo.Role.ToString(),
                 JoinedAt = uo.CreatedAt
             });
-            return await EndpointHelpers.ApplyPagingAndFilter(members, req);
+            return await EndpointHelpers.ApplyPagingAndFilter(members, req, cancellationToken);
         });
 
-        orgs.MapDelete("/{id}/members/{userId}", async (Guid id, Guid userId, HttpRequest req, AppDbContext db) =>
+        orgs.MapDelete("/{id}/members/{userId}", async (Guid id, Guid userId, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (caller == null) return Results.Unauthorized();
 
-            var org = await db.Organizations.FindAsync(id);
+            var org = await db.Organizations.FindAsync([id], cancellationToken);
             if (org == null) return Results.NotFound();
 
-            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == caller.Id);
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == caller.Id, cancellationToken);
             if (callerMembership == null && org.OwnerUserId != caller.Id) return Results.Forbid();
             if (callerMembership != null && callerMembership.Role != OrgRole.Admin && org.OwnerUserId != caller.Id) return Results.Forbid();
 
             if (org.OwnerUserId == userId) return Results.Conflict(new { message = "Cannot remove the organization owner." });
 
-            var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin);
-            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId);
+            var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin, cancellationToken);
+            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId, cancellationToken);
             if (userOrg == null) return Results.NotFound();
 
             if (adminCount == 1 && userOrg.Role == OrgRole.Admin) return Results.Conflict(new { message = "Cannot remove the last admin from the organization" });
 
             db.UserOrganizations.Remove(userOrg);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
         });
 
-        orgs.MapPatch("/{id}/members/{userId}/role", async (Guid id, Guid userId, RoleDto dto, HttpRequest req, AppDbContext db) =>
+        orgs.MapPatch("/{id}/members/{userId}/role", async (Guid id, Guid userId, RoleDto dto, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var validation = EndpointHelpers.Validate(dto);
             if (validation != null) return validation;
 
             var auth0UserId = req.HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId);
+            var caller = await db.Users.FirstOrDefaultAsync(u => u.Auth0UserId == auth0UserId, cancellationToken);
             if (caller == null) return Results.Unauthorized();
 
-            var org = await db.Organizations.FindAsync(id);
+            var org = await db.Organizations.FindAsync([id], cancellationToken);
             if (org == null) return Results.NotFound();
 
-            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == caller.Id);
+            var callerMembership = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == caller.Id, cancellationToken);
             if (callerMembership == null && org.OwnerUserId != caller.Id) return Results.Forbid();
             if (callerMembership != null && callerMembership.Role != OrgRole.Admin && org.OwnerUserId != caller.Id) return Results.Forbid();
 
-            var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin);
-            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId);
+            var adminCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == id && uo.Role == OrgRole.Admin, cancellationToken);
+            var userOrg = await db.UserOrganizations.FirstOrDefaultAsync(uo => uo.OrganizationId == id && uo.UserId == userId, cancellationToken);
             if (userOrg == null) return Results.NotFound();
 
             if (org.OwnerUserId == userId && dto.Role != "Admin") return Results.Conflict(new { message = "Cannot demote the organization owner." });
             if (adminCount == 1 && userOrg.Role == OrgRole.Admin && dto.Role != "Admin") return Results.Conflict(new { message = "Cannot demote the last admin from the organization" });
 
             userOrg.Role = Enum.Parse<OrgRole>(dto.Role);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.NoContent();
         });
 
