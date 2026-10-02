@@ -116,7 +116,7 @@ export default function TeamManagement() {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: err.message || 'Failed to update organization name.',
+        text2: err.message || 'Failed to update team name.',
       });
     } finally {
       setIsSavingOrgName(false);
@@ -131,7 +131,7 @@ export default function TeamManagement() {
           <View>
             <Text className="text-2xl md:text-3xl font-bold text-foreground">Team Management</Text>
             <Text className="text-sm text-muted-foreground mt-1">
-              Manage organization settings, members, and permissions.
+              Manage team settings, members, and permissions.
             </Text>
           </View>
 
@@ -149,7 +149,7 @@ export default function TeamManagement() {
         {/* Organization Name Card */}
         {canEditOrgName && (
           <View className="bg-card rounded-2xl p-5 shadow-sm border border-border mb-6">
-            <Text className="text-xs font-semibold text-foreground mb-2">Organization Name</Text>
+            <Text className="text-xs font-semibold text-foreground mb-2">Team Name</Text>
             <View className="flex-row gap-2">
               <TextInput
                 value={orgName}
@@ -203,7 +203,7 @@ export default function TeamManagement() {
         onClose={() => setConfirmRemoveId(null)}
         onConfirm={handleRemoveMember}
         title="Remove Team Member"
-        message="Are you sure you want to remove this member from the organization?"
+        message="Are you sure you want to remove this member from the team?"
         confirmLabel="Remove"
       />
     </ScrollView>
