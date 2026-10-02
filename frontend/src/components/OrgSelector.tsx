@@ -42,14 +42,14 @@ export default function OrgSelector({ className = '' }: OrgSelectorProps) {
         className="flex-row items-center justify-between bg-gray-600 px-3 py-2 rounded-lg"
       >
         <Text className="text-white text-xs font-semibold truncate flex-1 mr-2" numberOfLines={1}>
-          {activeOrg?.name || 'Select Organization'}
+          {activeOrg?.name || 'Select Team'}
         </Text>
         <ChevronDown size={14} color="#D1D5DB" />
       </TouchableOpacity>
 
       <Modal visible={isDropdownOpen} onClose={() => setIsDropdownOpen(false)}>
         <View className="p-4 bg-white">
-          <Text className="text-lg font-bold text-gray-900 mb-3">Select Organization</Text>
+          <Text className="text-lg font-bold text-gray-900 mb-3">Select Team</Text>
           <ScrollView className="max-h-60">
             {orgs.map((org) => {
               const isSelected = (org.id || '') === activeOrgId;
@@ -82,7 +82,7 @@ export default function OrgSelector({ className = '' }: OrgSelectorProps) {
               className="flex-row items-center justify-center p-3 mt-2 border border-dashed border-gray-300 rounded-lg active:bg-gray-50"
             >
               <Plus size={16} color="#4B5563" />
-              <Text className="text-sm font-medium text-gray-700 ml-2">Create new organization</Text>
+              <Text className="text-sm font-medium text-gray-700 ml-2">Create new team</Text>
             </TouchableOpacity>
           )}
         </View>

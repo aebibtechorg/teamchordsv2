@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Save, User } from 'lucide-react-native';
 import { useProfileStore } from '../../store/useProfileStore';
 import { updateMe, upsertProfile, getProfile } from '../../utils/common';
@@ -72,9 +73,17 @@ export default function Profile() {
 
       const fresh = await getProfile();
       if (fresh) setUserProfile(fresh);
-      Alert.alert('Success', 'Profile saved successfully.');
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Profile saved successfully.',
+      });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save profile.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to save profile.',
+      });
     } finally {
       setIsSaving(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, Linking, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Linking, FlatList, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Eye, Trash2, Link2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -28,7 +29,11 @@ export default function SetListTable({
   const handleCopyLink = async (id: string) => {
     const url = `${WEB_BASE_URL}/setlists/share/${id}`;
     await Clipboard.setStringAsync(url);
-    Alert.alert('Success', 'Link copied to clipboard!');
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Link copied to clipboard!',
+    });
   };
 
   const handlePreview = (id: string) => {

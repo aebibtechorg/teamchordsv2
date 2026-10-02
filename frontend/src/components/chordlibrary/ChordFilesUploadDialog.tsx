@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { X, Upload, FileText } from 'lucide-react-native';
 import ChordSheetJS from 'chordsheetjs';
 import * as DocumentPicker from 'expo-document-picker';
@@ -53,7 +54,11 @@ export default function ChordFilesUploadDialog({
     const canRunBulkUpload = !hasBulkJson || Boolean(connection?.connectionId);
 
     if (!canRunBulkUpload) {
-      Alert.alert('Notice', 'Please wait for the connection to finish before uploading JSON backups.');
+      Toast.show({
+        type: 'info',
+        text1: 'Notice',
+        text2: 'Please wait for the connection to finish before uploading JSON backups.',
+      });
       setIsUploading(false);
       return;
     }
@@ -139,7 +144,11 @@ export default function ChordFilesUploadDialog({
       }
     } catch (err: any) {
       console.error('Error during upload:', err);
-      Alert.alert('Upload Error', err.message || 'An error occurred during upload.');
+      Toast.show({
+        type: 'error',
+        text1: 'Upload Error',
+        text2: err.message || 'An error occurred during upload.',
+      });
       setIsUploading(false);
     }
   };

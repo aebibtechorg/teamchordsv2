@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Plus, Upload, Search, Download } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useProfileStore } from '../../../store/useProfileStore';
@@ -68,7 +69,11 @@ export default function ChordLibrary() {
     if (success) {
       fetchInitial();
     } else {
-      Alert.alert('Error', 'Failed to delete chord sheet.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to delete chord sheet.',
+      });
     }
     setDeleteId(null);
   };

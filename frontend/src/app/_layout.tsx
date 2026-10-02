@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { Auth0Provider, useAuth0 } from 'react-native-auth0';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import { AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_AUDIENCE } from '../config';
 import { setTokenProvider } from '../utils/api';
 import '../global.css';
@@ -46,6 +47,7 @@ export default function RootLayout() {
           <Stack.Screen name="terms-and-conditions" />
         </Stack>
       )}
+      <Toast />
     </SafeAreaProvider>
   );
 }

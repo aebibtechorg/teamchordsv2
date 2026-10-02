@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Linking, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Linking, Platform } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { ExternalLink, ArrowUpCircle, XCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useProfileStore } from '../../store/useProfileStore';
@@ -50,7 +51,11 @@ export default function Billing() {
         await Linking.openURL(url);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not open billing portal.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Could not open billing portal.',
+      });
     } finally {
       setPortalLoading(false);
     }
@@ -63,9 +68,17 @@ export default function Billing() {
       await cancelSubscription(orgId);
       const fresh = await getProfile();
       if (fresh) setUserProfile(fresh);
-      Alert.alert('Subscription Cancelled', 'Access continues until the end of your billing period.');
+      Toast.show({
+        type: 'success',
+        text1: 'Subscription Cancelled',
+        text2: 'Access continues until the end of your billing period.',
+      });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to cancel subscription.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to cancel subscription.',
+      });
     } finally {
       setCancelLoading(false);
     }
@@ -74,7 +87,7 @@ export default function Billing() {
   if (!orgId) {
     return (
       <View className="p-6">
-        <Text className="text-gray-500">No organization selected.</Text>
+        <Text className="text-gray-500">No team selected.</Text>
       </View>
     );
   }

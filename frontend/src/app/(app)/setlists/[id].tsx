@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Save, Plus, ArrowLeft, Trash2, Edit, ChevronUp, ChevronDown, Eye, Link2, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -64,7 +65,11 @@ export default function SetListForm() {
           );
           setChordsheetsMap(map);
         } catch (err: any) {
-          Alert.alert('Error', err.message || 'Failed to load set list.');
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: err.message || 'Failed to load set list.',
+          });
         } finally {
           setIsLoading(false);
         }
@@ -102,7 +107,11 @@ export default function SetListForm() {
 
   const saveSongToSetlist = () => {
     if (!selectedSongId || !selectedKey) {
-      Alert.alert('Validation', 'Please select a song and key.');
+      Toast.show({
+        type: 'error',
+        text1: 'Validation',
+        text2: 'Please select a song and key.',
+      });
       return;
     }
 
@@ -144,7 +153,11 @@ export default function SetListForm() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter a set list name.');
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter a set list name.',
+      });
       return;
     }
 
@@ -162,12 +175,20 @@ export default function SetListForm() {
         await syncOutputs(savedSetListId, outputs);
       }
 
-      Alert.alert('Success', 'Set list saved successfully.');
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Set list saved successfully.',
+      });
       if (id === 'new') {
         router.replace(`/(app)/setlists/${savedSetListId}` as any);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save set list.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to save set list.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -177,7 +198,11 @@ export default function SetListForm() {
     if (!id || id === 'new') return;
     const url = `${WEB_BASE_URL}/setlists/share/${id}`;
     await Clipboard.setStringAsync(url);
-    Alert.alert('Success', 'Share link copied to clipboard!');
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Share link copied to clipboard!',
+    });
   };
 
   if (isLoading) return <Spinner />;

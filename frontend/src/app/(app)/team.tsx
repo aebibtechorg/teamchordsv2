@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Plus, X, Save } from 'lucide-react-native';
 import { useProfileStore } from '../../store/useProfileStore';
 import { getOrgMembers, removeOrgMember, updateMemberRole, updateOrganization } from '../../utils/organizations';
@@ -45,7 +46,11 @@ export default function TeamManagement() {
       const data: any = await getOrgMembers(orgId);
       setMembers(data.items || data || []);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to load team members.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to load team members.',
+      });
     } finally {
       setLoading(false);
     }
@@ -67,7 +72,11 @@ export default function TeamManagement() {
       setMembers((prev) =>
         prev.map((m) => (m.userId === member.userId ? { ...m, role: oldRole } : m))
       );
-      Alert.alert('Error', err.message || 'Failed to update member role.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to update member role.',
+      });
     }
   };
 
@@ -77,7 +86,11 @@ export default function TeamManagement() {
       await removeOrgMember(orgId, confirmRemoveId);
       setMembers((prev) => prev.filter((m) => m.userId !== confirmRemoveId));
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to remove member.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to remove member.',
+      });
     } finally {
       setConfirmRemoveId(null);
     }
@@ -89,14 +102,26 @@ export default function TeamManagement() {
     try {
       const res = await inviteUser(inviteEmail.trim(), orgId);
       if (res) {
-        Alert.alert('Success', `Invitation sent to ${inviteEmail}.`);
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: `Invitation sent to ${inviteEmail}.`,
+        });
         setInviteEmail('');
         setIsInviteOpen(false);
       } else {
-        Alert.alert('Error', 'Failed to send invitation.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to send invitation.',
+        });
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to send invitation.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to send invitation.',
+      });
     } finally {
       setIsInviting(false);
     }
@@ -113,9 +138,17 @@ export default function TeamManagement() {
         );
         setUserProfile({ ...profile, organizations: updatedOrgs });
       }
-      Alert.alert('Success', 'Organization name updated.');
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Organization name updated.',
+      });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to update organization name.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to update organization name.',
+      });
     } finally {
       setIsSavingOrgName(false);
     }

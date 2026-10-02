@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { router, useLocalSearchParams } from 'expo-router';
 import MainLogo from '../../components/MainLogo';
 import { apiFetch } from '../../utils/api';
@@ -40,7 +41,11 @@ export default function Signup() {
       });
 
       if (resp.ok) {
-        Alert.alert('Account Created', 'Please sign in with your credentials.');
+        Toast.show({
+          type: 'success',
+          text1: 'Account Created',
+          text2: 'Please sign in with your credentials.',
+        });
         router.replace('/(auth)/signin' as any);
       } else {
         let text = await resp.text();

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Save, Trash2, ArrowLeft, ChevronDown, Check } from 'lucide-react-native';
 import ChordSheetJS from 'chordsheetjs';
@@ -39,7 +40,11 @@ export default function ChordProSheet() {
           setKey(data.key || defaultKey);
           setContent(data.content || defaultContent);
         } catch (err: any) {
-          Alert.alert('Error', err.message || 'Failed to load chord sheet.');
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: err.message || 'Failed to load chord sheet.',
+          });
         } finally {
           setIsLoading(false);
         }
@@ -52,7 +57,11 @@ export default function ChordProSheet() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Validation Error', 'Please enter a song title.');
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter a song title.',
+      });
       return;
     }
     setIsSaving(true);
@@ -65,7 +74,11 @@ export default function ChordProSheet() {
           content,
           orgId: profile?.orgId,
         });
-        Alert.alert('Success', 'Chord sheet created successfully.');
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Chord sheet created successfully.',
+        });
         router.replace(`/(app)/library/${created.id}` as any);
       } else if (id) {
         await updateChordsheet(id, {
@@ -75,10 +88,18 @@ export default function ChordProSheet() {
           content,
           orgId: profile?.orgId,
         });
-        Alert.alert('Success', 'Chord sheet updated successfully.');
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Chord sheet updated successfully.',
+        });
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save chord sheet.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to save chord sheet.',
+      });
     } finally {
       setIsSaving(false);
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useProfileStore } from '../store/useProfileStore';
 import { useAuth0 } from 'react-native-auth0';
 import { getProfile } from '../utils/common';
@@ -70,7 +71,11 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
           {
             text: 'Subscribe',
             onPress: () => {
-              Alert.alert('Success', 'In-App subscription initiated successfully.');
+              Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'In-App subscription initiated successfully.',
+              });
             },
           },
         ]
@@ -309,7 +314,7 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
                 <Text className="text-sm text-gray-500 ml-1">/ month</Text>
               </View>
               <Text className="text-xs text-gray-600 mb-6">
-                For active groups that need a bigger library and tools.
+                For active teams that need a bigger library and tools.
               </Text>
               <View className="space-y-3 mb-8">
                 <Text className="text-sm text-gray-700 font-semibold">• 250 Chord Sheets</Text>
@@ -331,7 +336,7 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
                 <Text className="text-sm text-gray-500 ml-1">/ month</Text>
               </View>
               <Text className="text-xs text-gray-600 mb-6">
-                For organizations that need maximum capacity.
+                For teams that need maximum capacity.
               </Text>
               <View className="space-y-3 mb-8">
                 <Text className="text-sm text-gray-700 font-semibold">• Unlimited Chord Sheets</Text>

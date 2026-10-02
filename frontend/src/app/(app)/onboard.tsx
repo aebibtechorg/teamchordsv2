@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { router } from 'expo-router';
 import { useProfileStore } from '../../store/useProfileStore';
 import { createOrganization, getProfile } from '../../utils/common';
@@ -20,7 +21,11 @@ export default function Onboarding() {
     try {
       const dataOrg = await createOrganization({ name: orgName.trim() });
       if (!dataOrg) {
-        Alert.alert('Error', 'Failed to create organization.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to create organization.',
+        });
         setLoading(false);
         return;
       }
@@ -31,7 +36,11 @@ export default function Onboarding() {
       }
       router.replace('/(app)/library' as any);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Error creating organization.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Error creating organization.',
+      });
     } finally {
       setLoading(false);
     }
