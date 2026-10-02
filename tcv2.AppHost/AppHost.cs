@@ -40,6 +40,7 @@ if (builder.Configuration["Destination"] == "test")
             c.EnvironmentVariables.Add("Dodo__SecretKey", builder.Configuration["Dodo:SecretKey"] ?? Environment.GetEnvironmentVariable("Dodo__SecretKey") ?? "");
             c.EnvironmentVariables.Add("Dodo__WebhookSecret", builder.Configuration["Dodo:WebhookSecret"] ?? Environment.GetEnvironmentVariable("Dodo__WebhookSecret") ?? "");
             c.EnvironmentVariables.Add("Dodo__BaseUrl", builder.Configuration["Dodo:BaseUrl"] ?? Environment.GetEnvironmentVariable("Dodo__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("RevenueCat__WebhookSecret", builder.Configuration["RevenueCat:WebhookSecret"] ?? Environment.GetEnvironmentVariable("RevenueCat__WebhookSecret") ?? "");
             c.EnvironmentVariables.Add("Auth0__Issuer", builder.Configuration["Auth0:Issuer"] ?? Environment.GetEnvironmentVariable("Auth0__Issuer") ?? "https://teamchords.test/");
             c.EnvironmentVariables.Add("Auth0__SigningKey", builder.Configuration["Auth0:SigningKey"] ?? Environment.GetEnvironmentVariable("Auth0__SigningKey") ?? "teamchords-test-signing-key-teamchords-test-signing-key");
             c.EnvironmentVariables.Add("RateLimiting__Enabled", builder.Configuration["RateLimiting:Enabled"] ?? Environment.GetEnvironmentVariable("RateLimiting__Enabled") ?? "true");
@@ -98,6 +99,7 @@ else
             c.EnvironmentVariables.Add("Dodo__SecretKey", builder.Configuration["Dodo:SecretKey"] ?? Environment.GetEnvironmentVariable("Dodo__SecretKey") ?? "");
             c.EnvironmentVariables.Add("Dodo__WebhookSecret", builder.Configuration["Dodo:WebhookSecret"] ?? Environment.GetEnvironmentVariable("Dodo__WebhookSecret") ?? "");
             c.EnvironmentVariables.Add("Dodo__BaseUrl", builder.Configuration["Dodo:BaseUrl"] ?? Environment.GetEnvironmentVariable("Dodo__BaseUrl") ?? "");
+            c.EnvironmentVariables.Add("RevenueCat__WebhookSecret", builder.Configuration["RevenueCat:WebhookSecret"] ?? Environment.GetEnvironmentVariable("RevenueCat__WebhookSecret") ?? "");
         })
         .WithReference(db)
         .WaitFor(db)
@@ -105,9 +107,10 @@ else
         .WaitFor(redis)
         .WithExternalHttpEndpoints();
 
-    builder.AddDevTunnel("dodo-webhook")
-        .WithReference(api)
-        .WithAnonymousAccess();
+    var ngrokAuthToken = builder.AddParameter("NgrokAuthToken", secret: true);
+    builder.AddNgrok("dodo-webhook")
+        .WithAuthToken(ngrokAuthToken)
+        .WithTunnelEndpoint(api, "http");
 
     var shareWeb = builder.AddViteApp("share-web", "../web", "dev")
         .WithReference(api)
@@ -128,6 +131,8 @@ else
         .WithEnvironment("EXPO_PUBLIC_AUTH0_AUDIENCE", builder.Configuration["WebAuth0:Audience"] ?? builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "")
         .WithEnvironment("EXPO_PUBLIC_API_URL", api.GetEndpoint("http"))
         .WithEnvironment("EXPO_PUBLIC_WEB_URL", shareWeb.GetEndpoint("http"))
+        .WithEnvironment("EXPO_PUBLIC_REVENUECAT_API_KEY_APPLE", builder.Configuration["RevenueCat:AppleApiKey"] ?? Environment.GetEnvironmentVariable("RevenueCat__AppleApiKey") ?? "")
+        .WithEnvironment("EXPO_PUBLIC_REVENUECAT_API_KEY_GOOGLE", builder.Configuration["RevenueCat:GoogleApiKey"] ?? Environment.GetEnvironmentVariable("RevenueCat__GoogleApiKey") ?? "")
         .WithEndpoint(endpointName: "http", endpoint =>
         {
             endpoint.Port = 8081;

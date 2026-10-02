@@ -60,27 +60,7 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
     }
 
     setIsLoading(false);
-    if (Platform.OS === 'web') {
-      router.push(`/(app)/checkout?plan=${plan}` as any);
-    } else {
-      Alert.alert(
-        'In-App Purchase',
-        `Proceed with ${plan} subscription via ${Platform.OS === 'ios' ? 'Apple App Store' : 'Google Play'}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Subscribe',
-            onPress: () => {
-              Toast.show({
-                type: 'success',
-                text1: 'Success',
-                text2: 'In-App subscription initiated successfully.',
-              });
-            },
-          },
-        ]
-      );
-    }
+    router.push(`/(app)/checkout?plan=${plan}` as any);
   };
 
   const closePlanPreview = () => {
