@@ -33,15 +33,8 @@ export default function AcceptInvitePage() {
           return;
         }
 
-        if (!result.isExisting) {
-          setStatus('Invite accepted! Redirecting to signup...');
-          router.replace(
-            `/(auth)/signup?e=${encodeURIComponent(result.email || '')}&orgId=${encodeURIComponent(result.organizationId || '')}` as any
-          );
-        } else {
-          setStatus('Invite accepted! Redirecting to signin...');
-          router.replace('/(auth)/signin' as any);
-        }
+        setStatus('Invite accepted! Redirecting to sign in...');
+        router.replace('/(auth)/signin' as any);
       } catch (error: any) {
         if (!isMounted) return;
         setIsError(true);

@@ -55,7 +55,7 @@ export default function Signin() {
         <MainLogo size={72} />
         <Text className="text-2xl font-bold text-foreground mt-4">Welcome to Team Chords</Text>
         <Text className="text-sm text-muted-foreground mt-1 text-center mb-6">
-          Sign in to access your shared band chord sheets and set lists.
+          Sign in or create an account to access your shared band chord sheets and set lists.
         </Text>
 
         <TouchableOpacity
@@ -66,17 +66,8 @@ export default function Signin() {
           {isLoading || isLoggingIn ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-primary-foreground font-bold text-base">Sign In with Auth0</Text>
+            <Text className="text-primary-foreground font-bold text-base">Continue with Auth0</Text>
           )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push('/(auth)/signup' as any)}
-          className="mt-4 py-2"
-        >
-          <Text className="text-sm text-muted-foreground">
-            Don't have an account? <Text className="text-primary font-semibold">Sign up</Text>
-          </Text>
         </TouchableOpacity>
       </View>
     </View>

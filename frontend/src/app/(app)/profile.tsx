@@ -103,6 +103,7 @@ export default function Profile() {
                 : require('../../../assets/images/teamchords-logo.png')
             }
             className="w-16 h-16 rounded-full bg-muted"
+            resizeMode="cover"
           />
           <View className="ml-4 flex-1">
             <Text className="text-xl font-bold text-foreground">{profile?.name || 'Musician Profile'}</Text>

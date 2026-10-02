@@ -44,6 +44,7 @@ export default function TeamTable({
                       : require('../../../assets/images/teamchords-logo.png')
                   }
                   className="h-10 w-10 rounded-full bg-muted"
+                  resizeMode="cover"
                 />
                 <View className="ml-3 flex-1">
                   <Text className="text-sm font-semibold text-foreground truncate" numberOfLines={1}>
