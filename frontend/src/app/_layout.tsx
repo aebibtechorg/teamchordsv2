@@ -33,6 +33,8 @@ export default function RootLayout() {
           clientId: AUTH0_CLIENT_ID,
           audience: AUTH0_AUDIENCE,
           useDPoP: false,
+          cacheLocation: 'localstorage',
+          useRefreshTokens: true,
         },
         <AuthTokenProviderSetup />,
         <Stack screenOptions={{ headerShown: false }}>

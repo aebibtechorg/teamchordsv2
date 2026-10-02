@@ -12,7 +12,7 @@ interface ProtectedProps {
 }
 
 export default function Protected({ children }: ProtectedProps) {
-  const { user, getCredentials, clearSession } = useAuth0();
+  const { user, getCredentials, clearSession, isLoading } = useAuth0();
   const { setUserProfile, clearUserProfile, loadInitialProfile, profile } = useProfileStore();
   const [isSyncing, setIsSyncing] = useState(true);
   const pathname = usePathname();
@@ -21,6 +21,8 @@ export default function Protected({ children }: ProtectedProps) {
     let isCancelled = false;
 
     const sync = async () => {
+      if (isLoading) return;
+
       await loadInitialProfile();
 
       if (!user) {
@@ -68,7 +70,7 @@ export default function Protected({ children }: ProtectedProps) {
     return () => {
       isCancelled = true;
     };
-  }, [user]);
+  }, [user, isLoading]);
 
   if (isSyncing) {
     return <Spinner />;
