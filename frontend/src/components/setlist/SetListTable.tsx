@@ -8,6 +8,7 @@ import { deleteSetList } from '../../utils/setlists';
 import { SetListDto } from '../../types/api';
 import ConfirmDialog from '../ConfirmDialog';
 import { WEB_BASE_URL } from '../../config';
+import { useIconColor } from '../../hooks/use-icon-color';
 
 interface SetListTableProps {
   data: SetListDto[];
@@ -25,6 +26,7 @@ export default function SetListTable({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const ic = useIconColor();
 
   const handleCopyLink = async (id: string) => {
     const url = `${WEB_BASE_URL}/setlists/share/${id}`;
@@ -52,17 +54,17 @@ export default function SetListTable({
   const renderItem = ({ item: setlist, index }: { item: SetListDto; index: number }) => (
     <View
       className={`flex-row items-center justify-between px-4 py-4 ${
-        index !== 0 ? 'border-t border-gray-200' : ''
+        index !== 0 ? 'border-t border-border' : ''
       }`}
     >
       <TouchableOpacity
         onPress={() => router.push(`/(app)/setlists/${setlist.id}` as any)}
         className="flex-1 pr-3"
       >
-        <Text className="text-base font-semibold text-gray-900 truncate" numberOfLines={1}>
+        <Text className="text-base font-semibold text-foreground truncate" numberOfLines={1}>
           {setlist.name || 'Untitled Set List'}
         </Text>
-        <Text className="text-sm text-gray-500 mt-1">
+        <Text className="text-sm text-muted-foreground mt-1">
           Created: {setlist.createdAt ? new Date(setlist.createdAt).toLocaleDateString() : ''}
         </Text>
       </TouchableOpacity>
@@ -70,27 +72,27 @@ export default function SetListTable({
       <View className="flex-row items-center gap-1">
         <TouchableOpacity
           onPress={() => setlist.id && handlePreview(setlist.id)}
-          className="p-2 rounded-lg active:bg-gray-100"
+          className="p-2 rounded-lg active:bg-muted"
           accessibilityLabel="Preview set list"
         >
-          <Eye size={18} color="#6B7280" />
+          <Eye size={18} color={ic.secondary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setlist.id && handleCopyLink(setlist.id)}
-          className="p-2 rounded-lg active:bg-gray-100"
+          className="p-2 rounded-lg active:bg-muted"
           accessibilityLabel="Copy set list link"
         >
-          <Link2 size={18} color="#6B7280" />
+          <Link2 size={18} color={ic.secondary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
             setDeleteId(setlist.id || null);
             setDeleteName(setlist.name || 'this set list');
           }}
-          className="p-2 rounded-lg active:bg-gray-100"
+          className="p-2 rounded-lg active:bg-muted"
           accessibilityLabel="Delete set list"
         >
-          <Trash2 size={18} color="#EF4444" />
+          <Trash2 size={18} color={ic.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -107,7 +109,7 @@ export default function SetListTable({
         confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
       />
 
-      <View className="flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm mb-8">
+      <View className="flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-sm mb-8">
         <FlatList
           data={data}
           keyExtractor={(item, index) => item.id || index.toString()}
@@ -115,14 +117,14 @@ export default function SetListTable({
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
-            <View className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-8 items-center justify-center">
-              <Text className="text-gray-500 font-medium">No set lists found.</Text>
+            <View className="mt-8 rounded-xl border border-dashed border-border bg-card p-8 items-center justify-center">
+              <Text className="text-muted-foreground font-medium">No set lists found.</Text>
             </View>
           }
           ListFooterComponent={
             isFetchingNextPage ? (
               <View className="p-4 items-center justify-center">
-                <ActivityIndicator color="#9CA3AF" />
+                <ActivityIndicator color={ic.secondary} />
               </View>
             ) : null
           }

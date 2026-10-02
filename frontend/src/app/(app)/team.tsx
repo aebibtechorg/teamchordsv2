@@ -10,6 +10,7 @@ import TeamTable from '../../components/team/TeamTable';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
+import { useIconColor } from '../../hooks/use-icon-color';
 
 export default function TeamManagement() {
   const { profile, setUserProfile } = useProfileStore();
@@ -19,6 +20,7 @@ export default function TeamManagement() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
+  const ic = useIconColor();
 
   // Org Name Editing
   const [orgName, setOrgName] = useState('');
@@ -155,13 +157,13 @@ export default function TeamManagement() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
+    <ScrollView className="flex-1 bg-background p-4 md:p-8">
       <View className="w-full mb-12">
         {/* Header */}
         <View className="flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <View>
-            <Text className="text-2xl md:text-3xl font-bold text-gray-900">Team Management</Text>
-            <Text className="text-sm text-gray-500 mt-1">
+            <Text className="text-2xl md:text-3xl font-bold text-foreground">Team Management</Text>
+            <Text className="text-sm text-muted-foreground mt-1">
               Manage organization settings, members, and permissions.
             </Text>
           </View>
@@ -169,36 +171,37 @@ export default function TeamManagement() {
           {currentUserRole === 'admin' && (
             <TouchableOpacity
               onPress={() => setIsInviteOpen(true)}
-              className="flex-row items-center bg-blue-600 px-4 py-2.5 rounded-xl shadow-sm active:bg-blue-700 self-start md:self-auto"
+              className="flex-row items-center bg-primary px-4 py-2.5 rounded-xl shadow-sm active:opacity-90 self-start md:self-auto"
             >
               <Plus size={16} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-2">Invite Member</Text>
+              <Text className="text-sm font-semibold text-primary-foreground ml-2">Invite Member</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Organization Name Card */}
         {canEditOrgName && (
-          <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 mb-6">
-            <Text className="text-xs font-semibold text-gray-700 mb-2">Organization Name</Text>
+          <View className="bg-card rounded-2xl p-5 shadow-sm border border-border mb-6">
+            <Text className="text-xs font-semibold text-foreground mb-2">Organization Name</Text>
             <View className="flex-row gap-2">
               <TextInput
                 value={orgName}
                 onChangeText={setOrgName}
                 placeholder="Organization Name"
-                className="flex-1 border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-gray-50 font-medium"
+                placeholderTextColor={ic.placeholder}
+                className="flex-1 border border-border rounded-xl px-3.5 py-2 text-sm bg-muted text-foreground font-medium"
               />
               <TouchableOpacity
                 onPress={handleSaveOrgName}
                 disabled={isSavingOrgName}
-                className="bg-gray-800 px-4 py-2 rounded-xl items-center justify-center active:bg-gray-900"
+                className="bg-primary px-4 py-2 rounded-xl items-center justify-center active:opacity-90"
               >
                 {isSavingOrgName ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <View className="flex-row items-center">
                     <Save size={16} color="#fff" />
-                    <Text className="text-white text-xs font-bold ml-1.5">Save</Text>
+                    <Text className="text-primary-foreground text-xs font-bold ml-1.5">Save</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -223,42 +226,43 @@ export default function TeamManagement() {
       {/* Invite Modal */}
       {isInviteOpen && (
         <Modal visible onClose={() => setIsInviteOpen(false)}>
-          <View className="p-6 bg-white">
+          <View className="p-6 bg-card">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-bold text-gray-900">Invite Team Member</Text>
+              <Text className="text-lg font-bold text-foreground">Invite Team Member</Text>
               <TouchableOpacity onPress={() => setIsInviteOpen(false)}>
-                <X size={20} color="#6B7280" />
+                <X size={20} color={ic.secondary} />
               </TouchableOpacity>
             </View>
 
-            <Text className="text-xs font-semibold text-gray-700 mb-1.5">Email Address</Text>
+            <Text className="text-xs font-semibold text-foreground mb-1.5">Email Address</Text>
             <TextInput
               value={inviteEmail}
               onChangeText={setInviteEmail}
               placeholder="musician@band.com"
+              placeholderTextColor={ic.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
-              className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 mb-6"
+              className="border border-border rounded-xl px-3.5 py-2.5 text-sm bg-muted text-foreground mb-6"
             />
 
             <View className="flex-row justify-end gap-3">
               <TouchableOpacity
                 onPress={() => setIsInviteOpen(false)}
-                className="px-4 py-2.5 rounded-lg bg-gray-200 active:bg-gray-300"
+                className="px-4 py-2.5 rounded-lg bg-muted active:opacity-80"
               >
-                <Text className="text-gray-800 font-medium">Cancel</Text>
+                <Text className="text-foreground font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSendInvite}
                 disabled={isInviting || !inviteEmail.trim()}
-                className={`px-5 py-2.5 rounded-lg bg-blue-600 active:bg-blue-700 ${
+                className={`px-5 py-2.5 rounded-lg bg-primary active:opacity-90 ${
                   isInviting || !inviteEmail.trim() ? 'opacity-50' : ''
                 }`}
               >
                 {isInviting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text className="text-white font-medium">Send Invite</Text>
+                  <Text className="text-primary-foreground font-medium">Send Invite</Text>
                 )}
               </TouchableOpacity>
             </View>

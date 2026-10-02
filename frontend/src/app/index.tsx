@@ -18,7 +18,7 @@ export default function Index() {
   }, [user, isLoading]);
 
   return (
-    <View className="flex-1 bg-gray-100 items-center justify-center">
+    <View className="flex-1 bg-background items-center justify-center">
       <Spinner />
     </View>
   );

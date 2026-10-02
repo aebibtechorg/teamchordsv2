@@ -10,6 +10,7 @@ import ChordLibraryTable from '../../../components/chordlibrary/ChordLibraryTabl
 import ChordFilesUploadDialog from '../../../components/chordlibrary/ChordFilesUploadDialog';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import Spinner from '../../../components/Spinner';
+import { useIconColor } from '../../../hooks/use-icon-color';
 
 export default function ChordLibrary() {
   const { profile } = useProfileStore();
@@ -20,8 +21,8 @@ export default function ChordLibrary() {
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const ic = useIconColor();
 
   const orgId = profile?.orgId;
 
@@ -79,13 +80,13 @@ export default function ChordLibrary() {
   };
 
   return (
-    <View className="flex-1 bg-gray-100 p-4 md:p-8">
+    <View className="flex-1 bg-background p-4 md:p-8">
       <View className="w-full flex-1">
         {/* Header */}
         <View className="flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <View>
-            <Text className="text-2xl md:text-3xl font-bold text-gray-900">Chord Library</Text>
-            <Text className="text-sm text-gray-500 mt-1">
+            <Text className="text-2xl md:text-3xl font-bold text-foreground">Chord Library</Text>
+            <Text className="text-sm text-muted-foreground mt-1">
               Manage and organize your chord charts and ChordPro sheets.
             </Text>
           </View>
@@ -93,31 +94,32 @@ export default function ChordLibrary() {
           <View className="flex-row items-center gap-2">
             <TouchableOpacity
               onPress={() => setIsUploadOpen(true)}
-              className="flex-row items-center bg-white border border-gray-300 px-4 py-2.5 rounded-xl shadow-sm active:bg-gray-50"
+              className="flex-row items-center bg-card border border-border px-4 py-2.5 rounded-xl shadow-sm active:bg-muted"
             >
-              <Upload size={16} color="#374151" />
-              <Text className="text-sm font-semibold text-gray-700 ml-2">Import</Text>
+              <Upload size={16} color={ic.primary} />
+              <Text className="text-sm font-semibold text-foreground ml-2">Import</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => router.push('/(app)/library/new' as any)}
-              className="flex-row items-center bg-blue-600 px-4 py-2.5 rounded-xl shadow-sm active:bg-blue-700"
+              className="flex-row items-center bg-primary px-4 py-2.5 rounded-xl shadow-sm active:opacity-90"
             >
               <Plus size={16} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-2">New Song</Text>
+              <Text className="text-sm font-semibold text-primary-foreground ml-2">New Song</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Search */}
         <View className="mb-6 relative">
-          <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm">
-            <Search size={18} color="#9CA3AF" />
+          <View className="flex-row items-center bg-card border border-border rounded-xl px-3.5 py-2.5 shadow-sm">
+            <Search size={18} color={ic.placeholder} />
             <TextInput
               value={searchTerm}
               onChangeText={setSearchTerm}
               placeholder="Search by song title or artist..."
-              className="flex-1 ml-2 text-sm text-gray-900"
+              placeholderTextColor={ic.placeholder}
+              className="flex-1 ml-2 text-sm text-foreground"
             />
           </View>
         </View>

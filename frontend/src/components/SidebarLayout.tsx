@@ -13,13 +13,12 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const hideSidebar = pathname === '/onboard';
 
   return (
-    <View className="flex-1 flex-col md:flex-row bg-gray-100">
+    <View className="flex-1 flex-col md:flex-row bg-background">
       {!hideSidebar && <Sidebar />}
-      <View className="flex-1 bg-gray-100 overflow-hidden">
+      <View className="flex-1 bg-background overflow-hidden">
         {children}
       </View>
       {!hideSidebar && <MobileSidebar />}
     </View>
   );
 }
-

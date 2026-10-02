@@ -50,23 +50,23 @@ export default function Signin() {
   };
 
   return (
-    <View className="flex-1 bg-gray-700 items-center justify-center p-6">
-      <View className="w-full max-w-sm bg-white rounded-2xl p-8 items-center shadow-xl">
+    <View className="flex-1 bg-background items-center justify-center p-6">
+      <View className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 items-center shadow-xl">
         <MainLogo size={72} />
-        <Text className="text-2xl font-bold text-gray-900 mt-4">Welcome to Team Chords</Text>
-        <Text className="text-sm text-gray-500 mt-1 text-center mb-6">
+        <Text className="text-2xl font-bold text-foreground mt-4">Welcome to Team Chords</Text>
+        <Text className="text-sm text-muted-foreground mt-1 text-center mb-6">
           Sign in to access your shared band chord sheets and set lists.
         </Text>
 
         <TouchableOpacity
           onPress={handleSignIn}
           disabled={isLoading || isLoggingIn}
-          className="w-full bg-blue-600 py-3.5 rounded-xl items-center active:bg-blue-700"
+          className="w-full bg-primary py-3.5 rounded-xl items-center active:opacity-90"
         >
           {isLoading || isLoggingIn ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white font-bold text-base">Sign In with Auth0</Text>
+            <Text className="text-primary-foreground font-bold text-base">Sign In with Auth0</Text>
           )}
         </TouchableOpacity>
 
@@ -74,8 +74,8 @@ export default function Signin() {
           onPress={() => router.push('/(auth)/signup' as any)}
           className="mt-4 py-2"
         >
-          <Text className="text-sm text-gray-600">
-            Don't have an account? <Text className="text-blue-600 font-semibold">Sign up</Text>
+          <Text className="text-sm text-muted-foreground">
+            Don't have an account? <Text className="text-primary font-semibold">Sign up</Text>
           </Text>
         </TouchableOpacity>
       </View>

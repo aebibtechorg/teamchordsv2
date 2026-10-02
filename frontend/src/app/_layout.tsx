@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Auth0Provider, useAuth0 } from 'react-native-auth0';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -25,8 +27,11 @@ function AuthTokenProviderSetup() {
 }
 
 export default function RootLayout() {
+  const colorScheme = useColorScheme();
+
   return (
     <SafeAreaProvider>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       {React.createElement(
         Auth0Provider as any,
         {
@@ -38,7 +43,14 @@ export default function RootLayout() {
           useRefreshTokens: true,
         },
         <AuthTokenProviderSetup />,
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: colorScheme === 'dark' ? '#030712' : '#F9FAFB',
+            },
+          }}
+        >
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(app)" />

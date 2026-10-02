@@ -8,13 +8,12 @@ import { getSetList, createSetList, updateSetList } from '../../../utils/setlist
 import { searchChordsheets, getChordsheet } from '../../../utils/chordsheets';
 import { syncOutputs, getCapoText } from '../../../utils/outputs';
 import { useProfileStore } from '../../../store/useProfileStore';
-import { useSongSelectionStore } from '../../../store/useSongSelectionStore';
-import { keys, frets, defaultKeyValue, defaultFretValue, defaultOutputValue } from '../../../constants';
+import { keys, frets, defaultKeyValue } from '../../../constants';
 import { ChordSheetDto } from '../../../types/api';
 import Spinner from '../../../components/Spinner';
 import Modal from '../../../components/Modal';
-import { getApiBaseUrl } from '../../../utils/api';
 import { WEB_BASE_URL } from '../../../config';
+import { useIconColor } from '../../../hooks/use-icon-color';
 
 export default function SetListForm() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,6 +24,7 @@ export default function SetListForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSongModalOpen, setIsSongModalOpen] = useState(false);
+  const ic = useIconColor();
 
   // Song search in modal
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,16 +208,16 @@ export default function SetListForm() {
   if (isLoading) return <Spinner />;
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
+    <ScrollView className="flex-1 bg-background p-4 md:p-8">
       <View className="w-full mb-12">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="flex-row items-center bg-white border border-gray-200 px-3.5 py-2 rounded-xl shadow-sm active:bg-gray-50"
+            className="flex-row items-center bg-card border border-border px-3.5 py-2 rounded-xl shadow-sm active:bg-muted"
           >
-            <ArrowLeft size={16} color="#374151" />
-            <Text className="text-sm font-semibold text-gray-700 ml-1.5">Back</Text>
+            <ArrowLeft size={16} color={ic.primary} />
+            <Text className="text-sm font-semibold text-foreground ml-1.5">Back</Text>
           </TouchableOpacity>
 
           <View className="flex-row items-center gap-2">
@@ -225,17 +225,17 @@ export default function SetListForm() {
               <>
                 <TouchableOpacity
                   onPress={() => Linking.openURL(`${WEB_BASE_URL}/setlists/share/${id}`)}
-                  className="p-2.5 rounded-xl border border-gray-200 bg-white active:bg-gray-50 shadow-sm"
+                  className="p-2.5 rounded-xl border border-border bg-card active:bg-muted shadow-sm"
                   accessibilityLabel="Preview Live View"
                 >
-                  <Eye size={18} color="#4B5563" />
+                  <Eye size={18} color={ic.secondary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleCopyShareLink}
-                  className="p-2.5 rounded-xl border border-gray-200 bg-white active:bg-gray-50 shadow-sm"
+                  className="p-2.5 rounded-xl border border-border bg-card active:bg-muted shadow-sm"
                   accessibilityLabel="Copy Share Link"
                 >
-                  <Link2 size={18} color="#4B5563" />
+                  <Link2 size={18} color={ic.secondary} />
                 </TouchableOpacity>
               </>
             )}
@@ -243,10 +243,10 @@ export default function SetListForm() {
             <TouchableOpacity
               onPress={handleSave}
               disabled={isSaving}
-              className="flex-row items-center bg-blue-600 px-5 py-2.5 rounded-xl shadow-sm active:bg-blue-700"
+              className="flex-row items-center bg-primary px-5 py-2.5 rounded-xl shadow-sm active:opacity-90"
             >
               <Save size={16} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-2">
+              <Text className="text-sm font-semibold text-primary-foreground ml-2">
                 {isSaving ? 'Saving...' : 'Save'}
               </Text>
             </TouchableOpacity>
@@ -254,29 +254,30 @@ export default function SetListForm() {
         </View>
 
         {/* Set List Name */}
-        <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 mb-6">
-          <Text className="text-xs font-semibold text-gray-700 mb-1.5">Set List Name</Text>
+        <View className="bg-card rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <Text className="text-xs font-semibold text-foreground mb-1.5">Set List Name</Text>
           <TextInput
             value={name}
             onChangeText={setName}
             placeholder="e.g. Sunday Morning Worship"
-            className="border border-gray-300 rounded-xl px-3.5 py-2.5 text-base bg-gray-50 font-medium"
+            placeholderTextColor={ic.placeholder}
+            className="border border-border rounded-xl px-3.5 py-2.5 text-base bg-muted text-foreground font-medium"
           />
         </View>
 
         {/* Songs in Setlist */}
-        <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 mb-6">
+        <View className="bg-card rounded-2xl p-5 shadow-sm border border-border mb-6">
           <View className="flex-row items-center justify-between mb-4">
             <View>
-              <Text className="text-lg font-bold text-gray-900">Songs ({outputs.length})</Text>
-              <Text className="text-xs text-gray-500">Order and customize keys for this performance.</Text>
+              <Text className="text-lg font-bold text-foreground">Songs ({outputs.length})</Text>
+              <Text className="text-xs text-muted-foreground">Order and customize keys for this performance.</Text>
             </View>
             <TouchableOpacity
               onPress={openAddModal}
-              className="flex-row items-center bg-blue-50 border border-blue-200 px-3.5 py-2 rounded-xl active:bg-blue-100"
+              className="flex-row items-center bg-primary/10 border-0 px-3.5 py-2 rounded-xl active:bg-primary/20"
             >
-              <Plus size={16} color="#2563EB" />
-              <Text className="text-sm font-semibold text-blue-600 ml-1.5">Add Song</Text>
+              <Plus size={16} color={ic.active} />
+              <Text className="text-sm font-semibold text-primary ml-1.5">Add Song</Text>
             </TouchableOpacity>
           </View>
 
@@ -286,19 +287,19 @@ export default function SetListForm() {
               return (
                 <View
                   key={item.index || index}
-                  className="flex-row items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-200"
+                  className="flex-row items-center justify-between p-3.5 bg-muted rounded-xl border border-border"
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="text-base font-semibold text-gray-900 truncate" numberOfLines={1}>
+                    <Text className="text-base font-semibold text-foreground truncate" numberOfLines={1}>
                       {index + 1}. {sheet?.title || 'Loading Song...'}
                     </Text>
                     <View className="flex-row items-center gap-2 mt-1">
-                      <View className="bg-blue-100 px-2 py-0.5 rounded-full">
-                        <Text className="text-xs font-semibold text-blue-800">Key: {item.targetKey || sheet?.key || 'C'}</Text>
+                      <View className="bg-primary/15 px-2 py-0.5 rounded-full">
+                        <Text className="text-xs font-semibold text-primary">Key: {item.targetKey || sheet?.key || 'C'}</Text>
                       </View>
                       {Number(item.capo) > 0 && (
-                        <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-                          <Text className="text-xs font-semibold text-amber-800">{getCapoText(item.capo)}</Text>
+                        <View className="bg-amber-500/15 px-2 py-0.5 rounded-full">
+                          <Text className="text-xs font-semibold text-amber-600 dark:text-amber-400">{getCapoText(item.capo)}</Text>
                         </View>
                       )}
                     </View>
@@ -308,28 +309,28 @@ export default function SetListForm() {
                     <TouchableOpacity
                       onPress={() => moveSong(index, 'up')}
                       disabled={index === 0}
-                      className={`p-1.5 rounded-lg ${index === 0 ? 'opacity-30' : 'active:bg-gray-200'}`}
+                      className={`p-1.5 rounded-lg ${index === 0 ? 'opacity-30' : 'active:bg-muted'}`}
                     >
-                      <ChevronUp size={18} color="#4B5563" />
+                      <ChevronUp size={18} color={ic.secondary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => moveSong(index, 'down')}
                       disabled={index === outputs.length - 1}
-                      className={`p-1.5 rounded-lg ${index === outputs.length - 1 ? 'opacity-30' : 'active:bg-gray-200'}`}
+                      className={`p-1.5 rounded-lg ${index === outputs.length - 1 ? 'opacity-30' : 'active:bg-muted'}`}
                     >
-                      <ChevronDown size={18} color="#4B5563" />
+                      <ChevronDown size={18} color={ic.secondary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => openEditModal(item)}
-                      className="p-1.5 rounded-lg active:bg-gray-200 ml-1"
+                      className="p-1.5 rounded-lg active:bg-muted ml-1"
                     >
-                      <Edit size={16} color="#4B5563" />
+                      <Edit size={16} color={ic.secondary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => removeSong(index)}
-                      className="p-1.5 rounded-lg active:bg-red-50 ml-1"
+                      className="p-1.5 rounded-lg active:bg-red-500/10 ml-1"
                     >
-                      <Trash2 size={16} color="#EF4444" />
+                      <Trash2 size={16} color={ic.danger} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -337,10 +338,10 @@ export default function SetListForm() {
             })}
 
             {outputs.length === 0 && (
-              <View className="border border-dashed border-gray-300 rounded-xl p-8 items-center justify-center">
-                <Text className="text-gray-500 font-medium">No songs added yet.</Text>
+              <View className="border border-dashed border-border rounded-xl p-8 items-center justify-center">
+                <Text className="text-muted-foreground font-medium">No songs added yet.</Text>
                 <TouchableOpacity onPress={openAddModal} className="mt-3">
-                  <Text className="text-blue-600 font-semibold text-sm">+ Add the first song</Text>
+                  <Text className="text-primary font-semibold text-sm">+ Add the first song</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -351,26 +352,27 @@ export default function SetListForm() {
       {/* Song Selection / Edit Modal */}
       {isSongModalOpen && (
         <Modal visible onClose={() => setIsSongModalOpen(false)}>
-          <View className="p-6 bg-white">
+          <View className="p-6 bg-card">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-bold text-gray-900">
+              <Text className="text-lg font-bold text-foreground">
                 {editingIndex ? 'Edit Song Settings' : 'Add Song to Set List'}
               </Text>
               <TouchableOpacity onPress={() => setIsSongModalOpen(false)}>
-                <X size={20} color="#6B7280" />
+                <X size={20} color={ic.secondary} />
               </TouchableOpacity>
             </View>
 
             {!editingIndex && (
               <View className="mb-4">
-                <Text className="text-xs font-semibold text-gray-700 mb-1">Select Song</Text>
+                <Text className="text-xs font-semibold text-foreground mb-1">Select Song</Text>
                 <TextInput
                   value={searchQuery}
                   onChangeText={handleSearchSongs}
                   placeholder="Search library songs..."
-                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-gray-50 mb-2"
+                  placeholderTextColor={ic.placeholder}
+                  className="border border-border rounded-xl px-3 py-2 text-sm bg-muted text-foreground mb-2"
                 />
-                <ScrollView className="max-h-36 border border-gray-200 rounded-xl p-1">
+                <ScrollView className="max-h-36 border border-border rounded-xl p-1">
                   {searchedSongs.map((s) => (
                     <TouchableOpacity
                       key={s.id}
@@ -380,11 +382,11 @@ export default function SetListForm() {
                         setChordsheetsMap((prev) => ({ ...prev, [s.id!]: s }));
                       }}
                       className={`p-2.5 rounded-lg ${
-                        selectedSongId === s.id ? 'bg-blue-50 border border-blue-200' : 'active:bg-gray-50'
+                        selectedSongId === s.id ? 'bg-primary/10 border border-primary/30' : 'active:bg-muted'
                       }`}
                     >
-                      <Text className="text-sm font-semibold text-gray-900">{s.title}</Text>
-                      <Text className="text-xs text-gray-500">{s.artist} • Key: {s.key}</Text>
+                      <Text className="text-sm font-semibold text-foreground">{s.title}</Text>
+                      <Text className="text-xs text-muted-foreground">{s.artist} • Key: {s.key}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -393,7 +395,7 @@ export default function SetListForm() {
 
             {/* Target Key Selection */}
             <View className="mb-4">
-              <Text className="text-xs font-semibold text-gray-700 mb-1.5">Target Key</Text>
+              <Text className="text-xs font-semibold text-foreground mb-1.5">Target Key</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-1.5 py-1">
                 {keys.map((k) => (
                   <TouchableOpacity
@@ -401,11 +403,11 @@ export default function SetListForm() {
                     onPress={() => setSelectedKey(k)}
                     className={`px-3 py-1.5 rounded-lg border ${
                       selectedKey === k
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'border-gray-300 bg-white active:bg-gray-50'
+                        ? 'bg-primary border-primary'
+                        : 'border-border bg-card active:bg-muted'
                     }`}
                   >
-                    <Text className={`text-xs font-bold ${selectedKey === k ? 'text-white' : 'text-gray-700'}`}>
+                    <Text className={`text-xs font-bold ${selectedKey === k ? 'text-primary-foreground' : 'text-foreground'}`}>
                       {k}
                     </Text>
                   </TouchableOpacity>
@@ -415,17 +417,17 @@ export default function SetListForm() {
 
             {/* Capo Selection */}
             <View className="mb-6">
-              <Text className="text-xs font-semibold text-gray-700 mb-1.5">Capo Position</Text>
+              <Text className="text-xs font-semibold text-foreground mb-1.5">Capo Position</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-1.5 py-1">
                 <TouchableOpacity
                   onPress={() => setSelectedCapo(0)}
                   className={`px-3 py-1.5 rounded-lg border ${
                     selectedCapo === 0
-                      ? 'bg-blue-600 border-blue-600'
-                      : 'border-gray-300 bg-white active:bg-gray-50'
+                      ? 'bg-primary border-primary'
+                      : 'border-border bg-card active:bg-muted'
                   }`}
                 >
-                  <Text className={`text-xs font-bold ${selectedCapo === 0 ? 'text-white' : 'text-gray-700'}`}>
+                  <Text className={`text-xs font-bold ${selectedCapo === 0 ? 'text-primary-foreground' : 'text-foreground'}`}>
                     None
                   </Text>
                 </TouchableOpacity>
@@ -437,11 +439,11 @@ export default function SetListForm() {
                       onPress={() => setSelectedCapo(num)}
                       className={`px-3 py-1.5 rounded-lg border ${
                         selectedCapo === num
-                          ? 'bg-blue-600 border-blue-600'
-                          : 'border-gray-300 bg-white active:bg-gray-50'
+                          ? 'bg-primary border-primary'
+                          : 'border-border bg-card active:bg-muted'
                       }`}
                     >
-                      <Text className={`text-xs font-bold ${selectedCapo === num ? 'text-white' : 'text-gray-700'}`}>
+                      <Text className={`text-xs font-bold ${selectedCapo === num ? 'text-primary-foreground' : 'text-foreground'}`}>
                         {f}
                       </Text>
                     </TouchableOpacity>
@@ -453,15 +455,15 @@ export default function SetListForm() {
             <View className="flex-row justify-end gap-3">
               <TouchableOpacity
                 onPress={() => setIsSongModalOpen(false)}
-                className="px-4 py-2.5 rounded-lg bg-gray-200 active:bg-gray-300"
+                className="px-4 py-2.5 rounded-lg bg-muted active:opacity-80"
               >
-                <Text className="text-gray-800 font-medium">Cancel</Text>
+                <Text className="text-foreground font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={saveSongToSetlist}
-                className="px-5 py-2.5 rounded-lg bg-blue-600 active:bg-blue-700"
+                className="px-5 py-2.5 rounded-lg bg-primary active:opacity-90"
               >
-                <Text className="text-white font-medium">{editingIndex ? 'Update' : 'Add to Set'}</Text>
+                <Text className="text-primary-foreground font-medium">{editingIndex ? 'Update' : 'Add to Set'}</Text>
               </TouchableOpacity>
             </View>
           </View>

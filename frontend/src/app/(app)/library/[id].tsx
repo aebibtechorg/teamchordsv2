@@ -12,10 +12,15 @@ import Spinner from '../../../components/Spinner';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import Modal from '../../../components/Modal';
 
+import { useIconColor } from '../../../hooks/use-icon-color';
+import { useColorScheme } from 'react-native';
+
 export default function ChordProSheet() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile } = useProfileStore();
   const { width } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const ic = useIconColor();
 
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
@@ -114,6 +119,11 @@ export default function ChordProSheet() {
 
   // Render HTML preview of chordpro
   const renderPreviewHtml = () => {
+    const isDark = colorScheme === 'dark';
+    const bgColor = isDark ? '#111827' : '#ffffff';
+    const textColor = isDark ? '#F9FAFB' : '#111827';
+    const chordColor = isDark ? '#3B82F6' : '#2563EB';
+
     try {
       const parser = new ChordSheetJS.ChordProParser();
       const song = parser.parse(content || '');
@@ -125,8 +135,8 @@ export default function ChordProSheet() {
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { font-family: ui-monospace, monospace; padding: 16px; background-color: #ffffff; color: #111827; }
-            .chord { font-weight: bold; color: #2563EB; font-size: 14px; }
+            body { font-family: ui-monospace, monospace; padding: 16px; background-color: ${bgColor}; color: ${textColor}; }
+            .chord { font-weight: bold; color: ${chordColor}; font-size: 14px; }
             .lyrics { font-size: 14px; line-height: 1.6; }
             .row { margin-bottom: 8px; }
             table { border-collapse: collapse; }
@@ -139,42 +149,42 @@ export default function ChordProSheet() {
         </html>
       `;
     } catch {
-      return '<html><body><p>Error rendering preview</p></body></html>';
+      return `<html><body style="background:${bgColor};color:${textColor}"><p>Error rendering preview</p></body></html>`;
     }
   };
 
   if (isLoading) return <Spinner />;
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8" contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView className="flex-1 bg-background p-4 md:p-8" contentContainerStyle={{ flexGrow: 1 }}>
       <View className="w-full flex-1 mb-12">
         {/* Navigation & Actions */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="flex-row items-center bg-white border border-gray-200 px-3.5 py-2 rounded-xl shadow-sm active:bg-gray-50"
+            className="flex-row items-center bg-card border border-border px-3.5 py-2 rounded-xl shadow-sm active:bg-muted"
           >
-            <ArrowLeft size={16} color="#374151" />
-            <Text className="text-sm font-semibold text-gray-700 ml-1.5">Back</Text>
+            <ArrowLeft size={16} color={ic.primary} />
+            <Text className="text-sm font-semibold text-foreground ml-1.5">Back</Text>
           </TouchableOpacity>
 
           <View className="flex-row items-center gap-2">
             {id !== 'new' && (
               <TouchableOpacity
                 onPress={() => setShowDeleteConfirm(true)}
-                className="p-2.5 rounded-xl border border-red-200 bg-red-50 active:bg-red-100"
+                className="p-2.5 rounded-xl border border-red-500/30 bg-red-500/10 active:bg-red-500/20"
               >
-                <Trash2 size={18} color="#DC2626" />
+                <Trash2 size={18} color={ic.danger} />
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
               onPress={handleSave}
               disabled={isSaving}
-              className="flex-row items-center bg-blue-600 px-5 py-2.5 rounded-xl shadow-sm active:bg-blue-700"
+              className="flex-row items-center bg-primary px-5 py-2.5 rounded-xl shadow-sm active:opacity-90"
             >
               <Save size={16} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-2">
+              <Text className="text-sm font-semibold text-primary-foreground ml-2">
                 {isSaving ? 'Saving...' : 'Save Song'}
               </Text>
             </TouchableOpacity>
@@ -182,41 +192,43 @@ export default function ChordProSheet() {
         </View>
 
         {/* Metadata Inputs */}
-        <View className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 mb-6">
+        <View className="bg-card rounded-2xl p-5 shadow-sm border border-border mb-6">
           <View className="flex-col md:flex-row gap-4">
             <View className="flex-1">
-              <Text className="text-xs font-semibold text-gray-700 mb-1">Song Title</Text>
+              <Text className="text-xs font-semibold text-foreground mb-1">Song Title</Text>
               <TextInput
                 value={title}
                 onChangeText={setTitle}
                 placeholder="e.g. Amazing Grace"
-                className="border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-gray-50"
+                placeholderTextColor={ic.placeholder}
+                className="border border-border rounded-xl px-3.5 py-2 text-sm bg-muted text-foreground"
               />
             </View>
 
             <View className="flex-1">
-              <Text className="text-xs font-semibold text-gray-700 mb-1">Artist / Author</Text>
+              <Text className="text-xs font-semibold text-foreground mb-1">Artist / Author</Text>
               <TextInput
                 value={artist}
                 onChangeText={setArtist}
                 placeholder="e.g. John Newton"
-                className="border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-gray-50"
+                placeholderTextColor={ic.placeholder}
+                className="border border-border rounded-xl px-3.5 py-2 text-sm bg-muted text-foreground"
               />
             </View>
 
             <View className="w-full md:w-32">
-              <Text className="text-xs font-semibold text-gray-700 mb-1">Key</Text>
+              <Text className="text-xs font-semibold text-foreground mb-1">Key</Text>
               <TouchableOpacity
                 onPress={() => setIsKeyDropdownOpen(true)}
-                className="flex-row items-center justify-between border border-gray-300 rounded-xl px-3.5 py-2 bg-gray-50"
+                className="flex-row items-center justify-between border border-border rounded-xl px-3.5 py-2 bg-muted"
               >
-                <Text className="text-sm text-gray-900">{key || 'Select'}</Text>
-                <ChevronDown size={16} color="#6B7280" />
+                <Text className="text-sm text-foreground">{key || 'Select'}</Text>
+                <ChevronDown size={16} color={ic.secondary} />
               </TouchableOpacity>
 
               <Modal visible={isKeyDropdownOpen} onClose={() => setIsKeyDropdownOpen(false)}>
-                <View className="p-4 bg-white">
-                  <Text className="text-lg font-bold text-gray-900 mb-3">Select Key</Text>
+                <View className="p-4 bg-card">
+                  <Text className="text-lg font-bold text-foreground mb-3">Select Key</Text>
                   <ScrollView className="max-h-80">
                     {keys.map((k) => {
                       const isSelected = k === key;
@@ -228,13 +240,13 @@ export default function ChordProSheet() {
                             setIsKeyDropdownOpen(false);
                           }}
                           className={`flex-row items-center justify-between p-3 rounded-lg mb-1.5 ${
-                            isSelected ? 'bg-gray-100' : 'active:bg-gray-50'
+                            isSelected ? 'bg-muted' : 'active:bg-muted/60'
                           }`}
                         >
-                          <Text className={`text-sm ${isSelected ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                          <Text className={`text-sm ${isSelected ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>
                             {k}
                           </Text>
-                          {isSelected && <Check size={16} color="#374151" />}
+                          {isSelected && <Check size={16} color={ic.primary} />}
                         </TouchableOpacity>
                       );
                     })}
@@ -248,22 +260,23 @@ export default function ChordProSheet() {
         {/* Editor and Live Preview */}
         <View className="flex-1 flex-col md:flex-row gap-6">
           {/* ChordPro Editor */}
-          <View className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-200 min-h-[400px]">
-            <Text className="text-sm font-bold text-gray-900 mb-2">ChordPro Source</Text>
+          <View className="flex-1 bg-card rounded-2xl p-5 shadow-sm border border-border min-h-[400px]">
+            <Text className="text-sm font-bold text-foreground mb-2">ChordPro Source</Text>
             <TextInput
               value={content}
               onChangeText={setContent}
               multiline
               textAlignVertical="top"
               placeholder="{title: Song Name}\n[C]Amazing [G]Grace..."
-              className="flex-1 font-mono text-sm border border-gray-200 rounded-xl p-3 bg-gray-50 text-gray-900 min-h-[350px]"
+              placeholderTextColor={ic.placeholder}
+              className="flex-1 font-mono text-sm border border-border rounded-xl p-3 bg-muted text-foreground min-h-[350px]"
             />
           </View>
 
           {/* Formatted Preview */}
-          <View className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-200 min-h-[400px]">
-            <Text className="text-sm font-bold text-gray-900 mb-2">Preview</Text>
-            <View className="flex-1 rounded-xl border border-gray-200 overflow-hidden bg-white min-h-[350px]">
+          <View className="flex-1 bg-card rounded-2xl p-5 shadow-sm border border-border min-h-[400px]">
+            <Text className="text-sm font-bold text-foreground mb-2">Preview</Text>
+            <View className="flex-1 rounded-xl border border-border overflow-hidden bg-card min-h-[350px]">
               {Platform.OS === 'web' ? (
                 <iframe
                   srcDoc={renderPreviewHtml()}

@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { createChordsheet, createChordsheetsBulk } from '../../utils/chordsheets';
 import { useProfileStore } from '../../store/useProfileStore';
 import Modal from '../Modal';
+import { useIconColor } from '../../hooks/use-icon-color';
 
 interface ChordFilesUploadDialogProps {
   connection?: any;
@@ -27,6 +28,7 @@ export default function ChordFilesUploadDialog({
   const fileProcessingCompleteRef = useRef(false);
   const finishedNotifiedRef = useRef(false);
   const { profile } = useProfileStore();
+  const ic = useIconColor();
 
   const handlePickFiles = async () => {
     try {
@@ -155,30 +157,30 @@ export default function ChordFilesUploadDialog({
 
   return (
     <Modal visible onClose={close}>
-      <View className="p-6 bg-white">
+      <View className="p-6 bg-card">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-xl font-bold text-gray-900">Upload Chord Sheets</Text>
-          <TouchableOpacity onPress={close} className="p-1 rounded-full active:bg-gray-100">
-            <X size={20} color="#6B7280" />
+          <Text className="text-xl font-bold text-foreground">Upload Chord Sheets</Text>
+          <TouchableOpacity onPress={close} className="p-1 rounded-full active:bg-muted">
+            <X size={20} color={ic.secondary} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
           onPress={handlePickFiles}
           disabled={isUploading}
-          className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center justify-center bg-gray-50 active:bg-gray-100 mb-4"
+          className="border-2 border-dashed border-border rounded-xl p-6 items-center justify-center bg-muted/60 active:bg-muted mb-4"
         >
-          <Upload size={32} color="#6B7280" />
-          <Text className="text-sm font-semibold text-gray-700 mt-2">Tap to browse files</Text>
-          <Text className="text-xs text-gray-500 mt-1">Supports ChordPro (.pro, .cho, .txt) or JSON backups</Text>
+          <Upload size={32} color={ic.secondary} />
+          <Text className="text-sm font-semibold text-foreground mt-2">Tap to browse files</Text>
+          <Text className="text-xs text-muted-foreground mt-1">Supports ChordPro (.pro, .cho, .txt) or JSON backups</Text>
         </TouchableOpacity>
 
         {files.length > 0 && (
-          <ScrollView className="max-h-40 mb-4 border border-gray-200 rounded-lg p-2">
+          <ScrollView className="max-h-40 mb-4 border border-border rounded-lg p-2">
             {files.map((f, i) => (
-              <View key={i} className="flex-row items-center py-1.5 px-2 border-b border-gray-100">
-                <FileText size={16} color="#4B5563" />
-                <Text className="text-xs text-gray-800 ml-2 flex-1 truncate" numberOfLines={1}>
+              <View key={i} className="flex-row items-center py-1.5 px-2 border-b border-border/50">
+                <FileText size={16} color={ic.primary} />
+                <Text className="text-xs text-foreground ml-2 flex-1 truncate" numberOfLines={1}>
                   {f.name}
                 </Text>
               </View>
@@ -189,7 +191,7 @@ export default function ChordFilesUploadDialog({
         {isUploading && (
           <View className="my-3 items-center">
             <ActivityIndicator size="small" color="#3B82F6" />
-            <Text className="text-xs text-gray-600 mt-2 font-medium">
+            <Text className="text-xs text-muted-foreground mt-2 font-medium">
               {uploadProgress.message || 'Uploading...'}
             </Text>
           </View>
@@ -199,18 +201,18 @@ export default function ChordFilesUploadDialog({
           <TouchableOpacity
             onPress={close}
             disabled={isUploading}
-            className="px-4 py-2.5 rounded-lg bg-gray-200 active:bg-gray-300"
+            className="px-4 py-2.5 rounded-lg bg-muted active:opacity-80"
           >
-            <Text className="text-gray-800 font-medium">Cancel</Text>
+            <Text className="text-foreground font-medium">Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleUpload}
             disabled={isUploading || files.length === 0}
-            className={`px-5 py-2.5 rounded-lg bg-blue-600 active:bg-blue-700 ${
+            className={`px-5 py-2.5 rounded-lg bg-primary active:opacity-90 ${
               isUploading || files.length === 0 ? 'opacity-50' : ''
             }`}
           >
-            <Text className="text-white font-medium">Upload ({files.length})</Text>
+            <Text className="text-primary-foreground font-medium">Upload ({files.length})</Text>
           </TouchableOpacity>
         </View>
       </View>

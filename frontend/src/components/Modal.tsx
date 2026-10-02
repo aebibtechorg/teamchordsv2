@@ -20,7 +20,7 @@ export default function Modal({ children, onClose, visible = true }: ModalProps)
           <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden"
+              className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
             >
               <ScrollView bounces={false} contentContainerStyle={{ flexGrow: 1 }}>
                 {children}

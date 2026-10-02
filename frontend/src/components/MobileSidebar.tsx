@@ -6,6 +6,7 @@ import { useProfileStore } from '../store/useProfileStore';
 import OrgSelector from './OrgSelector';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIconColor } from '../hooks/use-icon-color';
 
 export default function MobileSidebar() {
   const { width } = useWindowDimensions();
@@ -13,6 +14,7 @@ export default function MobileSidebar() {
   const { clearSession } = useAuth0();
   const { clearUserProfile } = useProfileStore();
   const pathname = usePathname();
+  const ic = useIconColor();
 
   const isDesktop = width >= 768;
   if (isDesktop) return null;
@@ -38,7 +40,7 @@ export default function MobileSidebar() {
   return (
     <View
       style={{ paddingBottom: Math.max(insets.bottom, 8) }}
-      className="bg-gray-700 w-full border-t border-gray-800 px-3 pt-2"
+      className="bg-gray-800 dark:bg-gray-900 w-full border-t border-gray-700 dark:border-gray-800 px-3 pt-2"
     >
       <View className="mb-2 w-full">
         <OrgSelector />
@@ -65,10 +67,11 @@ export default function MobileSidebar() {
           onPress={handleSignOut}
           className="items-center justify-center flex-1 py-1"
         >
-          <Power size={20} color="#EF4444" />
+          <Power size={20} color={ic.danger} />
           <Text className="text-[10px] mt-1 font-medium text-red-400">Logout</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+

@@ -7,6 +7,7 @@ import { getSetLists } from '../../../utils/setlists';
 import { SetListDto } from '../../../types/api';
 import SetListTable from '../../../components/setlist/SetListTable';
 import Spinner from '../../../components/Spinner';
+import { useIconColor } from '../../../hooks/use-icon-color';
 
 export default function SetLists() {
   const { profile } = useProfileStore();
@@ -16,6 +17,7 @@ export default function SetLists() {
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const ic = useIconColor();
 
   const orgId = profile?.orgId;
 
@@ -58,35 +60,36 @@ export default function SetLists() {
   }, [orgId, searchTerm]);
 
   return (
-    <View className="flex-1 bg-gray-100 p-4 md:p-8">
+    <View className="flex-1 bg-background p-4 md:p-8">
       <View className="w-full flex-1">
         {/* Header */}
         <View className="flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <View>
-            <Text className="text-2xl md:text-3xl font-bold text-gray-900">Set Lists</Text>
-            <Text className="text-sm text-gray-500 mt-1">
+            <Text className="text-2xl md:text-3xl font-bold text-foreground">Set Lists</Text>
+            <Text className="text-sm text-muted-foreground mt-1">
               Organize chord sheets into performance set lists for gigs or services.
             </Text>
           </View>
 
           <TouchableOpacity
             onPress={() => router.push('/(app)/setlists/new' as any)}
-            className="flex-row items-center bg-blue-600 px-4 py-2.5 rounded-xl shadow-sm active:bg-blue-700 self-start md:self-auto"
+            className="flex-row items-center bg-primary px-4 py-2.5 rounded-xl shadow-sm active:opacity-90 self-start md:self-auto"
           >
             <Plus size={16} color="#fff" />
-            <Text className="text-sm font-semibold text-white ml-2">New Set List</Text>
+            <Text className="text-sm font-semibold text-primary-foreground ml-2">New Set List</Text>
           </TouchableOpacity>
         </View>
 
         {/* Search */}
         <View className="mb-6 relative">
-          <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm">
-            <Search size={18} color="#9CA3AF" />
+          <View className="flex-row items-center bg-card border border-border rounded-xl px-3.5 py-2.5 shadow-sm">
+            <Search size={18} color={ic.placeholder} />
             <TextInput
               value={searchTerm}
               onChangeText={setSearchTerm}
               placeholder="Search set lists..."
-              className="flex-1 ml-2 text-sm text-gray-900"
+              placeholderTextColor={ic.placeholder}
+              className="flex-1 ml-2 text-sm text-foreground"
             />
           </View>
         </View>

@@ -4,6 +4,7 @@ import { useProfileStore } from '../store/useProfileStore';
 import Modal from './Modal';
 import { ChevronDown, Check, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useIconColor } from '../hooks/use-icon-color';
 
 interface OrgSelectorProps {
   className?: string;
@@ -12,6 +13,7 @@ interface OrgSelectorProps {
 export default function OrgSelector({ className = '' }: OrgSelectorProps) {
   const { profile, setActiveOrg } = useProfileStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const ic = useIconColor();
 
   useEffect(() => {
     if (profile) {
@@ -39,7 +41,7 @@ export default function OrgSelector({ className = '' }: OrgSelectorProps) {
     <View className={`w-full ${className}`}>
       <TouchableOpacity
         onPress={() => setIsDropdownOpen(true)}
-        className="flex-row items-center justify-between bg-gray-600 px-3 py-2 rounded-lg"
+        className="flex-row items-center justify-between bg-gray-700 dark:bg-gray-800 px-3 py-2 rounded-lg"
       >
         <Text className="text-white text-xs font-semibold truncate flex-1 mr-2" numberOfLines={1}>
           {activeOrg?.name || 'Select Team'}
@@ -48,8 +50,8 @@ export default function OrgSelector({ className = '' }: OrgSelectorProps) {
       </TouchableOpacity>
 
       <Modal visible={isDropdownOpen} onClose={() => setIsDropdownOpen(false)}>
-        <View className="p-4 bg-white">
-          <Text className="text-lg font-bold text-gray-900 mb-3">Select Team</Text>
+        <View className="p-4 bg-card">
+          <Text className="text-lg font-bold text-foreground mb-3">Select Team</Text>
           <ScrollView className="max-h-60">
             {orgs.map((org) => {
               const isSelected = (org.id || '') === activeOrgId;
@@ -61,13 +63,13 @@ export default function OrgSelector({ className = '' }: OrgSelectorProps) {
                     setIsDropdownOpen(false);
                   }}
                   className={`flex-row items-center justify-between p-3 rounded-lg mb-1.5 ${
-                    isSelected ? 'bg-gray-100' : 'active:bg-gray-50'
+                    isSelected ? 'bg-muted' : 'active:bg-muted/60'
                   }`}
                 >
-                  <Text className={`text-sm ${isSelected ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                  <Text className={`text-sm ${isSelected ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>
                     {org.name}
                   </Text>
-                  {isSelected && <Check size={16} color="#374151" />}
+                  {isSelected && <Check size={16} color={ic.primary} />}
                 </TouchableOpacity>
               );
             })}
@@ -79,10 +81,10 @@ export default function OrgSelector({ className = '' }: OrgSelectorProps) {
                 setIsDropdownOpen(false);
                 router.push('/(app)/onboard' as any);
               }}
-              className="flex-row items-center justify-center p-3 mt-2 border border-dashed border-gray-300 rounded-lg active:bg-gray-50"
+              className="flex-row items-center justify-center p-3 mt-2 border border-dashed border-border rounded-lg active:bg-muted/60"
             >
-              <Plus size={16} color="#4B5563" />
-              <Text className="text-sm font-medium text-gray-700 ml-2">Create new team</Text>
+              <Plus size={16} color={ic.secondary} />
+              <Text className="text-sm font-medium text-muted-foreground ml-2">Create new team</Text>
             </TouchableOpacity>
           )}
         </View>

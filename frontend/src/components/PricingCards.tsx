@@ -192,9 +192,9 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
       return (
         <TouchableOpacity
           onPress={() => handleCheckout(cardPlan)}
-          className="w-full bg-blue-600 py-3 rounded-xl items-center active:bg-blue-700"
+          className="w-full bg-primary py-3 rounded-xl items-center active:opacity-90"
         >
-          <Text className="text-white font-bold text-base">
+          <Text className="text-primary-foreground font-bold text-base">
             {cardPlan === 'Free' ? 'Get Started' : 'Choose Plan'}
           </Text>
         </TouchableOpacity>
@@ -206,25 +206,25 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
 
     if (cardRank === currentRank) {
       return (
-        <View className="w-full bg-gray-200 py-3 rounded-xl items-center">
-          <Text className="text-gray-600 font-bold text-base">Current Plan</Text>
+        <View className="w-full bg-muted py-3 rounded-xl items-center">
+          <Text className="text-muted-foreground font-bold text-base">Current Plan</Text>
         </View>
       );
     } else if (currentPlan === 'Free') {
       return (
         <TouchableOpacity
           onPress={() => handleCheckout(cardPlan)}
-          className="w-full bg-blue-600 py-3 rounded-xl items-center active:bg-blue-700"
+          className="w-full bg-primary py-3 rounded-xl items-center active:opacity-90"
         >
-          <Text className="text-white font-bold text-base">Choose Plan</Text>
+          <Text className="text-primary-foreground font-bold text-base">Choose Plan</Text>
         </TouchableOpacity>
       );
     } else {
       if (cardPlan === 'Free') {
         if (isCancelScheduled) {
           return (
-            <View className="w-full bg-gray-200 py-3 rounded-xl items-center">
-              <Text className="text-gray-600 font-bold text-base">Cancellation Scheduled</Text>
+            <View className="w-full bg-muted py-3 rounded-xl items-center">
+              <Text className="text-muted-foreground font-bold text-base">Cancellation Scheduled</Text>
             </View>
           );
         }
@@ -242,9 +242,9 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
         <TouchableOpacity
           onPress={() => handlePaidPlanPreview(cardPlan)}
           disabled={isLoading}
-          className="w-full bg-blue-600 py-3 rounded-xl items-center active:bg-blue-700"
+          className="w-full bg-primary py-3 rounded-xl items-center active:opacity-90"
         >
-          <Text className="text-white font-bold text-base">
+          <Text className="text-primary-foreground font-bold text-base">
             {isCancelScheduled && cardRank > currentRank
               ? 'Resume & Upgrade'
               : cardRank > currentRank
@@ -257,92 +257,92 @@ export default function PricingCards({ isAuthenticated = false }: PricingCardsPr
   };
 
   return (
-    <ScrollView className="bg-gray-100 flex-1 p-4 md:p-8">
+    <ScrollView className="bg-background flex-1 p-4 md:p-8">
       <View className="max-w-4xl mx-auto w-full mb-12">
-        <Text className="text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-3">
+        <Text className="text-3xl md:text-4xl font-extrabold text-center text-foreground mb-3">
           Find the Right Plan for Your Library
         </Text>
-        <Text className="text-base text-gray-600 text-center mb-8">
+        <Text className="text-base text-muted-foreground text-center mb-8">
           Each account can own one organization, and invites can still add you to others.
         </Text>
 
         {Boolean(checkoutError) && (
-          <View className="mb-6 p-4 bg-red-100 border border-red-300 rounded-xl">
-            <Text className="text-red-700 font-medium text-sm">{checkoutError}</Text>
+          <View className="mb-6 p-4 bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-800 rounded-xl">
+            <Text className="text-red-700 dark:text-red-400 font-medium text-sm">{checkoutError}</Text>
           </View>
         )}
 
         {Boolean(successMessage) && (
-          <View className="mb-6 p-4 bg-green-100 border border-green-300 rounded-xl">
-            <Text className="text-green-700 font-medium text-sm">{successMessage}</Text>
+          <View className="mb-6 p-4 bg-green-100 dark:bg-green-950/40 border border-green-300 dark:border-green-800 rounded-xl">
+            <Text className="text-green-700 dark:text-green-400 font-medium text-sm">{successMessage}</Text>
           </View>
         )}
 
         {/* Pricing Cards Grid */}
         <View className="flex-col md:flex-row gap-6">
           {/* Free Tier */}
-          <View className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 justify-between">
+          <View className="flex-1 bg-card rounded-2xl shadow-sm border border-border p-6 justify-between">
             <View>
-              <Text className="text-xl font-bold text-gray-900 mb-2">Jam Session</Text>
+              <Text className="text-xl font-bold text-foreground mb-2">Jam Session</Text>
               <View className="flex-row items-baseline mb-4">
-                <Text className="text-3xl font-extrabold text-gray-900">$0</Text>
-                <Text className="text-sm text-gray-500 ml-1">/ month</Text>
+                <Text className="text-3xl font-extrabold text-foreground">$0</Text>
+                <Text className="text-sm text-muted-foreground ml-1">/ month</Text>
               </View>
-              <Text className="text-xs text-gray-600 mb-6">
+              <Text className="text-xs text-muted-foreground mb-6">
                 For solo artists and hobbyists getting started.
               </Text>
               <View className="space-y-3 mb-8">
-                <Text className="text-sm text-gray-700 font-semibold">• 50 Chord Sheets</Text>
-                <Text className="text-sm text-gray-700 font-semibold">• 3 Set Lists</Text>
-                <Text className="text-sm text-gray-700 font-semibold">• 3 Team Members</Text>
-                <Text className="text-sm text-gray-700">• Basic ChordPro Editor</Text>
-                <Text className="text-sm text-gray-700">• Real-Time Live Mode</Text>
+                <Text className="text-sm text-foreground font-semibold">• 50 Chord Sheets</Text>
+                <Text className="text-sm text-foreground font-semibold">• 3 Set Lists</Text>
+                <Text className="text-sm text-foreground font-semibold">• 3 Team Members</Text>
+                <Text className="text-sm text-muted-foreground">• Basic ChordPro Editor</Text>
+                <Text className="text-sm text-muted-foreground">• Real-Time Live Mode</Text>
               </View>
             </View>
             {renderPlanButton('Free')}
           </View>
 
           {/* Gigging Band */}
-          <View className="flex-1 bg-white rounded-2xl shadow-md border-2 border-blue-500 p-6 justify-between relative">
-            <View className="self-center bg-blue-500 px-3 py-1 rounded-full mb-2">
-              <Text className="text-white text-[10px] font-bold uppercase">Most Popular</Text>
+          <View className="flex-1 bg-card rounded-2xl shadow-md border-2 border-primary p-6 justify-between relative">
+            <View className="self-center bg-primary px-3 py-1 rounded-full mb-2">
+              <Text className="text-primary-foreground text-[10px] font-bold uppercase">Most Popular</Text>
             </View>
             <View>
-              <Text className="text-xl font-bold text-gray-900 mb-2">Gigging Band</Text>
+              <Text className="text-xl font-bold text-foreground mb-2">Gigging Band</Text>
               <View className="flex-row items-baseline mb-4">
-                <Text className="text-3xl font-extrabold text-gray-900">$5</Text>
-                <Text className="text-sm text-gray-500 ml-1">/ month</Text>
+                <Text className="text-3xl font-extrabold text-foreground">$5</Text>
+                <Text className="text-sm text-muted-foreground ml-1">/ month</Text>
               </View>
-              <Text className="text-xs text-gray-600 mb-6">
+              <Text className="text-xs text-muted-foreground mb-6">
                 For active teams that need a bigger library and tools.
               </Text>
               <View className="space-y-3 mb-8">
-                <Text className="text-sm text-gray-700 font-semibold">• 250 Chord Sheets</Text>
-                <Text className="text-sm text-gray-700 font-semibold">• Unlimited Set Lists</Text>
-                <Text className="text-sm text-gray-700 font-semibold">• Unlimited Members</Text>
-                <Text className="text-sm text-gray-700">• Transposition Tools</Text>
-                <Text className="text-sm text-gray-700">• Offline access & PDF export</Text>
+                <Text className="text-sm text-foreground font-semibold">• 250 Chord Sheets</Text>
+                <Text className="text-sm text-foreground font-semibold">• Unlimited Set Lists</Text>
+                <Text className="text-sm text-foreground font-semibold">• Unlimited Members</Text>
+                <Text className="text-sm text-muted-foreground">• Transposition Tools</Text>
+                <Text className="text-sm text-muted-foreground">• Offline access & PDF export</Text>
               </View>
             </View>
             {renderPlanButton('GiggingBand')}
           </View>
 
           {/* Pro Library */}
-          <View className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 justify-between">
+          <View className="flex-1 bg-card rounded-2xl shadow-sm border border-border p-6 justify-between">
             <View>
-              <Text className="text-xl font-bold text-gray-900 mb-2">Pro Library</Text>
+              <Text className="text-xl font-bold text-foreground mb-2">Pro Library</Text>
               <View className="flex-row items-baseline mb-4">
-                <Text className="text-3xl font-extrabold text-gray-900">$49</Text>
-                <Text className="text-sm text-gray-500 ml-1">/ month</Text>
+                <Text className="text-3xl font-extrabold text-foreground">$49</Text>
+                <Text className="text-sm text-muted-foreground ml-1">/ month</Text>
               </View>
-              <Text className="text-xs text-gray-600 mb-6">
+              <Text className="text-xs text-muted-foreground mb-6">
                 For teams that need maximum capacity.
               </Text>
               <View className="space-y-3 mb-8">
-                <Text className="text-sm text-gray-700 font-semibold">• Unlimited Chord Sheets</Text>
-                <Text className="text-sm text-gray-700 font-semibold">• Unlimited Set Lists</Text>
-                <Text className="text-sm text-gray-700 font-semibold">• Unlimited Members</Text>
-                <Text className="text-sm text-gray-700">• Priority Support</Text>
+                <Text className="text-sm text-foreground font-semibold">• Unlimited Chord Sheets</Text>
+                <Text className="text-sm text-foreground font-semibold">• Unlimited Set Lists</Text>
+                <Text className="text-sm text-foreground font-semibold">• Unlimited Members</Text>
+                <Text className="text-sm text-muted-foreground">• Priority Support</Text>
               </View>
             </View>
             {renderPlanButton('Organization')}

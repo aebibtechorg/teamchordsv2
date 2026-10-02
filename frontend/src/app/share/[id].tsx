@@ -247,11 +247,14 @@ const ScaledSheet = ({ output, keyOverride, capoOverride }: ScaledSheetProps) =>
   );
 };
 
+import { useIconColor } from '../../hooks/use-icon-color';
+
 export default function SetListView() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [setList, setSetList] = useState<SetListDetailDto | null>(null);
   const [outputs, setOutputs] = useState<OutputDetailDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const ic = useIconColor();
 
   // Local overrides for transpose
   const [keyOverrides, setKeyOverrides] = useState<Record<string, string>>({});
@@ -312,23 +315,23 @@ export default function SetListView() {
 
   return (
     <>
-      <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
+      <ScrollView className="flex-1 bg-background p-4 md:p-8">
         <View className="max-w-4xl mx-auto w-full mb-16">
           {/* Header */}
-          <View className="flex-row items-center justify-between bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+          <View className="flex-row items-center justify-between bg-card rounded-2xl p-6 shadow-sm border border-border mb-6">
           <View className="flex-1 pr-3">
-            <Text className="text-2xl font-bold text-gray-900">{setList?.name || 'Live Set List'}</Text>
+            <Text className="text-2xl font-bold text-foreground">{setList?.name || 'Live Set List'}</Text>
             <View className="flex-row items-center gap-2 mt-1">
               <View className="w-2.5 h-2.5 rounded-full bg-green-500" />
-              <Text className="text-xs font-semibold text-gray-600">Live Mode Connected</Text>
+              <Text className="text-xs font-semibold text-muted-foreground">Live Mode Connected</Text>
             </View>
           </View>
 
           <TouchableOpacity
             onPress={fetchData}
-            className="p-2.5 rounded-xl border border-gray-200 bg-gray-50 active:bg-gray-100"
+            className="p-2.5 rounded-xl border border-border bg-muted active:opacity-80"
           >
-            <RefreshCw size={18} color="#4B5563" />
+            <RefreshCw size={18} color={ic.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -342,21 +345,21 @@ export default function SetListView() {
             return (
               <View
                 key={output.id || index}
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6"
+                className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-6"
               >
                 {/* Song Header */}
-                <View className="flex-row items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+                <View className="flex-row items-center justify-between p-4 bg-muted/60 border-b border-border">
                   <View className="flex-1 pr-2">
-                    <Text className="text-base font-bold text-gray-900">
+                    <Text className="text-base font-bold text-foreground">
                       Song {index + 1}
                     </Text>
                     <View className="flex-row items-center gap-2 mt-1">
-                      <View className="bg-blue-100 px-2.5 py-0.5 rounded-full">
-                        <Text className="text-xs font-semibold text-blue-800">Key: {currentKey}</Text>
+                      <View className="bg-primary/10 px-2.5 py-0.5 rounded-full">
+                        <Text className="text-xs font-semibold text-primary">Key: {currentKey}</Text>
                       </View>
                       {currentCapo > 0 && (
-                        <View className="bg-amber-100 px-2.5 py-0.5 rounded-full">
-                          <Text className="text-xs font-semibold text-amber-800">{getCapoText(currentCapo)}</Text>
+                        <View className="bg-amber-500/10 px-2.5 py-0.5 rounded-full">
+                          <Text className="text-xs font-semibold text-amber-600 dark:text-amber-400">{getCapoText(currentCapo)}</Text>
                         </View>
                       )}
                     </View>
@@ -365,24 +368,24 @@ export default function SetListView() {
 
                 {/* Paid Plan Controls */}
                 {setList?.canUsePaidControls && (
-                  <View className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <View className="px-4 py-3 bg-muted/40 border-b border-border">
                     {/* Key Selection */}
                     <View className="mb-3">
-                      <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Key</Text>
+                      <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Key</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-1.5">
                         <TouchableOpacity
                           onPress={() => setKeyOverrides(prev => { const next = {...prev}; delete next[output.id || '']; return next; })}
-                          className={`px-3 py-1.5 rounded-lg border ${!keyOverrides[output.id || ''] ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 active:bg-gray-50'}`}
+                          className={`px-3 py-1.5 rounded-lg border ${!keyOverrides[output.id || ''] ? 'bg-primary border-primary' : 'bg-card border-border active:bg-muted'}`}
                         >
-                          <Text className={`text-xs font-bold ${!keyOverrides[output.id || ''] ? 'text-white' : 'text-gray-700'}`}>Shared Key</Text>
+                          <Text className={`text-xs font-bold ${!keyOverrides[output.id || ''] ? 'text-primary-foreground' : 'text-foreground'}`}>Shared Key</Text>
                         </TouchableOpacity>
                         {keys.map((k) => (
                           <TouchableOpacity
                             key={k}
                             onPress={() => setKeyOverrides(prev => ({ ...prev, [output.id || '']: k }))}
-                            className={`px-3 py-1.5 rounded-lg border ${keyOverrides[output.id || ''] === k ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 active:bg-gray-50'}`}
+                            className={`px-3 py-1.5 rounded-lg border ${keyOverrides[output.id || ''] === k ? 'bg-primary border-primary' : 'bg-card border-border active:bg-muted'}`}
                           >
-                            <Text className={`text-xs font-bold ${keyOverrides[output.id || ''] === k ? 'text-white' : 'text-gray-700'}`}>{k}</Text>
+                            <Text className={`text-xs font-bold ${keyOverrides[output.id || ''] === k ? 'text-primary-foreground' : 'text-foreground'}`}>{k}</Text>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
@@ -390,19 +393,19 @@ export default function SetListView() {
 
                     {/* Capo Selection */}
                     <View>
-                      <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Capo</Text>
+                      <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Capo</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-1.5">
                         <TouchableOpacity
                           onPress={() => setCapoOverrides(prev => { const next = {...prev}; delete next[output.id || '']; return next; })}
-                          className={`px-3 py-1.5 rounded-lg border ${capoOverrides[output.id || ''] === undefined ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 active:bg-gray-50'}`}
+                          className={`px-3 py-1.5 rounded-lg border ${capoOverrides[output.id || ''] === undefined ? 'bg-primary border-primary' : 'bg-card border-border active:bg-muted'}`}
                         >
-                          <Text className={`text-xs font-bold ${capoOverrides[output.id || ''] === undefined ? 'text-white' : 'text-gray-700'}`}>Shared Capo</Text>
+                          <Text className={`text-xs font-bold ${capoOverrides[output.id || ''] === undefined ? 'text-primary-foreground' : 'text-foreground'}`}>Shared Capo</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           onPress={() => setCapoOverrides(prev => ({ ...prev, [output.id || '']: 0 }))}
-                          className={`px-3 py-1.5 rounded-lg border ${capoOverrides[output.id || ''] === 0 ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 active:bg-gray-50'}`}
+                          className={`px-3 py-1.5 rounded-lg border ${capoOverrides[output.id || ''] === 0 ? 'bg-primary border-primary' : 'bg-card border-border active:bg-muted'}`}
                         >
-                          <Text className={`text-xs font-bold ${capoOverrides[output.id || ''] === 0 ? 'text-white' : 'text-gray-700'}`}>None</Text>
+                          <Text className={`text-xs font-bold ${capoOverrides[output.id || ''] === 0 ? 'text-primary-foreground' : 'text-foreground'}`}>None</Text>
                         </TouchableOpacity>
                         {frets.map((f) => {
                           const num = Number(f);
@@ -410,9 +413,9 @@ export default function SetListView() {
                             <TouchableOpacity
                               key={f}
                               onPress={() => setCapoOverrides(prev => ({ ...prev, [output.id || '']: num }))}
-                              className={`px-3 py-1.5 rounded-lg border ${capoOverrides[output.id || ''] === num ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 active:bg-gray-50'}`}
+                              className={`px-3 py-1.5 rounded-lg border ${capoOverrides[output.id || ''] === num ? 'bg-primary border-primary' : 'bg-card border-border active:bg-muted'}`}
                             >
-                              <Text className={`text-xs font-bold ${capoOverrides[output.id || ''] === num ? 'text-white' : 'text-gray-700'}`}>{f}</Text>
+                              <Text className={`text-xs font-bold ${capoOverrides[output.id || ''] === num ? 'text-primary-foreground' : 'text-foreground'}`}>{f}</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -432,8 +435,8 @@ export default function SetListView() {
           })}
 
           {outputs.length === 0 && (
-            <View className="bg-white rounded-2xl p-12 border border-dashed border-gray-300 items-center justify-center">
-              <Text className="text-gray-500 font-medium">No songs in this set list yet.</Text>
+            <View className="bg-card rounded-2xl p-12 border border-dashed border-border items-center justify-center">
+              <Text className="text-muted-foreground font-medium">No songs in this set list yet.</Text>
             </View>
           )}
         </View>
@@ -445,9 +448,9 @@ export default function SetListView() {
         <View className="absolute bottom-6 right-6 z-50">
           <TouchableOpacity
             onPress={handlePrint}
-            className="bg-gray-800 w-14 h-14 rounded-full items-center justify-center shadow-2xl border border-gray-700 active:bg-gray-700"
+            className="bg-foreground w-14 h-14 rounded-full items-center justify-center shadow-2xl border border-border active:opacity-80"
           >
-            <Printer size={22} color="white" />
+            <Printer size={22} color={ic.card} />
           </TouchableOpacity>
         </View>
       )}

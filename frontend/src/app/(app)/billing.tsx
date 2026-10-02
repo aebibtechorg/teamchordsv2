@@ -7,6 +7,7 @@ import { useProfileStore } from '../../store/useProfileStore';
 import { getProfile } from '../../utils/common';
 import { cancelSubscription, openBillingPortal } from '../../utils/billing';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useIconColor } from '../../hooks/use-icon-color';
 
 const PLAN_LABELS: Record<string, string> = {
   Free: 'Jam Session (Free)',
@@ -15,11 +16,11 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
-  Active: { bg: 'bg-green-100', text: 'text-green-800' },
-  ScheduledToEnd: { bg: 'bg-amber-100', text: 'text-amber-800' },
-  Canceled: { bg: 'bg-red-100', text: 'text-red-800' },
-  PastDue: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  None: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  Active: { bg: 'bg-green-500/15', text: 'text-green-700 dark:text-green-300' },
+  ScheduledToEnd: { bg: 'bg-amber-500/15', text: 'text-amber-700 dark:text-amber-300' },
+  Canceled: { bg: 'bg-red-500/15', text: 'text-red-700 dark:text-red-300' },
+  PastDue: { bg: 'bg-yellow-500/15', text: 'text-yellow-700 dark:text-yellow-300' },
+  None: { bg: 'bg-muted', text: 'text-muted-foreground' },
 };
 
 export default function Billing() {
@@ -27,6 +28,7 @@ export default function Billing() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const ic = useIconColor();
 
   const orgId = profile?.orgId;
   const activeOrg = profile?.organizations?.find((o) => o.id === orgId);
@@ -87,7 +89,7 @@ export default function Billing() {
   if (!orgId) {
     return (
       <View className="p-6">
-        <Text className="text-gray-500">No team selected.</Text>
+        <Text className="text-muted-foreground">No team selected.</Text>
       </View>
     );
   }
@@ -95,21 +97,21 @@ export default function Billing() {
   const badgeStyle = STATUS_BADGE[status] || STATUS_BADGE.None;
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
+    <ScrollView className="flex-1 bg-background p-4 md:p-8">
       <View className="max-w-2xl mx-auto md:mx-0 w-full mb-12">
-        <Text className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Billing & Subscription</Text>
+        <Text className="text-2xl md:text-3xl font-bold text-foreground mb-6">Billing & Subscription</Text>
 
         {/* Current Plan Card */}
-        <View className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <View className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             Current Plan
           </Text>
 
           <View className="flex-row items-center justify-between flex-wrap gap-4">
             <View>
-              <Text className="text-2xl font-bold text-gray-900">{PLAN_LABELS[plan] ?? plan}</Text>
+              <Text className="text-2xl font-bold text-foreground">{PLAN_LABELS[plan] ?? plan}</Text>
               {expiresAt && (
-                <Text className="text-xs text-gray-500 mt-1">
+                <Text className="text-xs text-muted-foreground mt-1">
                   {isCancelPending ? 'Access until' : 'Renews'}{' '}
                   {new Date(expiresAt).toLocaleDateString(undefined, {
                     year: 'numeric',
@@ -134,10 +136,10 @@ export default function Billing() {
             <TouchableOpacity
               onPress={handlePortal}
               disabled={portalLoading}
-              className="flex-row items-center justify-center bg-gray-800 py-3 px-5 rounded-xl active:bg-gray-900 mb-2"
+              className="flex-row items-center justify-center bg-primary py-3 px-5 rounded-xl active:opacity-90 mb-2"
             >
               <ExternalLink size={16} color="#fff" />
-              <Text className="text-white font-semibold text-sm ml-2">
+              <Text className="text-primary-foreground font-semibold text-sm ml-2">
                 {portalLoading ? 'Opening portal...' : 'Manage Billing / Invoices'}
               </Text>
             </TouchableOpacity>
@@ -146,10 +148,10 @@ export default function Billing() {
           {plan === 'Free' && (
             <TouchableOpacity
               onPress={() => router.push('/(app)/pricing' as any)}
-              className="flex-row items-center justify-center bg-blue-600 py-3 px-5 rounded-xl active:bg-blue-700 mb-2"
+              className="flex-row items-center justify-center bg-primary py-3 px-5 rounded-xl active:opacity-90 mb-2"
             >
               <ArrowUpCircle size={16} color="#fff" />
-              <Text className="text-white font-semibold text-sm ml-2">Upgrade Plan</Text>
+              <Text className="text-primary-foreground font-semibold text-sm ml-2">Upgrade Plan</Text>
             </TouchableOpacity>
           )}
 
@@ -157,10 +159,10 @@ export default function Billing() {
             <TouchableOpacity
               onPress={() => setShowCancelConfirm(true)}
               disabled={cancelLoading}
-              className="flex-row items-center justify-center border border-red-200 bg-red-50 py-3 px-5 rounded-xl active:bg-red-100"
+              className="flex-row items-center justify-center border border-red-500/30 bg-red-500/10 py-3 px-5 rounded-xl active:bg-red-500/20"
             >
-              <XCircle size={16} color="#DC2626" />
-              <Text className="text-red-600 font-semibold text-sm ml-2">
+              <XCircle size={16} color={ic.danger} />
+              <Text className="text-red-600 dark:text-red-400 font-semibold text-sm ml-2">
                 {cancelLoading ? 'Cancelling...' : 'Cancel Subscription'}
               </Text>
             </TouchableOpacity>
@@ -169,8 +171,8 @@ export default function Billing() {
 
         {plan !== 'Free' && (
           <TouchableOpacity onPress={() => router.push('/(app)/pricing' as any)} className="mt-6">
-            <Text className="text-sm text-gray-500 text-center">
-              Want to change plans? <Text className="text-blue-600 font-semibold">View all plans</Text>
+            <Text className="text-sm text-muted-foreground text-center">
+              Want to change plans? <Text className="text-primary font-semibold">View all plans</Text>
             </Text>
           </TouchableOpacity>
         )}

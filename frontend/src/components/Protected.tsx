@@ -78,8 +78,8 @@ export default function Protected({ children }: ProtectedProps) {
 
   if (!user && !profile) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-100 p-4">
-        <Text className="text-gray-600 font-medium">Redirecting to sign in...</Text>
+      <View className="flex-1 items-center justify-center bg-background p-4">
+        <Text className="text-muted-foreground font-medium">Redirecting to sign in...</Text>
       </View>
     );
   }

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Library, BookAudio, Users, CreditCard, User, Power } from 'lucide-react-native';
 import { useAuth0 } from 'react-native-auth0';
 import { useProfileStore } from '../store/useProfileStore';
 import OrgSelector from './OrgSelector';
 import MainLogo from './MainLogo';
 import { router, usePathname } from 'expo-router';
+import { useIconColor } from '../hooks/use-icon-color';
 
 export default function Sidebar() {
   const { width } = useWindowDimensions();
@@ -13,6 +14,7 @@ export default function Sidebar() {
   const { clearSession, user } = useAuth0();
   const { clearUserProfile, profile } = useProfileStore();
   const pathname = usePathname();
+  const ic = useIconColor();
 
   const isDesktop = width >= 768;
   if (!isDesktop) return null;
@@ -35,17 +37,17 @@ export default function Sidebar() {
   ];
 
   return (
-    <View className={`${isOpen ? 'w-64' : 'w-20'} bg-gray-700 h-full p-4 justify-between border-r border-gray-800`}>
+    <View className={`${isOpen ? 'w-64' : 'w-20'} bg-gray-800 dark:bg-gray-900 h-full p-4 justify-between border-r border-gray-700 dark:border-gray-800`}>
       <View>
         <TouchableOpacity
           onPress={() => setIsOpen(!isOpen)}
-          className="flex-row items-center space-x-3 p-2 rounded-lg active:bg-gray-600"
+          className="flex-row items-center space-x-3 p-2 rounded-lg active:bg-gray-700 dark:active:bg-gray-800"
         >
           <MainLogo size={32} />
           {isOpen && <Text className="font-bold text-white text-lg ml-3">Team Chords</Text>}
         </TouchableOpacity>
 
-        <View className="h-px bg-gray-600 my-4" />
+        <View className="h-px bg-gray-700 dark:bg-gray-800 my-4" />
 
         <View className="space-y-1">
           {navItems.map((item) => {
@@ -56,12 +58,12 @@ export default function Sidebar() {
                 key={item.path}
                 onPress={() => router.push(item.path as any)}
                 className={`flex-row items-center p-2.5 rounded-lg my-1 ${
-                  isActive ? 'bg-gray-600' : 'active:bg-gray-600/60'
+                  isActive ? 'bg-gray-700 dark:bg-gray-800' : 'active:bg-gray-700/60 dark:active:bg-gray-800/60'
                 }`}
               >
                 <Icon size={22} color={isActive ? '#FFFFFF' : '#D1D5DB'} />
                 {isOpen && (
-                  <Text className={`ml-3 font-medium ${isActive ? 'text-white' : 'text-gray-300'}`}>
+                  <Text className={`ml-3 font-medium ${isActive ? 'text-white font-semibold' : 'text-gray-300'}`}>
                     {item.label}
                   </Text>
                 )}
@@ -72,11 +74,11 @@ export default function Sidebar() {
       </View>
 
       <View className="space-y-2">
-        <View className="h-px bg-gray-600 my-2" />
+        <View className="h-px bg-gray-700 dark:bg-gray-800 my-2" />
 
         <TouchableOpacity
           onPress={() => router.push('/(app)/profile' as any)}
-          className="flex-row items-center p-2 rounded-lg active:bg-gray-600"
+          className="flex-row items-center p-2 rounded-lg active:bg-gray-700 dark:active:bg-gray-800"
         >
           <User size={22} color="#D1D5DB" />
           {isOpen && (
@@ -94,12 +96,13 @@ export default function Sidebar() {
 
         <TouchableOpacity
           onPress={handleSignOut}
-          className="flex-row items-center p-2 rounded-lg active:bg-gray-600"
+          className="flex-row items-center p-2 rounded-lg active:bg-gray-700 dark:active:bg-gray-800"
         >
-          <Power size={22} color="#EF4444" />
+          <Power size={22} color={ic.danger} />
           {isOpen && <Text className="ml-3 text-sm font-medium text-red-400">Sign out</Text>}
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+

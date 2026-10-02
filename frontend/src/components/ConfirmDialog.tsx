@@ -25,15 +25,15 @@ export default function ConfirmDialog({
 
   return (
     <Modal visible={isOpen} onClose={onClose}>
-      <View className="p-6 bg-white">
-        <Text className="text-xl font-bold mb-4 text-gray-900">{title}</Text>
-        <Text className="text-gray-700 mb-6 leading-5">{message}</Text>
+      <View className="p-6 bg-card">
+        <Text className="text-xl font-bold mb-4 text-foreground">{title}</Text>
+        <Text className="text-muted-foreground mb-6 leading-5">{message}</Text>
         <View className="flex-row justify-end gap-3">
           <TouchableOpacity
             onPress={onClose}
-            className="px-4 py-2.5 rounded-lg bg-gray-200 active:bg-gray-300"
+            className="px-4 py-2.5 rounded-lg bg-muted active:opacity-80"
           >
-            <Text className="text-gray-800 font-medium">{cancelLabel}</Text>
+            <Text className="text-foreground font-medium">{cancelLabel}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
