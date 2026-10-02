@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Save, Trash2, ArrowLeft } from 'lucide-react-native';
+import { Save, Trash2, ArrowLeft, ChevronDown, Check } from 'lucide-react-native';
 import ChordSheetJS from 'chordsheetjs';
 import { WebView } from 'react-native-webview';
 import { getChordsheet, createChordsheet, updateChordsheet, deleteChordsheet } from '../../../utils/chordsheets';
@@ -9,6 +9,7 @@ import { useProfileStore } from '../../../store/useProfileStore';
 import { defaultContent, defaultKey, keys } from '../../../constants';
 import Spinner from '../../../components/Spinner';
 import ConfirmDialog from '../../../components/ConfirmDialog';
+import Modal from '../../../components/Modal';
 
 export default function ChordProSheet() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,6 +20,7 @@ export default function ChordProSheet() {
   const [artist, setArtist] = useState('');
   const [key, setKey] = useState(defaultKey);
   const [content, setContent] = useState(defaultContent);
+  const [isKeyDropdownOpen, setIsKeyDropdownOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -183,12 +185,41 @@ export default function ChordProSheet() {
 
             <View className="w-full md:w-32">
               <Text className="text-xs font-semibold text-gray-700 mb-1">Key</Text>
-              <TextInput
-                value={key}
-                onChangeText={setKey}
-                placeholder="C"
-                className="border border-gray-300 rounded-xl px-3.5 py-2 text-sm bg-gray-50"
-              />
+              <TouchableOpacity
+                onPress={() => setIsKeyDropdownOpen(true)}
+                className="flex-row items-center justify-between border border-gray-300 rounded-xl px-3.5 py-2 bg-gray-50"
+              >
+                <Text className="text-sm text-gray-900">{key || 'Select'}</Text>
+                <ChevronDown size={16} color="#6B7280" />
+              </TouchableOpacity>
+
+              <Modal visible={isKeyDropdownOpen} onClose={() => setIsKeyDropdownOpen(false)}>
+                <View className="p-4 bg-white">
+                  <Text className="text-lg font-bold text-gray-900 mb-3">Select Key</Text>
+                  <ScrollView className="max-h-80">
+                    {keys.map((k) => {
+                      const isSelected = k === key;
+                      return (
+                        <TouchableOpacity
+                          key={k}
+                          onPress={() => {
+                            setKey(k);
+                            setIsKeyDropdownOpen(false);
+                          }}
+                          className={`flex-row items-center justify-between p-3 rounded-lg mb-1.5 ${
+                            isSelected ? 'bg-gray-100' : 'active:bg-gray-50'
+                          }`}
+                        >
+                          <Text className={`text-sm ${isSelected ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+                            {k}
+                          </Text>
+                          {isSelected && <Check size={16} color="#374151" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </Modal>
             </View>
           </View>
         </View>

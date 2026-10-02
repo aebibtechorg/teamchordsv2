@@ -1,3 +1,6 @@
+#pragma warning disable ASPIRETERMINAL001
+
+
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -5,6 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 if (builder.Configuration["Destination"] == "test")
 {
     var postgres = builder.AddPostgres("tcdb")
+        .WithImageTag("17.11")
         .ExcludeFromManifest();
 
     var db = postgres.AddDatabase("TeamChords", "teamchords");
@@ -54,6 +58,7 @@ if (builder.Configuration["Destination"] == "test")
 else
 {
     var postgres = builder.AddPostgres("tcdb")
+        .WithImageTag("17.11")
         .WithDataVolume("teamchords-pgdata")
         .WithLifetime(ContainerLifetime.Persistent)
         .WithPgAdmin(admin =>
@@ -113,7 +118,8 @@ else
         })
         .ExcludeFromManifest();
 
-    var appFrontend = builder.AddViteApp("webclient", "../frontend", "web")
+    var appFrontend = builder.AddViteApp("webclient", "../frontend", "start")
+        .WithTerminal()
         .WithPnpm()
         .WithReference(api)
         .WaitFor(api)
