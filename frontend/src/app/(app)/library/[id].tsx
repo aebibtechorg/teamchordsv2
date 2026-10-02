@@ -125,8 +125,8 @@ export default function ChordProSheet() {
   if (isLoading) return <Spinner />;
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
-      <View className="max-w-6xl mx-auto w-full mb-12">
+    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8" contentContainerStyle={{ flexGrow: 1 }}>
+      <View className="w-full flex-1 mb-12">
         {/* Navigation & Actions */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
@@ -225,7 +225,7 @@ export default function ChordProSheet() {
         </View>
 
         {/* Editor and Live Preview */}
-        <View className="flex-col md:flex-row gap-6">
+        <View className="flex-1 flex-col md:flex-row gap-6">
           {/* ChordPro Editor */}
           <View className="flex-1 bg-white rounded-2xl p-5 shadow-sm border border-gray-200 min-h-[400px]">
             <Text className="text-sm font-bold text-gray-900 mb-2">ChordPro Source</Text>

@@ -184,7 +184,7 @@ export default function SetListForm() {
 
   return (
     <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
-      <View className="max-w-4xl mx-auto w-full mb-12">
+      <View className="w-full mb-12">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity

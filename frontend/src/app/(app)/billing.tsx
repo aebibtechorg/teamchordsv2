@@ -83,7 +83,7 @@ export default function Billing() {
 
   return (
     <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
-      <View className="max-w-2xl mx-auto w-full mb-12">
+      <View className="max-w-2xl mx-auto md:mx-0 w-full mb-12">
         <Text className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Billing & Subscription</Text>
 
         {/* Current Plan Card */}

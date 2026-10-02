@@ -59,7 +59,7 @@ export default function SetLists() {
 
   return (
     <View className="flex-1 bg-gray-100 p-4 md:p-8">
-      <View className="max-w-6xl mx-auto w-full flex-1">
+      <View className="w-full flex-1">
         {/* Header */}
         <View className="flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <View>
