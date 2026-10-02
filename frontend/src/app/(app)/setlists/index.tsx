@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Plus, Search } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useProfileStore } from '../../../store/useProfileStore';
@@ -11,16 +11,15 @@ import Spinner from '../../../components/Spinner';
 export default function SetLists() {
   const { profile } = useProfileStore();
   const [setLists, setSetLists] = useState<SetListDto[]>([]);
-  const [pageSize] = useState(50);
-  const [cursorStack, setCursorStack] = useState<{ createdAt?: string; id?: string }[]>([]);
-  const [currentCursor, setCurrentCursor] = useState<{ createdAt?: string; id?: string } | null>(null);
+  const [pageSize] = useState(20);
   const [nextCursor, setNextCursor] = useState<{ createdAt: string; id: string } | null>(null);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const orgId = profile?.orgId;
 
-  const fetchData = async () => {
+  const fetchInitial = async () => {
     if (!orgId) {
       setSetLists([]);
       setNextCursor(null);
@@ -30,8 +29,6 @@ export default function SetLists() {
     setIsLoading(true);
     const { data, nextCursor: next } = await getSetLists(orgId, {
       search: searchTerm,
-      afterCreatedAt: currentCursor?.createdAt,
-      afterId: currentCursor?.id,
       pageSize,
     });
     setSetLists(data);
@@ -39,32 +36,30 @@ export default function SetLists() {
     setIsLoading(false);
   };
 
+  const fetchMore = async () => {
+    if (!orgId || !nextCursor || isFetchingNextPage || isLoading) return;
+    setIsFetchingNextPage(true);
+    const { data, nextCursor: next } = await getSetLists(orgId, {
+      search: searchTerm,
+      afterCreatedAt: nextCursor.createdAt,
+      afterId: nextCursor.id,
+      pageSize,
+    });
+    setSetLists((prev) => [...prev, ...data]);
+    setNextCursor(next);
+    setIsFetchingNextPage(false);
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData();
+      fetchInitial();
     }, 300);
     return () => clearTimeout(timer);
-  }, [orgId, searchTerm, currentCursor]);
-
-  const handleNext = () => {
-    if (nextCursor) {
-      setCursorStack((prev) => [...prev, currentCursor || {}]);
-      setCurrentCursor(nextCursor);
-    }
-  };
-
-  const handlePrev = () => {
-    if (cursorStack.length > 0) {
-      const prev = [...cursorStack];
-      const last = prev.pop() || null;
-      setCursorStack(prev);
-      setCurrentCursor(last && Object.keys(last).length > 0 ? last : null);
-    }
-  };
+  }, [orgId, searchTerm]);
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
-      <View className="max-w-6xl mx-auto w-full">
+    <View className="flex-1 bg-gray-100 p-4 md:p-8">
+      <View className="max-w-6xl mx-auto w-full flex-1">
         {/* Header */}
         <View className="flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <View>
@@ -102,14 +97,12 @@ export default function SetLists() {
         ) : (
           <SetListTable
             data={setLists}
-            onRefresh={fetchData}
-            hasPrev={cursorStack.length > 0}
-            hasNext={Boolean(nextCursor)}
-            onPrev={handlePrev}
-            onNext={handleNext}
+            onRefresh={fetchInitial}
+            onLoadMore={fetchMore}
+            isFetchingNextPage={isFetchingNextPage}
           />
         )}
       </View>
-    </ScrollView>
+    </View>
   );
 }

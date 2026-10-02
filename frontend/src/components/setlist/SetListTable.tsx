@@ -1,30 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking, FlatList, ActivityIndicator } from 'react-native';
 import { Eye, Trash2, Link2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { deleteSetList } from '../../utils/setlists';
 import { SetListDto } from '../../types/api';
 import ConfirmDialog from '../ConfirmDialog';
-import { getApiBaseUrl } from '../../utils/api';
 import { WEB_BASE_URL } from '../../config';
 
 interface SetListTableProps {
   data: SetListDto[];
   onRefresh: () => void;
-  hasPrev: boolean;
-  hasNext: boolean;
-  onPrev: () => void;
-  onNext: () => void;
+  onLoadMore: () => void;
+  isFetchingNextPage: boolean;
 }
 
 export default function SetListTable({
   data,
   onRefresh,
-  hasPrev,
-  hasNext,
-  onPrev,
-  onNext,
+  onLoadMore,
+  isFetchingNextPage,
 }: SetListTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState('');
@@ -49,8 +44,55 @@ export default function SetListTable({
     onRefresh();
   };
 
+  const renderItem = ({ item: setlist, index }: { item: SetListDto; index: number }) => (
+    <View
+      className={`flex-row items-center justify-between px-4 py-4 ${
+        index !== 0 ? 'border-t border-gray-200' : ''
+      }`}
+    >
+      <TouchableOpacity
+        onPress={() => router.push(`/(app)/setlists/${setlist.id}` as any)}
+        className="flex-1 pr-3"
+      >
+        <Text className="text-base font-semibold text-gray-900 truncate" numberOfLines={1}>
+          {setlist.name || 'Untitled Set List'}
+        </Text>
+        <Text className="text-sm text-gray-500 mt-1">
+          Created: {setlist.createdAt ? new Date(setlist.createdAt).toLocaleDateString() : ''}
+        </Text>
+      </TouchableOpacity>
+
+      <View className="flex-row items-center gap-1">
+        <TouchableOpacity
+          onPress={() => setlist.id && handlePreview(setlist.id)}
+          className="p-2 rounded-lg active:bg-gray-100"
+          accessibilityLabel="Preview set list"
+        >
+          <Eye size={18} color="#6B7280" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setlist.id && handleCopyLink(setlist.id)}
+          className="p-2 rounded-lg active:bg-gray-100"
+          accessibilityLabel="Copy set list link"
+        >
+          <Link2 size={18} color="#6B7280" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            setDeleteId(setlist.id || null);
+            setDeleteName(setlist.name || 'this set list');
+          }}
+          className="p-2 rounded-lg active:bg-gray-100"
+          accessibilityLabel="Delete set list"
+        >
+          <Trash2 size={18} color="#EF4444" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
-    <View className="w-full">
+    <View className="flex-1 w-full">
       <ConfirmDialog
         isOpen={Boolean(deleteId)}
         onClose={() => setDeleteId(null)}
@@ -60,82 +102,27 @@ export default function SetListTable({
         confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
       />
 
-      <View className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {data.map((setlist, index) => (
-          <View
-            key={setlist.id || index}
-            className={`flex-row items-center justify-between px-4 py-4 ${
-              index !== 0 ? 'border-t border-gray-200' : ''
-            }`}
-          >
-            <TouchableOpacity
-              onPress={() => router.push(`/(app)/setlists/${setlist.id}` as any)}
-              className="flex-1 pr-3"
-            >
-              <Text className="text-base font-semibold text-gray-900 truncate" numberOfLines={1}>
-                {setlist.name || 'Untitled Set List'}
-              </Text>
-              <Text className="text-sm text-gray-500 mt-1">
-                Created: {setlist.createdAt ? new Date(setlist.createdAt).toLocaleDateString() : ''}
-              </Text>
-            </TouchableOpacity>
-
-            <View className="flex-row items-center gap-1">
-              <TouchableOpacity
-                onPress={() => setlist.id && handlePreview(setlist.id)}
-                className="p-2 rounded-lg active:bg-gray-100"
-                accessibilityLabel="Preview set list"
-              >
-                <Eye size={18} color="#6B7280" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setlist.id && handleCopyLink(setlist.id)}
-                className="p-2 rounded-lg active:bg-gray-100"
-                accessibilityLabel="Copy set list link"
-              >
-                <Link2 size={18} color="#6B7280" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setDeleteId(setlist.id || null);
-                  setDeleteName(setlist.name || 'this set list');
-                }}
-                className="p-2 rounded-lg active:bg-gray-100"
-                accessibilityLabel="Delete set list"
-              >
-                <Trash2 size={18} color="#EF4444" />
-              </TouchableOpacity>
+      <View className="flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm mb-8">
+        <FlatList
+          data={data}
+          keyExtractor={(item, index) => item.id || index.toString()}
+          renderItem={renderItem}
+          onEndReached={onLoadMore}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={
+            <View className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-8 items-center justify-center">
+              <Text className="text-gray-500 font-medium">No set lists found.</Text>
             </View>
-          </View>
-        ))}
-      </View>
-
-      {data.length === 0 && (
-        <View className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-8 items-center justify-center">
-          <Text className="text-gray-500 font-medium">No set lists found.</Text>
-        </View>
-      )}
-
-      <View className="mt-6 flex-row items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-        <TouchableOpacity
-          onPress={onPrev}
-          disabled={!hasPrev}
-          className={`rounded-lg border border-gray-300 px-4 py-2 bg-white ${
-            !hasPrev ? 'opacity-40' : 'active:bg-gray-50'
-          }`}
-        >
-          <Text className="text-sm font-medium text-gray-700">Prev</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={onNext}
-          disabled={!hasNext}
-          className={`rounded-lg border border-gray-300 px-4 py-2 bg-white ${
-            !hasNext ? 'opacity-40' : 'active:bg-gray-50'
-          }`}
-        >
-          <Text className="text-sm font-medium text-gray-700">Next</Text>
-        </TouchableOpacity>
+          }
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View className="p-4 items-center justify-center">
+                <ActivityIndicator color="#9CA3AF" />
+              </View>
+            ) : null
+          }
+          contentContainerStyle={data.length === 0 ? { flex: 1 } : {}}
+        />
       </View>
     </View>
   );
