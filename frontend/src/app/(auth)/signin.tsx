@@ -66,7 +66,7 @@ export default function Signin() {
           {isLoading || isLoggingIn ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-primary-foreground font-bold text-base">Continue with Auth0</Text>
+            <Text className="text-primary-foreground font-bold text-base">Sign In</Text>
           )}
         </TouchableOpacity>
       </View>
