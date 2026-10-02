@@ -1,19 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, Printer } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import ChordSheetJS, { Key } from 'chordsheetjs';
 import { HubConnectionBuilder } from '@microsoft/signalr';
+import * as Linking from 'expo-linking';
 import { getOutputs, getCapoText } from '../../utils/outputs';
 import { getSetList } from '../../utils/setlists';
 import { OutputDetailDto, SetListDetailDto } from '../../types/api';
 import { getSignalRHubUrl } from '../../utils/signalr';
 import { keys, frets } from '../../constants';
 import Spinner from '../../components/Spinner';
+import { WEB_BASE_URL } from '../../config';
 
 // Standard Letter paper size in px at 96dpi (matches web SetListView)
 const PAGE_SIZE = { widthPx: 816, heightPx: 1056 };
+
+
 
 interface ScaledSheetProps {
   output: OutputDetailDto;
@@ -253,6 +257,15 @@ export default function SetListView() {
   const [keyOverrides, setKeyOverrides] = useState<Record<string, string>>({});
   const [capoOverrides, setCapoOverrides] = useState<Record<string, number>>({});
 
+  const handlePrint = async () => {
+    const url = `${WEB_BASE_URL}/setlists/share/${id}`;
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      console.error('Failed to open URL', err);
+    }
+  };
+
   const fetchData = async () => {
     if (!id) return;
     setLoading(true);
@@ -298,10 +311,11 @@ export default function SetListView() {
   if (loading) return <Spinner />;
 
   return (
-    <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
-      <View className="max-w-4xl mx-auto w-full mb-16">
-        {/* Header */}
-        <View className="flex-row items-center justify-between bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
+    <>
+      <ScrollView className="flex-1 bg-gray-100 p-4 md:p-8">
+        <View className="max-w-4xl mx-auto w-full mb-16">
+          {/* Header */}
+          <View className="flex-row items-center justify-between bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-6">
           <View className="flex-1 pr-3">
             <Text className="text-2xl font-bold text-gray-900">{setList?.name || 'Live Set List'}</Text>
             <View className="flex-row items-center gap-2 mt-1">
@@ -424,6 +438,19 @@ export default function SetListView() {
           )}
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* Floating Print Controls */}
+      {setList?.canUsePaidControls && (
+        <View className="absolute bottom-6 right-6 z-50">
+          <TouchableOpacity
+            onPress={handlePrint}
+            className="bg-gray-800 w-14 h-14 rounded-full items-center justify-center shadow-2xl border border-gray-700 active:bg-gray-700"
+          >
+            <Printer size={22} color="white" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Save, Plus, ArrowLeft, Trash2, Edit, ChevronUp, ChevronDown, Eye, Link2, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -13,6 +13,7 @@ import { ChordSheetDto } from '../../../types/api';
 import Spinner from '../../../components/Spinner';
 import Modal from '../../../components/Modal';
 import { getApiBaseUrl } from '../../../utils/api';
+import { WEB_BASE_URL } from '../../../config';
 
 export default function SetListForm() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -174,7 +175,7 @@ export default function SetListForm() {
 
   const handleCopyShareLink = async () => {
     if (!id || id === 'new') return;
-    const url = `${window.location.origin}/share/${id}`;
+    const url = `${WEB_BASE_URL}/setlists/share/${id}`;
     await Clipboard.setStringAsync(url);
     Alert.alert('Success', 'Share link copied to clipboard!');
   };
@@ -198,7 +199,7 @@ export default function SetListForm() {
             {id !== 'new' && (
               <>
                 <TouchableOpacity
-                  onPress={() => router.push(`/share/${id}` as any)}
+                  onPress={() => Linking.openURL(`${WEB_BASE_URL}/setlists/share/${id}`)}
                   className="p-2.5 rounded-xl border border-gray-200 bg-white active:bg-gray-50 shadow-sm"
                   accessibilityLabel="Preview Live View"
                 >

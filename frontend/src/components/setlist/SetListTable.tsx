@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Eye, Trash2, Link2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -7,6 +7,7 @@ import { deleteSetList } from '../../utils/setlists';
 import { SetListDto } from '../../types/api';
 import ConfirmDialog from '../ConfirmDialog';
 import { getApiBaseUrl } from '../../utils/api';
+import { WEB_BASE_URL } from '../../config';
 
 interface SetListTableProps {
   data: SetListDto[];
@@ -30,13 +31,13 @@ export default function SetListTable({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCopyLink = async (id: string) => {
-    const url = `${window.location.origin}/share/${id}`;
+    const url = `${WEB_BASE_URL}/setlists/share/${id}`;
     await Clipboard.setStringAsync(url);
     Alert.alert('Success', 'Link copied to clipboard!');
   };
 
   const handlePreview = (id: string) => {
-    router.push(`/share/${id}` as any);
+    Linking.openURL(`${WEB_BASE_URL}/setlists/share/${id}`);
   };
 
   const handleDelete = async () => {

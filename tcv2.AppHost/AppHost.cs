@@ -104,6 +104,15 @@ else
         .WithReference(api)
         .WithAnonymousAccess();
 
+    var shareWeb = builder.AddViteApp("share-web", "../web", "dev")
+        .WithReference(api)
+        .WaitFor(api)
+        .WithEndpoint(endpointName: "http", endpoint =>
+        {
+            endpoint.Port = 5173;
+        })
+        .ExcludeFromManifest();
+
     var appFrontend = builder.AddViteApp("webclient", "../frontend", "web")
         .WithPnpm()
         .WithReference(api)
@@ -112,6 +121,7 @@ else
         .WithEnvironment("EXPO_PUBLIC_AUTH0_CLIENT_ID", builder.Configuration["WebAuth0:ClientId"] ?? builder.Configuration["Auth0:ClientId"] ?? Environment.GetEnvironmentVariable("WebAuth0__ClientId") ?? Environment.GetEnvironmentVariable("Auth0__ClientId") ?? "")
         .WithEnvironment("EXPO_PUBLIC_AUTH0_AUDIENCE", builder.Configuration["WebAuth0:Audience"] ?? builder.Configuration["Auth0:Audience"] ?? Environment.GetEnvironmentVariable("WebAuth0__Audience") ?? Environment.GetEnvironmentVariable("Auth0__Audience") ?? "")
         .WithEnvironment("EXPO_PUBLIC_API_URL", api.GetEndpoint("http"))
+        .WithEnvironment("EXPO_PUBLIC_WEB_URL", shareWeb.GetEndpoint("http"))
         .WithEndpoint(endpointName: "http", endpoint =>
         {
             endpoint.Port = 8081;
