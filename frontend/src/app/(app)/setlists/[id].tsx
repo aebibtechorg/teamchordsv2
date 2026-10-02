@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Save, Plus, ArrowLeft, Trash2, Edit, ChevronUp, ChevronDown, Eye, Link2, X } from 'lucide-react-native';
+import { Save, Plus, ArrowLeft, Eye, Link2, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { getSetList, createSetList, updateSetList } from '../../../utils/setlists';
 import { searchChordsheets, getChordsheet } from '../../../utils/chordsheets';
@@ -12,6 +12,8 @@ import { keys, frets, defaultKeyValue } from '../../../constants';
 import { ChordSheetDto } from '../../../types/api';
 import Spinner from '../../../components/Spinner';
 import Modal from '../../../components/Modal';
+import { SetListScrollContainer } from '../../../components/setlist/SetListScrollContainer';
+import { DraggableSongList } from '../../../components/setlist/DraggableSongList';
 import { WEB_BASE_URL } from '../../../config';
 import { useIconColor } from '../../../hooks/use-icon-color';
 
@@ -208,7 +210,7 @@ export default function SetListForm() {
   if (isLoading) return <Spinner />;
 
   return (
-    <ScrollView className="flex-1 bg-background p-4 md:p-8">
+    <SetListScrollContainer className="flex-1 bg-background p-4 md:p-8">
       <View className="w-full mb-12">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
@@ -281,71 +283,16 @@ export default function SetListForm() {
             </TouchableOpacity>
           </View>
 
-          <View className="space-y-3">
-            {outputs.map((item, index) => {
-              const sheet = chordsheetsMap[item.song];
-              return (
-                <View
-                  key={item.index || index}
-                  className="flex-row items-center justify-between p-3.5 bg-muted rounded-xl border border-border"
-                >
-                  <View className="flex-1 pr-3">
-                    <Text className="text-base font-semibold text-foreground truncate" numberOfLines={1}>
-                      {index + 1}. {sheet?.title || 'Loading Song...'}
-                    </Text>
-                    <View className="flex-row items-center gap-2 mt-1">
-                      <View className="bg-primary/15 px-2 py-0.5 rounded-full">
-                        <Text className="text-xs font-semibold text-primary">Key: {item.targetKey || sheet?.key || 'C'}</Text>
-                      </View>
-                      {Number(item.capo) > 0 && (
-                        <View className="bg-amber-500/15 px-2 py-0.5 rounded-full">
-                          <Text className="text-xs font-semibold text-amber-600 dark:text-amber-400">{getCapoText(item.capo)}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  <View className="flex-row items-center gap-1">
-                    <TouchableOpacity
-                      onPress={() => moveSong(index, 'up')}
-                      disabled={index === 0}
-                      className={`p-1.5 rounded-lg ${index === 0 ? 'opacity-30' : 'active:bg-muted'}`}
-                    >
-                      <ChevronUp size={18} color={ic.secondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => moveSong(index, 'down')}
-                      disabled={index === outputs.length - 1}
-                      className={`p-1.5 rounded-lg ${index === outputs.length - 1 ? 'opacity-30' : 'active:bg-muted'}`}
-                    >
-                      <ChevronDown size={18} color={ic.secondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => openEditModal(item)}
-                      className="p-1.5 rounded-lg active:bg-muted ml-1"
-                    >
-                      <Edit size={16} color={ic.secondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => removeSong(index)}
-                      className="p-1.5 rounded-lg active:bg-red-500/10 ml-1"
-                    >
-                      <Trash2 size={16} color={ic.danger} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })}
-
-            {outputs.length === 0 && (
-              <View className="border border-dashed border-border rounded-xl p-8 items-center justify-center">
-                <Text className="text-muted-foreground font-medium">No songs added yet.</Text>
-                <TouchableOpacity onPress={openAddModal} className="mt-3">
-                  <Text className="text-primary font-semibold text-sm">+ Add the first song</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+          <DraggableSongList
+            outputs={outputs}
+            chordsheetsMap={chordsheetsMap}
+            onReorder={setOutputs}
+            onMoveSong={moveSong}
+            onOpenEditModal={openEditModal}
+            onRemoveSong={removeSong}
+            onOpenAddModal={openAddModal}
+            ic={ic}
+          />
         </View>
       </View>
 
@@ -469,6 +416,6 @@ export default function SetListForm() {
           </View>
         </Modal>
       )}
-    </ScrollView>
+    </SetListScrollContainer>
   );
 }
