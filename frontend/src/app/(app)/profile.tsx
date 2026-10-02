@@ -100,7 +100,7 @@ export default function Profile() {
             source={
               profile?.picture
                 ? { uri: profile.picture }
-                : require('../../../assets/images/icon.png')
+                : require('../../../assets/images/teamchords-logo.png')
             }
             className="w-16 h-16 rounded-full bg-muted"
           />

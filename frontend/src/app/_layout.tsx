@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { Auth0Provider, useAuth0 } from 'react-native-auth0';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -42,22 +43,27 @@ export default function RootLayout() {
           cacheLocation: 'localstorage',
           useRefreshTokens: true,
         },
-        <AuthTokenProviderSetup />,
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: colorScheme === 'dark' ? '#030712' : '#F9FAFB',
-            },
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="share/[id]" />
-          <Stack.Screen name="privacy-policy" />
-          <Stack.Screen name="terms-and-conditions" />
-        </Stack>
+        <>
+          <AuthTokenProviderSetup />
+          <Head>
+            <title>Team Chords</title>
+          </Head>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#030712' : '#F9FAFB',
+              },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="share/[id]" />
+            <Stack.Screen name="privacy-policy" />
+            <Stack.Screen name="terms-and-conditions" />
+          </Stack>
+        </>
       )}
       <Toast />
     </SafeAreaProvider>

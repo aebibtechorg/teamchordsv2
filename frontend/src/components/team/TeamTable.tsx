@@ -41,7 +41,7 @@ export default function TeamTable({
                   source={
                     member.picture
                       ? { uri: member.picture }
-                      : require('../../../assets/images/icon.png')
+                      : require('../../../assets/images/teamchords-logo.png')
                   }
                   className="h-10 w-10 rounded-full bg-muted"
                 />
