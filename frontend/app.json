@@ -5,9 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/teamchords-logo.png",
-    "scheme": "frontend",
+    "scheme": "teamchords",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.aebibtech.teamchords"
+    },
     "android": {
+      "package": "com.aebibtech.teamchords",
       "adaptiveIcon": {
         "backgroundColor": "#121E2E",
         "foregroundImage": "./assets/images/teamchords-logo.png"
