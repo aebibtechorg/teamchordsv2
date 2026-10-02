@@ -1,5 +1,6 @@
 import { apiFetch, getApiBaseUrl } from './api';
 import { UserDetailDto, OrganizationDto, ProfileDto, UpdateMeDto, InviteDto } from '../types/api';
+import { Platform } from 'react-native';
 
 export async function getProfile(userId?: string): Promise<UserDetailDto | null> {
   try {
@@ -59,7 +60,7 @@ export async function createProfile(profile: { userId?: string; orgId?: string; 
 
 export async function inviteUser(email: string, organizationId: string): Promise<InviteDto | null> {
   try {
-    const baseUrl = `${getApiBaseUrl()}/invites`;
+    const baseUrl = `${Platform.OS === 'web' ? window.location.origin : ''}/invites`;
     const res = await apiFetch(`/api/invites`, {
       method: 'POST',
       body: JSON.stringify({ email, organizationId, baseUrl }),
