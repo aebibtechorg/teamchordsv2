@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 249 250 251;
+    --foreground: 17 24 39;
+    --card: 255 255 255;
+    --card-foreground: 17 24 39;
+    --border: 229 231 235;
+    --primary: 37 99 235;
+    --primary-foreground: 255 255 255;
+    --muted: 243 244 246;
+    --muted-foreground: 107 114 128;
+    --input: 255 255 255;
+    --input-border: 209 213 219;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 3 7 18;
+      --foreground: 249 250 251;
+      --card: 17 24 39;
+      --card-foreground: 249 250 251;
+      --border: 31 41 55;
+      --primary: 59 130 246;
+      --primary-foreground: 255 255 255;
+      --muted: 31 41 55;
+      --muted-foreground: 156 163 175;
+      --input: 17 24 39;
+      --input-border: 55 65 81;
+    }
+  }
+}
+
 :root {
   color-scheme: light;
 }
@@ -11,7 +43,7 @@ html {
 }
 
 body {
-  @apply bg-gray-100 font-sans text-gray-900 antialiased;
+  @apply bg-background font-sans text-foreground antialiased;
 }
 
 a {
@@ -27,15 +59,15 @@ img {
 }
 
 .post-body {
-  @apply text-base leading-7 text-gray-700 sm:text-lg;
+  @apply text-base leading-7 text-muted-foreground sm:text-lg;
 }
 
 .post-body h2 {
-  @apply mt-10 mb-4 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl;
+  @apply mt-10 mb-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl;
 }
 
 .post-body h3 {
-  @apply mt-8 mb-3 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl;
+  @apply mt-8 mb-3 text-xl font-semibold tracking-tight text-foreground sm:text-2xl;
 }
 
 .post-body p {
@@ -52,19 +84,19 @@ img {
 }
 
 .post-body a {
-  @apply text-gray-900 underline decoration-gray-400 underline-offset-4 hover:text-gray-700;
+  @apply text-foreground underline decoration-muted-foreground underline-offset-4 hover:text-muted-foreground;
 }
 
 .post-body blockquote {
-  @apply my-6 border-l-4 border-gray-300 bg-gray-100 px-4 py-3 italic text-gray-700;
+  @apply my-6 border-l-4 border-border bg-muted px-4 py-3 italic text-muted-foreground;
 }
 
 .post-body pre {
-  @apply my-6 overflow-x-auto rounded-2xl bg-gray-900 p-4 text-sm text-gray-100;
+  @apply my-6 overflow-x-auto rounded-2xl bg-foreground p-4 text-sm text-background;
 }
 
 .post-body code {
-  @apply rounded bg-gray-200 px-1.5 py-0.5 font-mono text-[0.95em] text-gray-900;
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.95em] text-foreground;
 }
 
 .post-body pre code {
@@ -72,22 +104,22 @@ img {
 }
 
 .post-body img {
-  @apply my-6 rounded-2xl border border-gray-200;
+  @apply my-6 rounded-2xl border border-border;
 }
 
 .post-body hr {
-  @apply my-8 border-gray-200;
+  @apply my-8 border-border;
 }
 
 .post-body table {
-  @apply my-6 w-full border-collapse overflow-hidden rounded-2xl border border-gray-200 text-left text-sm;
+  @apply my-6 w-full border-collapse overflow-hidden rounded-2xl border border-border text-left text-sm;
 }
 
 .post-body th,
 .post-body td {
-  @apply border-b border-gray-200 px-4 py-3 align-top;
+  @apply border-b border-border px-4 py-3 align-top;
 }
 
 .post-body thead {
-  @apply bg-gray-100;
+  @apply bg-muted;
 }
