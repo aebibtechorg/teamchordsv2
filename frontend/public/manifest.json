@@ -1,0 +1,21 @@
+{
+  "short_name": "Team Chords",
+  "name": "Team Chords",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#121E2E",
+  "display": "standalone",
+  "theme_color": "#121E2E",
+  "description": "Collaborative chord sheets."
+}
