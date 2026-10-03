@@ -113,6 +113,7 @@ else
         .WithTunnelEndpoint(api, "http");
 
     var shareWeb = builder.AddViteApp("share-web", "../web", "dev")
+        .WithPnpm()
         .WithReference(api)
         .WaitFor(api)
         .WithEndpoint(endpointName: "http", endpoint =>

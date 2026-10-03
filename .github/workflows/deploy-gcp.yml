@@ -40,20 +40,51 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Install web dependencies
         working-directory: web
-        run: npm ci
+        run: pnpm install
 
       - name: Run web tests
         working-directory: web
-        run: npm test
+        run: pnpm test
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: pnpm test
 
   admin-test:
     runs-on: ubuntu-latest
@@ -80,6 +111,7 @@ jobs:
     needs:
       - backend-test
       - web-test
+      - frontend-test
       - admin-test
     runs-on: ubuntu-latest
     env:
@@ -201,8 +233,22 @@ jobs:
       - name: Build web app
         working-directory: web
         run: |
-          npm ci
-          npm run build
+          npm install -g pnpm
+          pnpm install
+          pnpm run build
+
+      - name: Build frontend app
+        working-directory: frontend
+        env:
+          EXPO_PUBLIC_AUTH0_DOMAIN: ${{ env.TF_VAR_web_auth0_domain || env.TF_VAR_auth0_domain }}
+          EXPO_PUBLIC_AUTH0_CLIENT_ID: ${{ env.TF_VAR_web_auth0_client_id || env.TF_VAR_auth0_client_id }}
+          EXPO_PUBLIC_AUTH0_AUDIENCE: ${{ env.TF_VAR_web_auth0_audience || env.TF_VAR_auth0_audience }}
+          EXPO_PUBLIC_API_URL: ${{ env.VITE_API_BASE_URL }}
+          EXPO_PUBLIC_WEB_URL: ${{ env.TF_VAR_web_app_base_url }}
+        run: |
+          npm install -g pnpm
+          pnpm install
+          pnpm run build:web
 
       - name: Build help site
         working-directory: help
@@ -216,6 +262,13 @@ jobs:
           npx firebase-tools target:apply hosting help "$HELP_FIREBASE_SITE_ID" --project "$PROJECT_ID"
           npx firebase-tools deploy --only hosting:help --project "$PROJECT_ID"
 
-      - name: Deploy web to Firebase Hosting
-        working-directory: web
+      - name: Deploy frontend to Firebase Hosting (Primary App)
+        working-directory: frontend
         run: npx firebase-tools deploy --only hosting --project "$PROJECT_ID"
+
+      - name: Deploy web to Firebase Hosting (Share Handler)
+        working-directory: web
+        run: |
+          SHARE_FIREBASE_SITE_ID=$(cd ../infra/gcp && terraform output -raw share_firebase_site)
+          npx firebase-tools target:apply hosting share "$SHARE_FIREBASE_SITE_ID" --project "$PROJECT_ID"
+          npx firebase-tools deploy --only hosting:share --project "$PROJECT_ID"

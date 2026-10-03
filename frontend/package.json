@@ -54,8 +54,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:web": "expo export -p web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit",
     "generate-types": "node scripts/generate-types.js"
   },
   "private": true

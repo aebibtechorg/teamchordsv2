@@ -444,3 +444,11 @@ resource "google_cloud_run_v2_service_iam_member" "admin_public" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+resource "google_firebase_hosting_site" "share" {
+  provider = google-beta
+  project  = var.project_id
+  site_id  = "${var.project_id}-share"
+
+  depends_on = [google_firebase_project.default]
+}

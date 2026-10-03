@@ -30,3 +30,11 @@ output "help_firebase_default_url" {
   value = "https://${google_firebase_hosting_site.help.site_id}.web.app"
 }
 
+
+output "share_firebase_site" {
+  value = google_firebase_hosting_site.share.site_id
+}
+
+output "share_firebase_default_url" {
+  value = "https://${google_firebase_hosting_site.share.site_id}.web.app"
+}
