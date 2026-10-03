@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Spinner from '../../components/Spinner';
 import { apiFetch } from '../../utils/api';
 
@@ -17,24 +18,36 @@ export default function AcceptInvitePage() {
     const handleInvite = async () => {
       try {
         const res = await apiFetch(`/api/invites/${inviteId}/accept`);
+
+        if (res.status === 401) {
+          // User is not signed in yet. Store invite ID for automatic acceptance after sign-in.
+          await AsyncStorage.setItem('pending_invite_id', inviteId);
+          if (!isMounted) return;
+          setStatus('Please sign in or create an account to join the team...');
+          setTimeout(() => {
+            if (isMounted) {
+              router.replace('/(auth)/signin' as any);
+            }
+          }, 800);
+          return;
+        }
+
         const result = await res.json().catch(() => ({}));
 
         if (!isMounted) return;
 
         if (!res.ok) {
           setIsError(true);
-          setStatus(result.message || 'Failed to accept invite');
+          setStatus(result.message || 'Failed to accept invite.');
           return;
         }
 
-        if (result.used) {
-          setIsError(true);
-          setStatus('This invite has already been used.');
-          return;
-        }
-
-        setStatus('Invite accepted! Redirecting to sign in...');
-        router.replace('/(auth)/signin' as any);
+        setStatus('Invite accepted! Redirecting to your team...');
+        setTimeout(() => {
+          if (isMounted) {
+            router.replace('/(app)/team' as any);
+          }
+        }, 500);
       } catch (error: any) {
         if (!isMounted) return;
         setIsError(true);
@@ -59,7 +72,7 @@ export default function AcceptInvitePage() {
       ) : (
         <View className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 items-center shadow-lg">
           <Text className="text-xl font-bold text-foreground mb-2">Invitation Status</Text>
-          <Text className="text-sm text-red-500 text-center mb-6">{status}</Text>
+          <Text className="text-sm text-destructive text-center mb-6">{status}</Text>
           <TouchableOpacity
             onPress={() => router.replace('/(auth)/signin' as any)}
             className="w-full bg-primary py-3 rounded-xl items-center active:opacity-90"

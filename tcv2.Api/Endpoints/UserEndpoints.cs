@@ -130,7 +130,7 @@ internal static class UserEndpoints
                 if (!string.IsNullOrWhiteSpace(email))
                 {
                     var pendingInvites = await db.Invites
-                        .Where(i => i.Email.ToLower() == email.ToLower() && i.Used && i.OrganizationId != null)
+                        .Where(i => i.Email != null && i.Email.ToLower() == email.ToLower() && i.Used && i.OrganizationId != null)
                         .ToListAsync(cancellationToken);
 
                     bool invitesSynced = false;

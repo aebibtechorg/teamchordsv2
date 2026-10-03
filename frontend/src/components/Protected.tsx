@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { useAuth0 } from 'react-native-auth0';
+import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfileStore } from '../store/useProfileStore';
 import { getProfile } from '../utils/common';
+import { apiFetch } from '../utils/api';
 import SidebarLayout from './SidebarLayout';
 import Spinner from './Spinner';
 import { router, usePathname } from 'expo-router';
@@ -35,7 +38,30 @@ export default function Protected({ children }: ProtectedProps) {
       }
 
       try {
-        const p = await getProfile(user.sub);
+        let p = await getProfile(user.sub);
+
+        // Check for pending invite to automatically join team upon login
+        try {
+          const pendingInviteId = await AsyncStorage.getItem('pending_invite_id');
+          if (pendingInviteId) {
+            await AsyncStorage.removeItem('pending_invite_id');
+            const inviteRes = await apiFetch(`/api/invites/${pendingInviteId}/accept`);
+            if (inviteRes.ok) {
+              const refreshed = await getProfile(user.sub);
+              if (refreshed) {
+                p = refreshed;
+              }
+              Toast.show({
+                type: 'success',
+                text1: 'Joined Team',
+                text2: 'You have successfully joined the team!',
+              });
+            }
+          }
+        } catch (inviteErr) {
+          console.warn('Error accepting pending invite:', inviteErr);
+        }
+
         if (!isCancelled) {
           if (p) {
             setUserProfile(p);

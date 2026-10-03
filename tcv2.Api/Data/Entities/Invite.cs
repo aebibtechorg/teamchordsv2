@@ -8,8 +8,7 @@ namespace tcv2.Api.Data.Entities
         [Key]
         public Guid Id { get; set; }
 
-        [Required]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         public Guid InvitedBy { get; set; }
 

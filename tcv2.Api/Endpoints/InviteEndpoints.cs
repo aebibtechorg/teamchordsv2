@@ -21,7 +21,7 @@ internal static class InviteEndpoints
         {
             var q = db.Invites.AsQueryable();
             if (req.Query.TryGetValue("id", out var id) && Guid.TryParse(id, out var gid)) q = q.Where(x => x.Id == gid);
-            if (req.Query.TryGetValue("email", out var email)) q = q.Where(x => EF.Functions.ILike(x.Email, $"%{email}%"));
+            if (req.Query.TryGetValue("email", out var email)) q = q.Where(x => x.Email != null && EF.Functions.ILike(x.Email, $"%{email}%"));
             if (req.Query.TryGetValue("invitedBy", out var ib) && Guid.TryParse(ib, out var ibg)) q = q.Where(x => x.InvitedBy == ibg);
             if (req.Query.TryGetValue("token", out var token)) q = q.Where(x => EF.Functions.ILike(x.Token, $"%{token}%"));
             if (req.Query.TryGetValue("used", out var used) && bool.TryParse(used, out var bused)) q = q.Where(x => x.Used == bused);
@@ -108,59 +108,62 @@ internal static class InviteEndpoints
             {
                 await db.SaveChangesAsync(cancellationToken);
 
-                // Send email after successful creation
-                _ = Task.Run(async () =>
+                // Send email after successful creation if Email is provided
+                if (!string.IsNullOrWhiteSpace(i.Email))
                 {
-                    using var scope = provider.CreateScope();
-                    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Invite");
-                    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                    var scopeDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    var invitedByUser = await scopeDb.Users.FindAsync(i.InvitedBy);
-                    var team = await scopeDb.Organizations.FindAsync(i.OrganizationId);
-                    try
+                    _ = Task.Run(async () =>
                     {
-                        var apiKey = config["ZeptoMail:ApiKey"];
-                        var templateKey = config["ZeptoMail:TemplateKey"];
-                        var fromEmail = config["ZeptoMail:FromEmailAddress"];
-                        var frontendUrl = dto.BaseUrl ?? config["ZeptoMail:BaseUrl"];
-                        var fromName = config["ZeptoMail:FromName"] ?? "noreply";
-
-                        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(templateKey) || string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(frontendUrl))
+                        using var scope = provider.CreateScope();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Invite");
+                        var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                        var scopeDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var invitedByUser = await scopeDb.Users.FindAsync(i.InvitedBy);
+                        var team = await scopeDb.Organizations.FindAsync(i.OrganizationId);
+                        try
                         {
-                            logger.LogError("Email service not configured. Skipping email.");
-                            return;
-                        }
+                            var apiKey = config["ZeptoMail:ApiKey"];
+                            var templateKey = config["ZeptoMail:TemplateKey"];
+                            var fromEmail = config["ZeptoMail:FromEmailAddress"];
+                            var frontendUrl = dto.BaseUrl ?? config["ZeptoMail:BaseUrl"];
+                            var fromName = config["ZeptoMail:FromName"] ?? "noreply";
 
-                        var httpClient = httpFactory.CreateClient();
-                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Zoho-enczapikey", apiKey);
-                        
-                        var payload = new
-                        {
-                            template_key = templateKey,
-                            from = new { address = fromEmail, name = fromName },
-                            to = new[] { new { email_address = new { address = i.Email } } },
-                            merge_info = new
+                            if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(templateKey) || string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(frontendUrl))
                             {
-                                inviter_name = invitedByUser?.Name ?? string.Empty,
-                                invite_link = $"{frontendUrl.TrimEnd('/')}/{i.Id}",
-                                team_name = team?.Name ?? string.Empty
+                                logger.LogError("Email service not configured. Skipping email.");
+                                return;
                             }
-                        };
 
-                        var content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
-                        var response = await httpClient.PostAsync("https://api.zeptomail.com/v1.1/email/template", content);
+                            var httpClient = httpFactory.CreateClient();
+                            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Zoho-enczapikey", apiKey);
+                            
+                            var payload = new
+                            {
+                                template_key = templateKey,
+                                from = new { address = fromEmail, name = fromName },
+                                to = new[] { new { email_address = new { address = i.Email } } },
+                                merge_info = new
+                                {
+                                    inviter_name = invitedByUser?.Name ?? string.Empty,
+                                    invite_link = $"{frontendUrl.TrimEnd('/')}/{i.Id}",
+                                    team_name = team?.Name ?? string.Empty
+                                }
+                            };
 
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            var errorContent = await response.Content.ReadAsStringAsync();
-                            logger.LogError("Failed to send email: {statusCode} - {errorContent}", response.StatusCode, errorContent);
+                            var content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+                            var response = await httpClient.PostAsync("https://api.zeptomail.com/v1.1/email/template", content);
+
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                var errorContent = await response.Content.ReadAsStringAsync();
+                                logger.LogError("Failed to send email: {statusCode} - {errorContent}", response.StatusCode, errorContent);
+                            }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Error sending invite email: {message}", ex.Message);
-                    }
-                });
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error sending invite email: {message}", ex.Message);
+                        }
+                    });
+                }
 
                 return Results.Created($"/api/invites/{i.Id}", i.ToDto());
             }
@@ -170,7 +173,7 @@ internal static class InviteEndpoints
             }
         });
 
-        invites.MapGet("/{id}/accept", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
+        invites.MapGet("/{id}/accept", async (Guid id, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {
             var strategy = db.Database.CreateExecutionStrategy();
 
@@ -185,39 +188,46 @@ internal static class InviteEndpoints
                     if (invite.Used) return Results.BadRequest(new { message = "Invite has already been used" });
                     if (DateTimeOffset.UtcNow >= invite.ExpiresAt) return Results.BadRequest(new { message = "Invite has expired" });
 
-                    var existingUser = await db.Users.FirstOrDefaultAsync(u => u.Email!.ToLower() == invite.Email.ToLower(), ct);
-                    var isExistingUser = existingUser != null;
-                    var oldUsed = invite.Used;
-                    invite.Used = true;
-
-                    if (isExistingUser)
+                    var caller = await EndpointHelpers.GetCallerAsync(req, db, ct);
+                    if (caller == null)
                     {
-                        if (invite.OrganizationId == null) return Results.BadRequest(new { message = "Invite organization is missing" });
-
-                        var organizationId = invite.OrganizationId.Value;
-                        var org = await db.Organizations.FindAsync([organizationId], ct);
-                        if (org == null) return Results.NotFound("Organization not found");
-
-                        var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId, ct);
-                        var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
-                        if (gate != null) return gate;
-
-                        if (existingUser == null) return Results.BadRequest(new { message = "User not found" });
-
-                        var userOrg = new UserOrganization
-                        {
-                            UserId = existingUser.Id,
-                            OrganizationId = organizationId,
-                            Role = OrgRole.Member,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.UserOrganizations.Add(userOrg);
+                        return Results.Unauthorized();
                     }
+
+                    if (invite.OrganizationId == null) return Results.BadRequest(new { message = "Invite organization is missing" });
+
+                    var organizationId = invite.OrganizationId.Value;
+                    var org = await db.Organizations.FindAsync([organizationId], ct);
+                    if (org == null) return Results.NotFound(new { message = "Organization not found" });
+
+                    var alreadyMember = await db.UserOrganizations.AnyAsync(uo => uo.OrganizationId == organizationId && uo.UserId == caller.Id, ct);
+                    if (alreadyMember)
+                    {
+                        invite.Used = true;
+                        await db.SaveChangesAsync(ct);
+                        await tx.CommitAsync(ct);
+                        return Results.Ok(new { message = "Already a member of this organization", organizationId = invite.OrganizationId, used = true });
+                    }
+
+                    var currentMemberCount = await db.UserOrganizations.CountAsync(uo => uo.OrganizationId == organizationId, ct);
+                    var gate = FeatureGate.CheckLimits(org, 0, 0, currentMemberCount + 1, 0);
+                    if (gate != null) return gate;
+
+                    var userOrg = new UserOrganization
+                    {
+                        UserId = caller.Id,
+                        OrganizationId = organizationId,
+                        Role = OrgRole.Member,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    db.UserOrganizations.Add(userOrg);
+
+                    invite.Used = true;
 
                     await db.SaveChangesAsync(ct);
                     await tx.CommitAsync(ct);
 
-                    return Results.Ok(new { isExistingUser, email = invite.Email, organizationId = invite.OrganizationId, used = oldUsed });
+                    return Results.Ok(new { isExistingUser = true, email = caller.Email, organizationId = invite.OrganizationId, used = true });
                 }
                 catch (DbUpdateException ex)
                 {
@@ -225,7 +235,7 @@ internal static class InviteEndpoints
                     return EndpointHelpers.HandleDbUpdateException(ex);
                 }
             }, cancellationToken);
-        }).AllowAnonymous();
+        }).RequireAuthorization();
 
         invites.MapPut("/{id}", async (Guid id, InviteDto dto, HttpRequest req, AppDbContext db, CancellationToken cancellationToken) =>
         {

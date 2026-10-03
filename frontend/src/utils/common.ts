@@ -58,12 +58,12 @@ export async function createProfile(profile: { userId?: string; orgId?: string; 
   }
 }
 
-export async function inviteUser(email: string, organizationId: string): Promise<InviteDto | null> {
+export async function inviteUser(organizationId: string, email?: string): Promise<InviteDto | null> {
   try {
-    const baseUrl = `${Platform.OS === 'web' ? window.location.origin : ''}/invites`;
+    const baseUrl = `${Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : ''}/invites`;
     const res = await apiFetch(`/api/invites`, {
       method: 'POST',
-      body: JSON.stringify({ email, organizationId, baseUrl }),
+      body: JSON.stringify({ email: email?.trim() || null, organizationId, baseUrl }),
     });
     if (!res.ok) {
       const text = await res.json();

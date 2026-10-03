@@ -13,7 +13,7 @@ if (builder.Configuration["Destination"] == "test")
 
     var db = postgres.AddDatabase("TeamChords", "teamchords");
 
-    builder.AddProject<Projects.tcv2_Api>("api")
+    var api = builder.AddProject<Projects.tcv2_Api>("api")
         .WithEnvironment(c =>
         {
             c.EnvironmentVariables.Add("Auth0__Domain", builder.Configuration["Auth0:Domain"] ?? Environment.GetEnvironmentVariable("Auth0__Domain") ?? "");
@@ -55,6 +55,38 @@ if (builder.Configuration["Destination"] == "test")
         .WithReference(db)
         .WaitFor(db)
         .WithExternalHttpEndpoints();
+
+    api.WithCommand("migrate-db", "Migrate DB", async context =>
+    {
+        try
+        {
+            var endpointUrl = api.GetEndpoint("http").Url;
+            var url = $"{endpointUrl}/api/migrate";
+
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(url, context.CancellationToken);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Aspire.Hosting.ApplicationModel.CommandResults.Success();
+            }
+
+            return new Aspire.Hosting.ApplicationModel.ExecuteCommandResult
+            {
+                Success = false,
+                Message = $"HTTP {response.StatusCode}: {content}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new Aspire.Hosting.ApplicationModel.ExecuteCommandResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+    });
 }
 else
 {
@@ -106,6 +138,38 @@ else
         .WithReference(redis)
         .WaitFor(redis)
         .WithExternalHttpEndpoints();
+
+    api.WithCommand("migrate-db", "Migrate DB", async context =>
+    {
+        try
+        {
+            var endpointUrl = api.GetEndpoint("http").Url;
+            var url = $"{endpointUrl}/api/migrate";
+
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(url, context.CancellationToken);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Aspire.Hosting.ApplicationModel.CommandResults.Success();
+            }
+
+            return new Aspire.Hosting.ApplicationModel.ExecuteCommandResult
+            {
+                Success = false,
+                Message = $"HTTP {response.StatusCode}: {content}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new Aspire.Hosting.ApplicationModel.ExecuteCommandResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+    });
 
     var ngrokAuthToken = builder.AddParameter("NgrokAuthToken", secret: true);
     builder.AddNgrok("dodo-webhook")

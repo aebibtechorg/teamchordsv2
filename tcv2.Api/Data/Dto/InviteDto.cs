@@ -7,9 +7,7 @@ namespace tcv2.Api.Data.Dto
     {
         public Guid? Id { get; set; }
 
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         public Guid? InvitedBy { get; set; }
         
